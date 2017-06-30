@@ -57,25 +57,40 @@ func runBot(config botConfig, bot *tgbotapi.BotAPI) {
 	}
 }
 
-func handleCommands(update tgbotapi.Update, bot *tgbotapi.BotAPI) {
+func handleCommands(update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
 	cmd := update.Message.Command()
 	args := update.Message.CommandArguments()
 
-	switch cmd {
+	switch strings.ToLower(cmd) {
 	case "indent":
-		if strings.HasPrefix(strings.ToLower(args), "https://repl.it/") {
-			if r, err := downloadReplIt(args); err == nil {
-				//FIXME: hardcoded for C.
-				if r, err = uploadIndentedCode(indentC(r)); err != nil {
-					fmt.Println(err)
-				}
-
-				msg := fmt.Sprintf("Acesse a versão indentada em %s. Lembre que a última revisão sempre está disponível em https://repl.it/%s/latest.", r.newUrl, r.id)
-				fmt.Printf("%+V", r)
-				sendReply(update.Message.Chat.ID, update.Message.MessageID, msg, bot)
-			}
+		if !strings.HasPrefix(strings.ToLower(args), "https://repl.it/") {
+			err := fmt.Errorf("esta não é uma URL do repl.it válida")
+			sendReply(update.Message.Chat.ID, update.Message.MessageID, err.Error(), bot)
+			return err
 		}
+
+		repl, err := downloadReplIt(args)
+		if err != nil {
+			sendReply(update.Message.Chat.ID, update.Message.MessageID, "Não foi possível acessar esta URL do repl.it", bot)
+			return err
+		}
+
+		repl, err = indent(repl)
+		if err != nil {
+			sendReply(update.Message.Chat.ID, update.Message.MessageID, err.Error(), bot)
+			return err
+		}
+
+		repl, err = uploadIndentedCode(repl)
+		if err != nil {
+			sendReply(update.Message.Chat.ID, update.Message.MessageID, err.Error(), bot)
+			return err
+		}
+
+		msg := fmt.Sprintf("Acesse a versão indentada em %s. Lembre que a última revisão sempre está disponível em https://repl.it/%s/latest.", repl.newURL, repl.id)
+		sendReply(update.Message.Chat.ID, update.Message.MessageID, msg, bot)
 	}
+	return nil
 }
 
 func formatName(update tgbotapi.Update) string {
