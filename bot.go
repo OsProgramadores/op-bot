@@ -50,6 +50,29 @@ func runBot(config botConfig, bot *tgbotapi.BotAPI) {
 					tgbotapi.NewInlineKeyboardRow(rulesButton(msgs)),
 				)
 				sendReplyWithMarkup(update.Message.Chat.ID, update.Message.MessageID, updateMsg(msgs.Welcome, name), markup, bot)
+			case update.Message.IsCommand():
+				handleCommands(update, bot)
+			}
+		}
+	}
+}
+
+func handleCommands(update tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	cmd := update.Message.Command()
+	args := update.Message.CommandArguments()
+
+	switch cmd {
+	case "indent":
+		if strings.HasPrefix(strings.ToLower(args), "https://repl.it/") {
+			if r, err := downloadReplIt(args); err == nil {
+				//FIXME: hardcoded for C.
+				if r, err = uploadIndentedCode(indentC(r)); err != nil {
+					fmt.Println(err)
+				}
+
+				msg := fmt.Sprintf("Acesse a versão indentada em %s. Lembre que a última revisão sempre está disponível em https://repl.it/%s/latest.", r.newUrl, r.id)
+				fmt.Printf("%+V", r)
+				sendReply(update.Message.Chat.ID, update.Message.MessageID, msg, bot)
 			}
 		}
 	}
