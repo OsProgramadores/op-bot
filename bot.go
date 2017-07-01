@@ -59,7 +59,7 @@ func runBot(config botConfig, bot *tgbotapi.BotAPI) {
 
 func handleCommands(update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
 	cmd := update.Message.Command()
-	args := update.Message.CommandArguments()
+	args := strings.Trim(update.Message.CommandArguments(), " ")
 
 	switch strings.ToLower(cmd) {
 	case "indent":
