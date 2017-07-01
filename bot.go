@@ -81,13 +81,13 @@ func handleCommands(update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
 			return err
 		}
 
-		repl, err = uploadIndentedCode(repl)
+		repl, err = uploadToRepl(repl)
 		if err != nil {
 			sendReply(update.Message.Chat.ID, update.Message.MessageID, err.Error(), bot)
 			return err
 		}
 
-		msg := fmt.Sprintf("Acesse a versão indentada em %s. Lembre que a última revisão sempre está disponível em https://repl.it/%s/latest.", repl.newURL, repl.id)
+		msg := fmt.Sprintf("Acesse a versão indentada em %s. Lembre que a última revisão sempre está disponível em https://repl.it/%s/latest.", repl.newURL, repl.SessionID)
 		sendReply(update.Message.Chat.ID, update.Message.MessageID, msg, bot)
 	}
 	return nil
