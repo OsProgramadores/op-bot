@@ -14,11 +14,6 @@ import (
 	"strings"
 )
 
-const (
-	replBaseURL = "https://repl.it"
-	replSaveURL = "https://repl.it/save"
-)
-
 type replFile struct {
 	ID      int    `json:"id"`
 	Name    string `json:"name"`
@@ -41,6 +36,28 @@ type replProject struct {
 	editorTextIndented string
 	indentedByUs       bool
 }
+
+type replaceString struct {
+	src string
+	dst string
+}
+
+type indenterCmd struct {
+	cmd        string
+	args       string
+	replaceErr *replaceString
+}
+
+const (
+	replBaseURL = "https://repl.it/"
+	replSaveURL = "https://repl.it/save"
+)
+
+var (
+	indenters = map[string]*indenterCmd{
+		"c": &indenterCmd{cmd: "indent", args: "--no-tabs --tab-size4 --indent-level4 --braces-on-if-line --cuddle-else --braces-on-func-def-line --braces-on-struct-decl-line --cuddle-do-while --no-space-after-function-call-names --no-space-after-parentheses --dont-break-procedure-type -l666", replaceErr: &replaceString{src: "indent: Standard input:", dst: "linha "}},
+	}
+)
 
 func parseReplItJSON(data []byte) (*replProject, error) {
 	var repl replProject
@@ -126,23 +143,16 @@ func uploadToRepl(repl *replProject) (*replProject, error) {
 	}
 
 	repl.url = url
-	repl.newURL = fmt.Sprintf("%s/%s/%s", replBaseURL, repl.SessionID, repl.RevisionID)
+	repl.newURL = fmt.Sprintf("%s%s/%s", replBaseURL, repl.SessionID, repl.RevisionID)
 
 	return repl, nil
 }
 
-func indentC(repl *replProject) (*replProject, error) {
-	if repl.Language != "c" {
-		return nil, fmt.Errorf("essa linguagem não é C")
-	}
-
-	// Magic arguments by @mpaganini: https://github.com/marcopaganini/sock
-	args := "--no-tabs --tab-size4 --indent-level4 --braces-on-if-line --cuddle-else --braces-on-func-def-line --braces-on-struct-decl-line --cuddle-do-while --no-space-after-function-call-names --no-space-after-parentheses --dont-break-procedure-type -l666"
-
+func indentCode(repl *replProject, indenter *indenterCmd) (*replProject, error) {
 	// Indent each of the files, if we are dealing with a project.
 	if repl.IsProject {
 		for key, file := range repl.Files {
-			cmd := exec.Command("indent", strings.Split(args, " ")...)
+			cmd := exec.Command(indenter.cmd, strings.Split(indenter.args, " ")...)
 			stdin, err := cmd.StdinPipe()
 			if err != nil {
 				return nil, err
@@ -157,7 +167,11 @@ func indentC(repl *replProject) (*replProject, error) {
 
 			if err = cmd.Run(); err != nil {
 				if len(errbuf.String()) > 0 {
-					return nil, fmt.Errorf("erros detectados no arquivo %s:\n%s", file.Name, strings.Replace(errbuf.String(), "indent: Standard input:", "linha ", -1))
+					errorMsg := errbuf.String()
+					if indenter.replaceErr != nil {
+						errorMsg = strings.Replace(errorMsg, indenter.replaceErr.src, indenter.replaceErr.dst, -1)
+					}
+					return nil, fmt.Errorf("erros detectados no arquivo %s:\n%s", file.Name, errorMsg)
 				}
 				return nil, err
 			}
@@ -172,7 +186,7 @@ func indentC(repl *replProject) (*replProject, error) {
 		}
 	} else {
 		// If not a project, indent the content of EditorText.
-		cmd := exec.Command("indent", strings.Split(args, " ")...)
+		cmd := exec.Command(indenter.cmd, strings.Split(indenter.args, " ")...)
 		stdin, err := cmd.StdinPipe()
 		if err != nil {
 			return nil, err
@@ -187,7 +201,12 @@ func indentC(repl *replProject) (*replProject, error) {
 
 		if err = cmd.Run(); err != nil {
 			if len(errbuf.String()) > 0 {
-				return nil, fmt.Errorf("erros detectados:\n%s", strings.Replace(errbuf.String(), "indent: Standard input:", "linha ", -1))
+				errorMsg := errbuf.String()
+				if indenter.replaceErr != nil {
+					errorMsg = strings.Replace(errorMsg, indenter.replaceErr.src, indenter.replaceErr.dst, -1)
+				}
+
+				return nil, fmt.Errorf("erros detectados:\n%s", errorMsg)
 			}
 			return nil, err
 		}
@@ -205,8 +224,31 @@ func indentC(repl *replProject) (*replProject, error) {
 func indent(repl *replProject) (*replProject, error) {
 	switch repl.Language {
 	case "c":
-		return indentC(repl)
+		return indentCode(repl, indenters[repl.Language])
 	default:
-		return nil, fmt.Errorf("ainda não sei indentar essa linguagem. Se puder ajudar, faça um pull request para https://github.com/OsProgramadores/osprogramadores_bot :)")
+		return nil, fmt.Errorf("ainda não sei indentar essa linguagem %q. Se puder ajudar, faça um pull request para https://github.com/OsProgramadores/osprogramadores_bot :)", repl.Language)
 	}
+}
+
+func handleReplItURL(url string) (*replProject, error) {
+	if !strings.HasPrefix(strings.ToLower(url), replBaseURL) {
+		return nil, fmt.Errorf("esta não é uma URL válida do repl.it")
+	}
+
+	repl, err := downloadReplIt(url)
+	if err != nil {
+		return nil, fmt.Errorf("não foi possível acessar esta URL do repl.it")
+	}
+
+	repl, err = indent(repl)
+	if err != nil {
+		return nil, err
+	}
+
+	repl, err = uploadToRepl(repl)
+	if err != nil {
+		return nil, err
+	}
+
+	return repl, nil
 }
