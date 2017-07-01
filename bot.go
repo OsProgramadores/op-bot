@@ -63,25 +63,8 @@ func handleCommands(update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
 
 	switch strings.ToLower(cmd) {
 	case "indent":
-		if !strings.HasPrefix(strings.ToLower(args), "https://repl.it/") {
-			err := fmt.Errorf("esta não é uma URL do repl.it válida")
-			sendReply(update.Message.Chat.ID, update.Message.MessageID, err.Error(), bot)
-			return err
-		}
+		repl, err := handleReplItURL(args)
 
-		repl, err := downloadReplIt(args)
-		if err != nil {
-			sendReply(update.Message.Chat.ID, update.Message.MessageID, "Não foi possível acessar esta URL do repl.it", bot)
-			return err
-		}
-
-		repl, err = indent(repl)
-		if err != nil {
-			sendReply(update.Message.Chat.ID, update.Message.MessageID, err.Error(), bot)
-			return err
-		}
-
-		repl, err = uploadToRepl(repl)
 		if err != nil {
 			sendReply(update.Message.Chat.ID, update.Message.MessageID, err.Error(), bot)
 			return err
