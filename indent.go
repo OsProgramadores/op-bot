@@ -59,6 +59,14 @@ var (
 	}
 )
 
+type httpGetter interface {
+	Get(string) (*http.Response, error)
+}
+
+type httpPoster interface {
+	PostForm(string, url.Values) (*http.Response, error)
+}
+
 func parseReplItJSON(data []byte) (*replProject, error) {
 	var repl replProject
 	err := json.Unmarshal(data, &repl)
@@ -87,8 +95,8 @@ func parseReplItDownload(body *[]byte) (*replProject, error) {
 	return parseReplItJSON(match[1])
 }
 
-func downloadReplIt(url string) (*replProject, error) {
-	resp, err := http.Get(url)
+func downloadReplIt(h httpGetter, url string) (*replProject, error) {
+	resp, err := h.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +113,7 @@ func downloadReplIt(url string) (*replProject, error) {
 
 }
 
-func uploadToRepl(repl *replProject) (*replProject, error) {
+func uploadToRepl(poster httpPoster, repl *replProject) (*replProject, error) {
 	if !repl.indentedByUs {
 		return nil, fmt.Errorf("código já estava indentado :)")
 	}
@@ -128,7 +136,7 @@ func uploadToRepl(repl *replProject) (*replProject, error) {
 		formData.Add("editor_text", repl.editorTextIndented)
 	}
 
-	resp, err := http.PostForm(replSaveURL, formData)
+	resp, err := poster.PostForm(replSaveURL, formData)
 	if err != nil {
 		return nil, err
 	}
@@ -235,7 +243,9 @@ func handleReplItURL(url string) (*replProject, error) {
 		return nil, fmt.Errorf("esta não é uma URL válida do repl.it")
 	}
 
-	repl, err := downloadReplIt(url)
+	httpClient := &http.Client{}
+
+	repl, err := downloadReplIt(httpClient, url)
 	if err != nil {
 		return nil, fmt.Errorf("não foi possível acessar esta URL do repl.it")
 	}
@@ -245,7 +255,7 @@ func handleReplItURL(url string) (*replProject, error) {
 		return nil, err
 	}
 
-	repl, err = uploadToRepl(repl)
+	repl, err = uploadToRepl(httpClient, repl)
 	if err != nil {
 		return nil, err
 	}
