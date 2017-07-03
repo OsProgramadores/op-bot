@@ -156,11 +156,11 @@ func uploadToRepl(poster httpPoster, repl *replProject) (*replProject, error) {
 	return repl, nil
 }
 
-func indentCode(repl *replProject, indenter *indenterCmd) (*replProject, error) {
+func indentCode(command func(string, ...string) *exec.Cmd, repl *replProject, indenter *indenterCmd) (*replProject, error) {
 	// Indent each of the files, if we are dealing with a project.
 	if repl.IsProject {
 		for key, file := range repl.Files {
-			cmd := exec.Command(indenter.cmd, strings.Split(indenter.args, " ")...)
+			cmd := command(indenter.cmd, strings.Split(indenter.args, " ")...)
 			stdin, err := cmd.StdinPipe()
 			if err != nil {
 				return nil, err
@@ -194,7 +194,7 @@ func indentCode(repl *replProject, indenter *indenterCmd) (*replProject, error) 
 		}
 	} else {
 		// If not a project, indent the content of EditorText.
-		cmd := exec.Command(indenter.cmd, strings.Split(indenter.args, " ")...)
+		cmd := command(indenter.cmd, strings.Split(indenter.args, " ")...)
 		stdin, err := cmd.StdinPipe()
 		if err != nil {
 			return nil, err
@@ -232,7 +232,7 @@ func indentCode(repl *replProject, indenter *indenterCmd) (*replProject, error) 
 func indent(repl *replProject) (*replProject, error) {
 	switch repl.Language {
 	case "c":
-		return indentCode(repl, indenters[repl.Language])
+		return indentCode(exec.Command, repl, indenters[repl.Language])
 	default:
 		return nil, fmt.Errorf("ainda não sei indentar essa linguagem %q. Se puder ajudar, faça um pull request para https://github.com/OsProgramadores/osprogramadores_bot :)", repl.Language)
 	}
