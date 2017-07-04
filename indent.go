@@ -67,7 +67,7 @@ type httpPoster interface {
 	PostForm(string, url.Values) (*http.Response, error)
 }
 
-func parseReplItJSON(data []byte) (*replProject, error) {
+func parseReplIt(data []byte) (*replProject, error) {
 	var repl replProject
 	err := json.Unmarshal(data, &repl)
 	if err != nil {
@@ -86,15 +86,6 @@ func parseReplItJSON(data []byte) (*replProject, error) {
 	return &repl, nil
 }
 
-func parseReplItDownload(body *[]byte) (*replProject, error) {
-	regex := regexp.MustCompile("REPLIT_DATA = ({.*})</script>")
-	match := regex.FindSubmatch(*body)
-	if match == nil {
-		return nil, fmt.Errorf("não foi possível extrair os dados do repl.it")
-	}
-	return parseReplItJSON(match[1])
-}
-
 func downloadReplIt(h httpGetter, url string) (*replProject, error) {
 	resp, err := h.Get(url)
 	if err != nil {
@@ -103,7 +94,17 @@ func downloadReplIt(h httpGetter, url string) (*replProject, error) {
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 
-	repl, err := parseReplItDownload(&body)
+	regex, err := regexp.Compile("REPLIT_DATA = ({.*})</script>")
+	if err != nil {
+		return nil, err
+	}
+
+	match := regex.FindSubmatch(body)
+	if match == nil {
+		return nil, fmt.Errorf("não foi possível extrair os dados do repl.it: %s", string(body))
+	}
+
+	repl, err := parseReplIt(match[1])
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +114,7 @@ func downloadReplIt(h httpGetter, url string) (*replProject, error) {
 
 }
 
-func uploadToRepl(poster httpPoster, repl *replProject) (*replProject, error) {
+func uploadReplIt(poster httpPoster, repl *replProject) (*replProject, error) {
 	if !repl.indentedByUs {
 		return nil, fmt.Errorf("código já estava indentado :)")
 	}
@@ -144,7 +145,7 @@ func uploadToRepl(poster httpPoster, repl *replProject) (*replProject, error) {
 	body, err := ioutil.ReadAll(resp.Body)
 
 	url := repl.url
-	repl, err = parseReplItJSON(body)
+	repl, err = parseReplIt(body)
 	if err != nil {
 		fmt.Println(string(body))
 		return nil, err
@@ -157,6 +158,9 @@ func uploadToRepl(poster httpPoster, repl *replProject) (*replProject, error) {
 }
 
 func indentCode(command func(string, ...string) *exec.Cmd, repl *replProject, indenter *indenterCmd) (*replProject, error) {
+	// Let's reset this flag.
+	repl.indentedByUs = false
+
 	// Indent each of the files, if we are dealing with a project.
 	if repl.IsProject {
 		for key, file := range repl.Files {
@@ -255,7 +259,7 @@ func handleReplItURL(url string) (*replProject, error) {
 		return nil, err
 	}
 
-	repl, err = uploadToRepl(httpClient, repl)
+	repl, err = uploadReplIt(httpClient, repl)
 	if err != nil {
 		return nil, err
 	}
