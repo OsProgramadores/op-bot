@@ -73,6 +73,20 @@ func handleCommands(update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
 
 		msg := fmt.Sprintf("Acesse a versão indentada em %s. Lembre que a última revisão sempre está disponível em https://repl.it/%s/latest.", repl.newURL, repl.SessionID)
 		sendReply(update.Message.Chat.ID, update.Message.MessageID, msg, bot)
+
+	case "hackerdetected":
+		// This gif is available at http://i.imgur.com/LPn1Ya9.gif.
+		// Below we have a Telegram document ID for it.
+		hackerGif := "CgADAQADCgADwWPhRuV2fJ9JFYikAg"
+
+		gif := tgbotapi.NewDocumentShare(update.Message.Chat.ID, hackerGif)
+
+		replyTo := update.Message.MessageID
+		if update.Message.ReplyToMessage != nil {
+			replyTo = update.Message.ReplyToMessage.MessageID
+		}
+		gif.ReplyToMessageID = replyTo
+		bot.Send(gif)
 	}
 	return nil
 }

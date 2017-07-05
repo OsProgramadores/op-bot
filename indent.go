@@ -202,7 +202,6 @@ func indentCode(rr execRunner, repl *replProject, indenter *indenterCmd) (*replP
 	} else {
 		// If not a project, indent the content of EditorText.
 		stdout, stderr, err := rr.run(repl.EditorText, indenter.cmd, strings.Split(indenter.args, " ")...)
-
 		if err != nil {
 			if len(stderr) > 0 {
 				errorMsg := stderr
