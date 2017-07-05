@@ -76,8 +76,9 @@ func handleCommands(update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
 
 	case "hackerdetected":
 		// This gif is available at http://i.imgur.com/LPn1Ya9.gif.
-		// Below we have a Telegram document ID for it.
-		hackerGif := "CgADAQADCgADwWPhRuV2fJ9JFYikAg"
+		// Below we have a (bot-specific) Telegram document ID for it.
+		// It works for @osprogramadores_bot.
+		hackerGif := "CgADAQADFAADczjpRo3QR3X-LC5EAg"
 
 		gif := tgbotapi.NewDocumentShare(update.Message.Chat.ID, hackerGif)
 
