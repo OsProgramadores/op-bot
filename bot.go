@@ -63,7 +63,8 @@ func handleCommands(update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
 
 	switch strings.ToLower(cmd) {
 	case "indent":
-		repl, err := handleReplItURL(args)
+		// Command: /indent replit_url
+		repl, err := handleReplItURL(&runner{}, args)
 
 		if err != nil {
 			sendReply(update.Message.Chat.ID, update.Message.MessageID, err.Error(), bot)

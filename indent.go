@@ -59,12 +59,31 @@ var (
 	}
 )
 
-type httpGetter interface {
-	Get(string) (*http.Response, error)
+type execRunner interface {
+	run(string, string, ...string) (string, string, error)
 }
 
-type httpPoster interface {
-	PostForm(string, url.Values) (*http.Response, error)
+type runner struct{}
+
+func (x runner) run(command string, cmdIn string, args ...string) (string, string, error) {
+	cmd := exec.Command(command, args...)
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return "", "", err
+	}
+
+	var outbuf, errbuf bytes.Buffer
+	cmd.Stdout = &outbuf
+	cmd.Stderr = &errbuf
+
+	io.WriteString(stdin, cmdIn)
+	stdin.Close()
+
+	if err = cmd.Run(); err != nil {
+		return "", "", err
+	}
+
+	return outbuf.String(), errbuf.String(), nil
 }
 
 func parseReplItJSON(data []byte) (*replProject, error) {
@@ -86,24 +105,24 @@ func parseReplItJSON(data []byte) (*replProject, error) {
 	return &repl, nil
 }
 
-func parseReplItDownload(body *[]byte) (*replProject, error) {
-	regex := regexp.MustCompile("REPLIT_DATA = ({.*})</script>")
-	match := regex.FindSubmatch(*body)
+func parseReplItDownload(body []byte) (*replProject, error) {
+	regex := regexp.MustCompile("(?s:REPLIT_DATA = ({.*}).*</script>)")
+	match := regex.FindSubmatch(body)
 	if match == nil {
 		return nil, fmt.Errorf("não foi possível extrair os dados do repl.it")
 	}
 	return parseReplItJSON(match[1])
 }
 
-func downloadReplIt(h httpGetter, url string) (*replProject, error) {
-	resp, err := h.Get(url)
+func downloadReplIt(url string) (*replProject, error) {
+	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 
-	repl, err := parseReplItDownload(&body)
+	repl, err := parseReplItDownload(body)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +132,7 @@ func downloadReplIt(h httpGetter, url string) (*replProject, error) {
 
 }
 
-func uploadToRepl(poster httpPoster, repl *replProject) (*replProject, error) {
+func uploadToRepl(repl *replProject) (*replProject, error) {
 	if !repl.indentedByUs {
 		return nil, fmt.Errorf("código já estava indentado :)")
 	}
@@ -136,7 +155,7 @@ func uploadToRepl(poster httpPoster, repl *replProject) (*replProject, error) {
 		formData.Add("editor_text", repl.editorTextIndented)
 	}
 
-	resp, err := poster.PostForm(replSaveURL, formData)
+	resp, err := http.PostForm(replSaveURL, formData)
 	if err != nil {
 		return nil, err
 	}
@@ -156,26 +175,14 @@ func uploadToRepl(poster httpPoster, repl *replProject) (*replProject, error) {
 	return repl, nil
 }
 
-func indentCode(repl *replProject, indenter *indenterCmd) (*replProject, error) {
+func indentCode(rr execRunner, repl *replProject, indenter *indenterCmd) (*replProject, error) {
 	// Indent each of the files, if we are dealing with a project.
 	if repl.IsProject {
 		for key, file := range repl.Files {
-			cmd := exec.Command(indenter.cmd, strings.Split(indenter.args, " ")...)
-			stdin, err := cmd.StdinPipe()
+			stdout, stderr, err := rr.run(file.Content, indenter.cmd, strings.Split(indenter.args, " ")...)
 			if err != nil {
-				return nil, err
-			}
-
-			var outbuf, errbuf bytes.Buffer
-			cmd.Stdout = &outbuf
-			cmd.Stderr = &errbuf
-
-			io.WriteString(stdin, file.Content)
-			stdin.Close()
-
-			if err = cmd.Run(); err != nil {
-				if len(errbuf.String()) > 0 {
-					errorMsg := errbuf.String()
+				if len(stderr) > 0 {
+					errorMsg := stderr
 					if indenter.replaceErr != nil {
 						errorMsg = strings.Replace(errorMsg, indenter.replaceErr.src, indenter.replaceErr.dst, -1)
 					}
@@ -184,7 +191,7 @@ func indentCode(repl *replProject, indenter *indenterCmd) (*replProject, error) 
 				return nil, err
 			}
 
-			indented := outbuf.String()
+			indented := stdout
 			file.indented = indented
 			repl.Files[key] = file
 
@@ -194,22 +201,11 @@ func indentCode(repl *replProject, indenter *indenterCmd) (*replProject, error) 
 		}
 	} else {
 		// If not a project, indent the content of EditorText.
-		cmd := exec.Command(indenter.cmd, strings.Split(indenter.args, " ")...)
-		stdin, err := cmd.StdinPipe()
+		stdout, stderr, err := rr.run(repl.EditorText, indenter.cmd, strings.Split(indenter.args, " ")...)
+
 		if err != nil {
-			return nil, err
-		}
-
-		var outbuf, errbuf bytes.Buffer
-		cmd.Stdout = &outbuf
-		cmd.Stderr = &errbuf
-
-		io.WriteString(stdin, repl.EditorText)
-		stdin.Close()
-
-		if err = cmd.Run(); err != nil {
-			if len(errbuf.String()) > 0 {
-				errorMsg := errbuf.String()
+			if len(stderr) > 0 {
+				errorMsg := stderr
 				if indenter.replaceErr != nil {
 					errorMsg = strings.Replace(errorMsg, indenter.replaceErr.src, indenter.replaceErr.dst, -1)
 				}
@@ -219,7 +215,7 @@ func indentCode(repl *replProject, indenter *indenterCmd) (*replProject, error) 
 			return nil, err
 		}
 
-		indented := outbuf.String()
+		indented := stdout
 		repl.editorTextIndented = indented
 
 		if repl.EditorText != indented {
@@ -229,33 +225,31 @@ func indentCode(repl *replProject, indenter *indenterCmd) (*replProject, error) 
 	return repl, nil
 }
 
-func indent(repl *replProject) (*replProject, error) {
+func indent(rr execRunner, repl *replProject) (*replProject, error) {
 	switch repl.Language {
 	case "c":
-		return indentCode(repl, indenters[repl.Language])
+		return indentCode(rr, repl, indenters[repl.Language])
 	default:
 		return nil, fmt.Errorf("ainda não sei indentar essa linguagem %q. Se puder ajudar, faça um pull request para https://github.com/OsProgramadores/osprogramadores_bot :)", repl.Language)
 	}
 }
 
-func handleReplItURL(url string) (*replProject, error) {
+func handleReplItURL(rr execRunner, url string) (*replProject, error) {
 	if !strings.HasPrefix(strings.ToLower(url), replBaseURL) {
 		return nil, fmt.Errorf("esta não é uma URL válida do repl.it")
 	}
 
-	httpClient := &http.Client{}
-
-	repl, err := downloadReplIt(httpClient, url)
+	repl, err := downloadReplIt(url)
 	if err != nil {
 		return nil, fmt.Errorf("não foi possível acessar esta URL do repl.it")
 	}
 
-	repl, err = indent(repl)
+	repl, err = indent(rr, repl)
 	if err != nil {
 		return nil, err
 	}
 
-	repl, err = uploadToRepl(httpClient, repl)
+	repl, err = uploadToRepl(repl)
 	if err != nil {
 		return nil, err
 	}
