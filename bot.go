@@ -93,23 +93,10 @@ func handleCommands(update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
 }
 
 func formatName(update tgbotapi.Update) string {
-	uid := update.Message.NewChatMember.ID
-	// The following ones are optional.
-	username := update.Message.NewChatMember.UserName
 	firstName := update.Message.NewChatMember.FirstName
 	lastName := update.Message.NewChatMember.LastName
 
-	mention := fmt.Sprintf("user id %d", uid)
-	if len(username) > 0 {
-		mention = fmt.Sprintf("@%s", username)
-	}
-
-	name := strings.Trim(fmt.Sprintf("%s %s", firstName, lastName), " ")
-	if len(name) == 0 {
-		return mention
-	}
-
-	return fmt.Sprintf("%s (%s)", name, mention)
+	return strings.Trim(fmt.Sprintf("%s %s", firstName, lastName), " ")
 }
 
 func updateMsg(src, target string) string {
