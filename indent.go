@@ -48,13 +48,15 @@ type indenterCmd struct {
 	replaceErr *replaceString
 }
 
+type indenterPrograms map[string]*indenterCmd
+
 const (
 	replBaseURL = "https://repl.it/"
 	replSaveURL = "https://repl.it/save"
 )
 
 var (
-	indenters = map[string]*indenterCmd{
+	indenters = indenterPrograms{
 		"c": &indenterCmd{cmd: "indent", args: "--no-tabs --tab-size4 --indent-level4 --braces-on-if-line --cuddle-else --braces-on-func-def-line --braces-on-struct-decl-line --cuddle-do-while --no-space-after-function-call-names --no-space-after-parentheses --dont-break-procedure-type -l666", replaceErr: &replaceString{src: "indent: Standard input:", dst: "linha "}},
 	}
 )
@@ -175,7 +177,13 @@ func uploadToRepl(repl *replProject) (*replProject, error) {
 	return repl, nil
 }
 
-func indentCode(rr execRunner, repl *replProject, indenter *indenterCmd) (*replProject, error) {
+func indentCode(rr execRunner, repl *replProject, indenters indenterPrograms) (*replProject, error) {
+	// Fetch correct indenter parameters
+	indenter, ok := indenters[repl.Language]
+	if !ok {
+		return nil, fmt.Errorf("ainda não sei indentar essa linguagem %q. Se puder ajudar, faça um pull request para https://github.com/OsProgramadores/osprogramadores_bot :)", repl.Language)
+	}
+
 	// Indent each of the files, if we are dealing with a project.
 	if repl.IsProject {
 		for key, file := range repl.Files {
@@ -225,15 +233,6 @@ func indentCode(rr execRunner, repl *replProject, indenter *indenterCmd) (*replP
 	return repl, nil
 }
 
-func indent(rr execRunner, repl *replProject) (*replProject, error) {
-	switch repl.Language {
-	case "c":
-		return indentCode(rr, repl, indenters[repl.Language])
-	default:
-		return nil, fmt.Errorf("ainda não sei indentar essa linguagem %q. Se puder ajudar, faça um pull request para https://github.com/OsProgramadores/osprogramadores_bot :)", repl.Language)
-	}
-}
-
 func handleReplItURL(rr execRunner, url string) (*replProject, error) {
 	if !strings.HasPrefix(strings.ToLower(url), replBaseURL) {
 		return nil, fmt.Errorf("esta não é uma URL válida do repl.it")
@@ -244,7 +243,7 @@ func handleReplItURL(rr execRunner, url string) (*replProject, error) {
 		return nil, fmt.Errorf("não foi possível acessar esta URL do repl.it")
 	}
 
-	repl, err = indent(rr, repl)
+	repl, err = indentCode(rr, repl, indenters)
 	if err != nil {
 		return nil, err
 	}

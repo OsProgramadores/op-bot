@@ -3,10 +3,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/kylelemons/godebug/pretty"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -46,7 +48,7 @@ func TestDownloadReplIt(t *testing.T) {
 	casetests := []struct {
 		body      []byte
 		want      *replProject
-		WantError bool
+		wantError bool
 	}{
 		// Valid JSON, single file
 		{
@@ -58,7 +60,7 @@ func TestDownloadReplIt(t *testing.T) {
 				IsProject:  false,
 				Language:   "c",
 			},
-			WantError: false,
+			wantError: false,
 		},
 		// Valid JSON, multi-file project
 		{
@@ -74,13 +76,13 @@ func TestDownloadReplIt(t *testing.T) {
 				IsProject: true,
 				Language:  "c",
 			},
-			WantError: false,
+			wantError: false,
 		},
 		// Non replit output
 		{
 			body:      []byte("meh! This will break"),
 			want:      &replProject{},
-			WantError: true,
+			wantError: true,
 		},
 	}
 
@@ -95,7 +97,7 @@ func TestDownloadReplIt(t *testing.T) {
 		// Save httptest generated URL into our expected output.
 		tt.want.url = ts.URL
 
-		if !tt.WantError {
+		if !tt.wantError {
 			if err != nil {
 				t.Fatalf("Got error %q want no error", err)
 			}
@@ -109,6 +111,166 @@ func TestDownloadReplIt(t *testing.T) {
 		// Here, we want to see an error.
 		if err == nil {
 			t.Errorf("Got no error, want error")
+		}
+	}
+}
+
+type fakeRunner struct {
+	inputCommand string
+	inputArgs    string
+	inputContent string
+	cmdOut       string
+	cmdErr       string
+	returnErr    bool
+}
+
+// run simulates running an external binary.
+func (f *fakeRunner) run(cmdIn string, command string, args ...string) (string, string, error) {
+	f.inputCommand = command
+	f.inputArgs = strings.Join(args, " ")
+	f.inputContent = cmdIn
+
+	if f.returnErr {
+		return "", "", errors.New("fakerunner_error")
+	}
+
+	return f.cmdOut, f.cmdErr, nil
+}
+
+func TestIndent(t *testing.T) {
+	casetests := []struct {
+		runner     execRunner
+		repl       *replProject
+		indenters  indenterPrograms
+		wantRepl   *replProject
+		wantRunner *fakeRunner
+		wantError  bool
+	}{
+		// Base Indent case (single file).
+		{
+			runner: &fakeRunner{
+				cmdOut: "fake_indented_stdout",
+			},
+			repl: &replProject{
+				IsProject:  false,
+				Language:   "c",
+				EditorText: "fake_editor_text",
+			},
+			indenters: indenterPrograms{
+				"c": &indenterCmd{
+					cmd:  "fake_command",
+					args: "--aaa --bbb --ccc",
+				},
+			},
+			wantRepl: &replProject{
+				editorTextIndented: "fake_indented_stdout",
+				EditorText:         "fake_editor_text",
+				Language:           "c",
+				indentedByUs:       true,
+			},
+			wantRunner: &fakeRunner{
+				inputCommand: "fake_command",
+				inputArgs:    "--aaa --bbb --ccc",
+				inputContent: "fake_editor_text",
+				cmdOut:       "fake_indented_stdout",
+			},
+		},
+		// Multi-file project, one file for simplicity.
+		// TODO: Add support for multiple files, eventually.
+		{
+			runner: &fakeRunner{
+				cmdOut: "fake_indented_stdout",
+			},
+			repl: &replProject{
+				IsProject: true,
+				Files: map[string]replFile{
+					"1234": replFile{
+						ID:      1234,
+						Name:    "foo.c",
+						Content: "fake_editor_text",
+						Index:   1,
+					},
+				},
+				Language: "c",
+			},
+			indenters: indenterPrograms{
+				"c": &indenterCmd{
+					cmd:  "fake_command",
+					args: "--aaa --bbb --ccc",
+				},
+			},
+			wantRepl: &replProject{
+				IsProject: true,
+				Files: map[string]replFile{
+					"1234": replFile{
+						ID:       1234,
+						Name:     "foo.c",
+						Content:  "fake_editor_text",
+						indented: "fake_indented_stdout",
+						Index:    1,
+					},
+				},
+				Language:     "c",
+				indentedByUs: true,
+			},
+			wantRunner: &fakeRunner{
+				inputCommand: "fake_command",
+				inputArgs:    "--aaa --bbb --ccc",
+				inputContent: "fake_editor_text",
+				cmdOut:       "fake_indented_stdout",
+			},
+		},
+		// Error case: Missing input language.
+		{
+			runner: &fakeRunner{
+				cmdOut: "fake_indented_stdout",
+			},
+			repl: &replProject{},
+			indenters: indenterPrograms{
+				"c": &indenterCmd{},
+			},
+			wantRepl:   &replProject{},
+			wantRunner: &fakeRunner{},
+			wantError:  true,
+		},
+		// Error case: Unsupported input language.
+		{
+			runner: &fakeRunner{
+				cmdOut: "fake_indented_stdout",
+			},
+			repl: &replProject{
+				Language: "invalid-language",
+			},
+			indenters: indenterPrograms{
+				"c": &indenterCmd{},
+			},
+			wantRepl:   &replProject{},
+			wantRunner: &fakeRunner{},
+			wantError:  true,
+		},
+	}
+
+	for _, tt := range casetests {
+		gotRepl, err := indentCode(tt.runner, tt.repl, tt.indenters)
+
+		if !tt.wantError {
+			if err != nil {
+				t.Fatalf("Got error %q want no error", err)
+			}
+
+			if diff := pretty.Compare(gotRepl, tt.wantRepl); diff != "" {
+				t.Fatalf("diff Repl: (-got +want)\n%s", diff)
+			}
+			// tt.runner is modified diretly by the fake run function.
+			if diff := pretty.Compare(tt.runner, tt.wantRunner); diff != "" {
+				t.Fatalf("diff runner: (-got +want)\n%s", diff)
+			}
+			continue
+		}
+
+		// Here, we want to see an error.
+		if err == nil {
+			t.Fatalf("Got no error, want error")
 		}
 	}
 }
