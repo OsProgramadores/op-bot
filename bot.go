@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"gopkg.in/telegram-bot-api.v4"
+	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
 	"os"
 	"strings"
@@ -42,8 +42,12 @@ func runBot(config botConfig, bot *tgbotapi.BotAPI) {
 		case update.Message != nil:
 			switch {
 			// join event.
-			case update.Message.NewChatMember != nil:
-				name := formatName(update)
+			case update.Message.NewChatMembers != nil:
+				names := make([]string, len(*update.Message.NewChatMembers))
+				for index, user := range *update.Message.NewChatMembers {
+					names[index] = formatName(user)
+				}
+				name := strings.Join(names, ", ")
 
 				markup := tgbotapi.NewInlineKeyboardMarkup(
 					tgbotapi.NewInlineKeyboardRow(websiteButton(msgs)),
@@ -92,9 +96,9 @@ func handleCommands(update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
 	return nil
 }
 
-func formatName(update tgbotapi.Update) string {
-	firstName := update.Message.NewChatMember.FirstName
-	lastName := update.Message.NewChatMember.LastName
+func formatName(user tgbotapi.User) string {
+	firstName := user.FirstName
+	lastName := user.LastName
 
 	return strings.Trim(fmt.Sprintf("%s %s", firstName, lastName), " ")
 }
