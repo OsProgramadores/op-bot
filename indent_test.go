@@ -78,9 +78,15 @@ func TestDownloadReplIt(t *testing.T) {
 			},
 			wantError: false,
 		},
-		// Non replit output
+		// Non replit output.
 		{
 			body:      []byte("meh! This will break"),
+			want:      &replProject{},
+			wantError: true,
+		},
+		// replit output, invalid JSON inside.
+		{
+			body:      []byte("<script>REPLIT_DATA = {b0rken}</script>"),
 			want:      &replProject{},
 			wantError: true,
 		},
@@ -131,7 +137,7 @@ func (f *fakeRunner) run(cmdIn string, command string, args ...string) (string, 
 	f.inputContent = cmdIn
 
 	if f.returnErr {
-		return "", "", errors.New("fakerunner_error")
+		return "", f.cmdErr, errors.New("fakerunner_error")
 	}
 
 	return f.cmdOut, f.cmdErr, nil
@@ -139,12 +145,13 @@ func (f *fakeRunner) run(cmdIn string, command string, args ...string) (string, 
 
 func TestIndent(t *testing.T) {
 	casetests := []struct {
-		runner     execRunner
-		repl       *replProject
-		indenters  indenterPrograms
-		wantRepl   *replProject
-		wantRunner *fakeRunner
-		wantError  bool
+		runner       execRunner
+		repl         *replProject
+		indenters    indenterPrograms
+		wantRepl     *replProject
+		wantRunner   *fakeRunner
+		wantError    bool
+		wantErrorMsg string
 	}{
 		// Base Indent case (single file).
 		{
@@ -220,7 +227,7 @@ func TestIndent(t *testing.T) {
 				cmdOut:       "fake_indented_stdout",
 			},
 		},
-		// Error case: Missing input language.
+		// Single file Error case: Missing input language.
 		{
 			runner: &fakeRunner{
 				cmdOut: "fake_indented_stdout",
@@ -233,7 +240,7 @@ func TestIndent(t *testing.T) {
 			wantRunner: &fakeRunner{},
 			wantError:  true,
 		},
-		// Error case: Unsupported input language.
+		// Single File Error case: Unsupported input language.
 		{
 			runner: &fakeRunner{
 				cmdOut: "fake_indented_stdout",
@@ -247,6 +254,194 @@ func TestIndent(t *testing.T) {
 			wantRepl:   &replProject{},
 			wantRunner: &fakeRunner{},
 			wantError:  true,
+		},
+		// Single file Error case: error, no stderr
+		{
+			runner: &fakeRunner{
+				cmdOut:    "fake_indented_stdout",
+				returnErr: true,
+			},
+			repl: &replProject{
+				Language: "c",
+			},
+			indenters: indenterPrograms{
+				"c": &indenterCmd{},
+			},
+			wantRepl:   &replProject{},
+			wantRunner: &fakeRunner{},
+			wantError:  true,
+		},
+		// Single File Error case: stderr message, no replaceErr.
+		{
+			runner: &fakeRunner{
+				cmdOut:    "fake_indented_stdout",
+				cmdErr:    "fake_stderr",
+				returnErr: true,
+			},
+			repl: &replProject{
+				Language: "c",
+			},
+			indenters: indenterPrograms{
+				"c": &indenterCmd{},
+			},
+			wantRepl:     &replProject{},
+			wantRunner:   &fakeRunner{},
+			wantError:    true,
+			wantErrorMsg: "fake_stderr",
+		},
+		// Single file Error case: stderr message, replaceErr specified.
+		{
+			runner: &fakeRunner{
+				cmdOut:    "fake_indented_stdout",
+				cmdErr:    "fake_stderr",
+				returnErr: true,
+			},
+			repl: &replProject{
+				Language: "c",
+			},
+			indenters: indenterPrograms{
+				"c": &indenterCmd{
+					replaceErr: &replaceString{
+						src: "fake",
+						dst: "foobar",
+					},
+				},
+			},
+			wantRepl:     &replProject{},
+			wantRunner:   &fakeRunner{},
+			wantError:    true,
+			wantErrorMsg: "foobar_stderr",
+		},
+		// Multi file Error case: Missing input language.
+		{
+			runner: &fakeRunner{
+				cmdOut: "fake_indented_stdout",
+			},
+			repl: &replProject{
+				IsProject: true,
+				Files: map[string]replFile{
+					"1234": replFile{
+						ID:      1234,
+						Name:    "foo.c",
+						Content: "fake_editor_text",
+						Index:   1,
+					},
+				},
+			},
+			indenters: indenterPrograms{
+				"c": &indenterCmd{},
+			},
+			wantRepl:   &replProject{},
+			wantRunner: &fakeRunner{},
+			wantError:  true,
+		},
+		// Multi File Error case: Unsupported input language.
+		{
+			runner: &fakeRunner{
+				cmdOut: "fake_indented_stdout",
+			},
+			repl: &replProject{
+				IsProject: true,
+				Files: map[string]replFile{
+					"1234": replFile{
+						ID:      1234,
+						Name:    "foo.c",
+						Content: "fake_editor_text",
+						Index:   1,
+					},
+				},
+				Language: "invalid-language",
+			},
+			indenters: indenterPrograms{
+				"c": &indenterCmd{},
+			},
+			wantRepl:   &replProject{},
+			wantRunner: &fakeRunner{},
+			wantError:  true,
+		},
+		// Multi file Error case: error, no stderr
+		{
+			runner: &fakeRunner{
+				cmdOut:    "fake_indented_stdout",
+				returnErr: true,
+			},
+			repl: &replProject{
+				IsProject: true,
+				Files: map[string]replFile{
+					"1234": replFile{
+						ID:      1234,
+						Name:    "foo.c",
+						Content: "fake_editor_text",
+						Index:   1,
+					},
+				},
+				Language: "c",
+			},
+			indenters: indenterPrograms{
+				"c": &indenterCmd{},
+			},
+			wantRepl:   &replProject{},
+			wantRunner: &fakeRunner{},
+			wantError:  true,
+		},
+		// Multi File Error case: stderr message, no replaceErr.
+		{
+			runner: &fakeRunner{
+				cmdOut:    "fake_indented_stdout",
+				cmdErr:    "fake_stderr",
+				returnErr: true,
+			},
+			repl: &replProject{
+				IsProject: true,
+				Files: map[string]replFile{
+					"1234": replFile{
+						ID:      1234,
+						Name:    "foo.c",
+						Content: "fake_editor_text",
+						Index:   1,
+					},
+				},
+				Language: "c",
+			},
+			indenters: indenterPrograms{
+				"c": &indenterCmd{},
+			},
+			wantRepl:     &replProject{},
+			wantRunner:   &fakeRunner{},
+			wantError:    true,
+			wantErrorMsg: "fake_stderr",
+		},
+		// Multi file Error case: stderr message, replaceErr specified.
+		{
+			runner: &fakeRunner{
+				cmdOut:    "fake_indented_stdout",
+				cmdErr:    "fake_stderr",
+				returnErr: true,
+			},
+			repl: &replProject{
+				IsProject: true,
+				Files: map[string]replFile{
+					"1234": replFile{
+						ID:      1234,
+						Name:    "foo.c",
+						Content: "fake_editor_text",
+						Index:   1,
+					},
+				},
+				Language: "c",
+			},
+			indenters: indenterPrograms{
+				"c": &indenterCmd{
+					replaceErr: &replaceString{
+						src: "fake",
+						dst: "foobar",
+					},
+				},
+			},
+			wantRepl:     &replProject{},
+			wantRunner:   &fakeRunner{},
+			wantError:    true,
+			wantErrorMsg: "foobar_stderr",
 		},
 	}
 
@@ -271,6 +466,13 @@ func TestIndent(t *testing.T) {
 		// Here, we want to see an error.
 		if err == nil {
 			t.Fatalf("Got no error, want error")
+		}
+
+		// At this point, we want an error and we have one
+		if tt.wantErrorMsg != "" {
+			if !strings.Contains(err.Error(), tt.wantErrorMsg) {
+				t.Fatalf("Error message mismatch. got %q want to see %q in message.", err, tt.wantErrorMsg)
+			}
 		}
 	}
 }
