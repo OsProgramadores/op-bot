@@ -67,7 +67,7 @@ type execRunner interface {
 
 type runner struct{}
 
-func (x runner) run(command string, cmdIn string, args ...string) (string, string, error) {
+func (x runner) run(cmdIn string, command string, args ...string) (string, string, error) {
 	cmd := exec.Command(command, args...)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
@@ -82,7 +82,7 @@ func (x runner) run(command string, cmdIn string, args ...string) (string, strin
 	stdin.Close()
 
 	if err = cmd.Run(); err != nil {
-		return "", "", err
+		return "", errbuf.String(), err
 	}
 
 	return outbuf.String(), errbuf.String(), nil
