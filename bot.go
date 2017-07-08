@@ -41,6 +41,12 @@ func runBot(config botConfig, bot *tgbotapi.BotAPI) {
 
 		case update.Message != nil:
 			switch {
+			//Location
+			case update.Message.Location != nil:
+				user := update.Message.From
+				location := update.Message.Location
+				handleLocation(config.LocationKey, fmt.Sprintf("%d", user.ID), location.Latitude, location.Longitude)
+
 			// join event.
 			case update.Message.NewChatMembers != nil:
 				names := make([]string, len(*update.Message.NewChatMembers))
