@@ -1,16 +1,18 @@
 package main
 
+// TODO
+// - Add comments on functions.
+// - Choose a fixed location for location.json (maybe under ~/.osprogramadores_bot?)
+// - Make the port configurable (flag or config option?)
+
 import (
-	"bytes"
 	"crypto/sha1"
-	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
-	"os"
 	"sync"
 )
 
@@ -18,45 +20,40 @@ const (
 	locationDb = "location.json"
 )
 
-type Location struct {
+type geoLocation struct {
 	Latitude  string
 	Longitude string
 }
 
-type Locations struct {
+type geoLocationsMutex struct {
 	sync.RWMutex
-	location map[string]Location
+	coords map[string]geoLocation
 }
 
 var (
-	locations = Locations{location: make(map[string]Location)}
+	locations = geoLocationsMutex{coords: make(map[string]geoLocation)}
 )
 
 // This is supposed to run within Lock().
-func saveLocations(m map[string]Location) error {
-	buffer := new(bytes.Buffer)
-	encoder := gob.NewEncoder(buffer)
-
-	err := encoder.Encode(m)
+func saveLocations(m map[string]geoLocation) error {
+	buf, err := json.Marshal(m)
 	if err != nil {
 		return err
 	}
 
-	return ioutil.WriteFile(locationDb, buffer.Bytes(), 0644)
+	return ioutil.WriteFile(locationDb, buf, 0644)
 }
 
 func readLocations() error {
 	locations.RLock()
 	defer locations.RUnlock()
 
-	f, err := os.Open(locationDb)
+	buf, err := ioutil.ReadFile(locationDb)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
 
-	decoder := gob.NewDecoder(f)
-	if err := decoder.Decode(&locations.location); err != nil {
+	if err := json.Unmarshal(buf, &locations.coords); err != nil {
 		return err
 	}
 
@@ -70,12 +67,12 @@ func randomizeCoordinate(c float64) string {
 func handleLocation(key, id string, lat, lon float64) error {
 	h := sha1.New()
 	io.WriteString(h, fmt.Sprintf("%s%s", key, id))
-	userid := string(h.Sum(nil))
+	userid := fmt.Sprintf("%x", h.Sum(nil))
 
 	locations.Lock()
 	defer locations.Unlock()
-	locations.location[userid] = Location{randomizeCoordinate(lat), randomizeCoordinate(lon)}
-	if err := saveLocations(locations.location); err != nil {
+	locations.coords[userid] = geoLocation{randomizeCoordinate(lat), randomizeCoordinate(lon)}
+	if err := saveLocations(locations.coords); err != nil {
 		return err
 	}
 	return nil
@@ -87,12 +84,14 @@ func serveLocations() {
 	http.ListenAndServe(":3000", nil)
 }
 
+// serveLocationsHandler handles external http requests and provides
+// a JSON stream of all known geoLocations (without the hash).
 func serveLocationsHandler(w http.ResponseWriter, r *http.Request) {
 	locations.RLock()
-	data := make([]Location, len(locations.location))
+	data := make([]geoLocation, len(locations.coords))
 
 	i := 0
-	for _, location := range locations.location {
+	for _, location := range locations.coords {
 		data[i] = location
 		i++
 	}
