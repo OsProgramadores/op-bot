@@ -92,11 +92,15 @@ func handleCommands(update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
 
 		gif := tgbotapi.NewDocumentShare(update.Message.Chat.ID, hackerGif)
 
-		replyTo := update.Message.MessageID
+		// Reply to quoted message, if any.
 		if update.Message.ReplyToMessage != nil {
-			replyTo = update.Message.ReplyToMessage.MessageID
+			gif.ReplyToMessageID = update.Message.ReplyToMessage.MessageID
 		}
-		gif.ReplyToMessageID = replyTo
+
+		// Remove message that triggered /hackerdetected command.
+		toDelete := tgbotapi.DeleteMessageConfig{ChatID: update.Message.Chat.ID, MessageID: update.Message.MessageID}
+		bot.DeleteMessage(toDelete)
+
 		bot.Send(gif)
 	}
 	return nil
