@@ -20,6 +20,6 @@ func main() {
 		log.Panic(err)
 	}
 
-	go serveLocations()
+	go serveLocations(config)
 	runBot(config, bot)
 }

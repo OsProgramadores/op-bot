@@ -3,9 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
+)
+
+const (
+	defaultServerPort = 3000
 )
 
 var (
@@ -20,6 +25,9 @@ type botConfig struct {
 	// LocationKey contains an alphanum key used to scramble
 	// the user IDs when storing the location.
 	LocationKey string
+
+	// ServerPort contains the TCP server port.
+	ServerPort int
 }
 
 type botMessages struct {
@@ -30,8 +38,8 @@ type botMessages struct {
 	URL                  string
 }
 
-// loadConfig loads the configuration items for the bot from 'configFile'
-// under the home directory.
+// loadConfig loads the configuration items for the bot from 'configFile' under
+// the home directory, and assigns sane defaults to certain configuration items.
 func loadConfig() (botConfig, error) {
 	config := botConfig{}
 
@@ -41,14 +49,19 @@ func loadConfig() (botConfig, error) {
 	}
 	jsonFile := filepath.Join(home, configFile)
 
-	jsonConfig, err := os.Open(jsonFile)
+	buf, err := ioutil.ReadFile(jsonFile)
 	if err != nil {
-		return config, err
+		return botConfig{}, err
 	}
-	defer jsonConfig.Close()
+	if err := json.Unmarshal(buf, &config); err != nil {
+		return botConfig{}, err
+	}
 
-	decoder := json.NewDecoder(jsonConfig)
-	err = decoder.Decode(&config)
+	// Defaults
+	if config.ServerPort == 0 {
+		config.ServerPort = defaultServerPort
+	}
+
 	return config, nil
 }
 
