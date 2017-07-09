@@ -36,6 +36,8 @@ type botMessages struct {
 	ReadTheRules         string
 	VisitOurGroupWebsite string
 	URL                  string
+	LocationSuccess      string
+	LocationFail         string
 }
 
 // loadConfig loads the configuration items for the bot from 'configFile' under
