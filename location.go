@@ -106,7 +106,7 @@ func serveLocations(config botConfig) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Write(js)
-
-		http.ListenAndServe(fmt.Sprintf(":%d", config.ServerPort), nil)
 	})
+
+	http.ListenAndServe(fmt.Sprintf(":%d", config.ServerPort), nil)
 }
