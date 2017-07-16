@@ -53,11 +53,29 @@ type indenterPrograms map[string]*indenterCmd
 const (
 	replBaseURL = "https://repl.it/"
 	replSaveURL = "https://repl.it/save"
+
+	// astyle uses consistent arts for C/C++/C#, and Java (we use indent for C)
+	aStyleBaseArgs = "--style=java --indent=spaces=4 --indent-classes --indent-switches --indent-cases --indent-namespaces --indent-labels --indent-col1-comments --pad-oper --pad-header --quiet"
 )
 
 var (
 	indenters = indenterPrograms{
-		"c": &indenterCmd{cmd: "indent", args: "--no-tabs --tab-size4 --indent-level4 --braces-on-if-line --cuddle-else --braces-on-func-def-line --braces-on-struct-decl-line --cuddle-do-while --no-space-after-function-call-names --no-space-after-parentheses --dont-break-procedure-type -l666", replaceErr: &replaceString{src: "indent: Standard input:", dst: "linha "}},
+		"c": &indenterCmd{
+			cmd:        "indent",
+			args:       "--no-tabs --tab-size4 --indent-level4 --braces-on-if-line --cuddle-else --braces-on-func-def-line --braces-on-struct-decl-line --cuddle-do-while --no-space-after-function-call-names --no-space-after-parentheses --dont-break-procedure-type -l666",
+			replaceErr: &replaceString{src: "indent: Standard input:", dst: "linha "}},
+		"cpp": &indenterCmd{
+			cmd:  "astyle",
+			args: aStyleBaseArgs + " --mode=c"},
+		"cpp11": &indenterCmd{
+			cmd:  "astyle",
+			args: aStyleBaseArgs + " --mode=c"},
+		"csharp": &indenterCmd{
+			cmd:  "astyle",
+			args: aStyleBaseArgs + " --mode=cs"},
+		"java": &indenterCmd{
+			cmd:  "astyle",
+			args: aStyleBaseArgs + " --mode=java"},
 	}
 )
 
