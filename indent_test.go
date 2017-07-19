@@ -1,4 +1,4 @@
-// Unit tests for the osprogramadores_bot.
+// Unit tests for op-bot.
 
 package main
 

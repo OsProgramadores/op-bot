@@ -14,7 +14,7 @@ const (
 )
 
 var (
-	configFile = ".osprogramadores_bot.json"
+	configFile = ".op-bot.json"
 	msgsFile   = "config/messages.json"
 )
 

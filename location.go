@@ -1,7 +1,7 @@
 package main
 
 // TODO
-// - Choose a fixed location for location.json (maybe under ~/.osprogramadores_bot?)
+// - Choose a fixed location for location.json (maybe under ~/.op-bot?)
 
 import (
 	"crypto/sha1"
