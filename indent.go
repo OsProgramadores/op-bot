@@ -199,7 +199,7 @@ func indentCode(rr execRunner, repl *replProject, indenters indenterPrograms) (*
 	// Fetch correct indenter parameters
 	indenter, ok := indenters[repl.Language]
 	if !ok {
-		return nil, fmt.Errorf("ainda não sei indentar essa linguagem %q. Se puder ajudar, faça um pull request para https://github.com/OsProgramadores/osprogramadores_bot :)", repl.Language)
+		return nil, fmt.Errorf("ainda não sei indentar essa linguagem %q. Se puder ajudar, faça um pull request para https://github.com/OsProgramadores/op-bot :)", repl.Language)
 	}
 
 	// Indent each of the files, if we are dealing with a project.
