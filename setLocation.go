@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"encoding/json"
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
@@ -28,13 +29,15 @@ type cepResponse struct {
 // locationHandler receive postal code from user.
 func locationHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI, config botConfig, msgs botMessages) error {
 
-	args := strings.Tolower(strings.Trim(update.Message.CommandArguments(), " "))
-	args = strings.Replace(args, "-", "", -1)
-	args = strings.Replace(args, ".", "", -1)
-	args = strings.Replace(args, "/", "", -1)
-	args = strings.Split(args, " ")
+	tmp := strings.ToLower(strings.Trim(update.Message.CommandArguments(), " "))
+	tmp = strings.Replace(tmp, "-", "", -1)
+	tmp = strings.Replace(tmp, ".", "", -1)
+	tmp = strings.Replace(tmp, "/", "", -1)
+	args := strings.Split(tmp, " ")
+	user := update.Message.From
+	cep := ""
 
-	cmd = strings.Tolower(update.Message.Command())
+	cmd := strings.ToLower(update.Message.Command())
 
 	if cmd == "setlocation" && len(args) != 2 {
 		return errors.New("/setlocation <pais> <código postal>");
@@ -45,18 +48,20 @@ func locationHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI, config botCon
 	}
 
 	if  (cmd == "setlocation" && args[0] == "br") || cmd == "cep" {
-		if err := findCEP(user,args[1],config); err != nil {
-			message := msgs.LocationSuccess
-			if err != nil {
-				message = msgs.LocationFail
-			}
-			return errors.New(mensagem);
+		if cmd == "setlocation" {
+			cep = args[1]
+		} else {
+			cep = args[0]
 		}
 
-		return errors.New("Não foi possível achar a sua localização . CEP "+cep);
+		if err := findCEP(user,cep,config); err != nil {
+			return errors.New("Não foi possível achar a sua localização . CEP "+cep);
+		}
+
+		return errors.New(msgs.LocationSuccess);
 	}
 
-	return errors.New("Não sei como procurar o Código Postal deste país ("+pais+")");
+	return errors.New("Não sei como procurar o Código Postal deste país ("+args[0]+")");
 }
 
 func findCEP(user *tgbotapi.User, cep string, config botConfig) error {
