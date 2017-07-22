@@ -28,6 +28,9 @@ type botConfig struct {
 
 	// ServerPort contains the TCP server port.
 	ServerPort int
+
+	// ApiKey from www.cepaberto.com
+	CepAbertoKey string
 }
 
 type botMessages struct {
