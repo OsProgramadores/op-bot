@@ -13,7 +13,7 @@ type botCommand struct {
 	cmd     string
 	desc    string
 	pvtOnly bool
-	handler func(tgbotapi.Update, *tgbotapi.BotAPI) error
+	handler func(tgbotapi.Update, *tgbotapi.BotAPI, botConfig, botMessages) error
 }
 
 var (
@@ -24,6 +24,8 @@ func init() {
 	commands = []botCommand{
 		botCommand{"indent", "Indenta um programa no repl.it (/indent url)", false, indentHandler},
 		botCommand{"hackerdetected", "Dispara o alarme anti-hacker. :)", false, hackerHandler},
+		botCommand{"setlocation", "Atualiza posição geográfica usando código postal (/setlocation <pais> <código postal>)", true, locationHandler},
+		botCommand{"cep", "Atualiza posição geográfica usando CEP", true, locationHandler},
 		botCommand{"help", "Mensagem de help", true, helpHandler},
 	}
 }
@@ -111,7 +113,7 @@ func runBot(config botConfig, bot *tgbotapi.BotAPI) {
 							break
 						}
 						// Handle command.
-						err := c.handler(update, bot)
+						err := c.handler(update, bot, config, msgs)
 						if err != nil {
 							sendReply(update.Message.Chat.ID, update.Message.MessageID, err.Error(), bot)
 						}
@@ -127,7 +129,7 @@ func runBot(config botConfig, bot *tgbotapi.BotAPI) {
 }
 
 // hackerHandler provides anti-hacker protection to the bot.
-func hackerHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
+func hackerHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI, config botConfig, msgs botMessages) error {
 	// This gif is available at http://i.imgur.com/LPn1Ya9.gif.
 	// Below we have a (bot-specific) Telegram document ID for it.
 	// It works for @osprogramadores_bot.
@@ -149,7 +151,7 @@ func hackerHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
 }
 
 // helpHandler sends a help message back to the user.
-func helpHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
+func helpHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI, config botConfig, messages botMessages) error {
 	msgs := make([]string, len(commands))
 	for i, c := range commands {
 		msgs[i] = fmt.Sprintf("/%s: %s", c.cmd, c.desc)
@@ -161,7 +163,7 @@ func helpHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
 }
 
 // indentHandler indents the code in a repl.it URL.
-func indentHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
+func indentHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI, config botConfig, msgs botMessages) error {
 	args := strings.Trim(update.Message.CommandArguments(), " ")
 
 	repl, err := handleReplItURL(&runner{}, args)

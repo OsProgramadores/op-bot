@@ -21,5 +21,6 @@ func main() {
 	}
 
 	go serveLocations(config)
+	
 	runBot(config, bot)
 }
