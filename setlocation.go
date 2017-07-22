@@ -27,22 +27,10 @@ type cepResponse struct {
 	IBGE       string  `json:"ibge"`
 }
 
-// clean a string
-func trDelete(s, substr string) string {
-  ret := bytes.Buffer{}
-
-  for _, r := range(s) {
-    if strings.ContainsRune(substr, r) {
-      continue
-    }
-    ret.WriteRune(r)
-  }
-  return ret.String()
-}
 // locationHandler receive postal code from user.
-func locationHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI, config botConfig, msgs botMessages) error {
+func (x *opBot) locationHandler(update tgbotapi.Update) error {
 
-	args := strings.Split(trDelete(update.Message.CommandArguments(),"/-."), " ")
+	args := strings.Split(trDelete(update.Message.CommandArguments(), "/-."), " ")
 	user := update.Message.From
 	cep := ""
 
@@ -66,11 +54,11 @@ func locationHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI, config botCon
 		cep = args[0]
 	}
 
-	if err := findCEP(user, cep, config); err != nil {
+	if err := findCEP(user, cep, x.config); err != nil {
 		return fmt.Errorf("não foi possível achar a sua localização . CEP %q", cep)
 	}
 
-	return errors.New(msgs.LocationSuccess)
+	return errors.New(x.messages.LocationSuccess)
 }
 
 // API Key from www.cepaberto.com (brazilian postal code to geo location service.)
@@ -82,7 +70,7 @@ func findCEP(user *tgbotapi.User, cep string, config botConfig) error {
 
 	req.Header.Set("authorization", `Token token="`+config.CepAbertoKey+`"`)
 	if err != nil {
-		log.Printf("wewRequest: ", err)
+		log.Printf("wewRequest: %s", err)
 		return err
 	}
 
@@ -90,7 +78,7 @@ func findCEP(user *tgbotapi.User, cep string, config botConfig) error {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Printf("Do: ", err)
+		log.Printf("Do: %s", err)
 		return err
 	}
 
@@ -114,4 +102,17 @@ func findCEP(user *tgbotapi.User, cep string, config botConfig) error {
 	err = handleLocation(config.LocationKey, fmt.Sprintf("%d", user.ID), lat, long)
 
 	return nil
+}
+
+// clean a string
+func trDelete(s, substr string) string {
+	ret := bytes.Buffer{}
+
+	for _, r := range s {
+		if strings.ContainsRune(substr, r) {
+			continue
+		}
+		ret.WriteRune(r)
+	}
+	return ret.String()
 }

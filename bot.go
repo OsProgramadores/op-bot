@@ -4,58 +4,44 @@ import (
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
-	"os"
 	"strings"
 )
+
+// opBot defines an instance of op-bot
+type opBot struct {
+	config   botConfig
+	messages botMessages
+	commands []botCommand
+	bot      *tgbotapi.BotAPI
+}
 
 // botCommands holds the commands accepted by the bot, their description and a handler function.
 type botCommand struct {
 	cmd     string
 	desc    string
 	pvtOnly bool
-	handler func(tgbotapi.Update, *tgbotapi.BotAPI, botConfig, botMessages) error
+	handler func(tgbotapi.Update) error
 }
 
-var (
-	commands []botCommand
-)
-
-func init() {
-	commands = []botCommand{
-		botCommand{"indent", "Indenta um programa no repl.it (/indent url)", false, indentHandler},
-		botCommand{"hackerdetected", "Dispara o alarme anti-hacker. :)", false, hackerHandler},
-		botCommand{"setlocation", "Atualiza posição geográfica usando código postal (/setlocation <pais> <código postal>)", true, locationHandler},
-		botCommand{"cep", "Atualiza posição geográfica usando CEP", true, locationHandler},
-		botCommand{"help", "Mensagem de help", true, helpHandler},
-	}
-}
-
-// runBot is the main message dispatcher for the bot.
-func runBot(config botConfig, bot *tgbotapi.BotAPI) {
-	msgs, err := loadMessages()
-	if err != nil {
-		fmt.Println("Unable to load messages file: ", err)
-		fmt.Println("You can see an example of bot messages file at 'config/messages.json.sample'")
-		os.Exit(1)
-	}
-
-	bot.Debug = true
-	log.Printf("Authorized on account %s", bot.Self.UserName)
+// Run is the main message dispatcher for the bot.
+func (x *opBot) Run() {
+	x.bot.Debug = true
+	log.Printf("Authorized on account %s", x.bot.Self.UserName)
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
-	updates, _ := bot.GetUpdatesChan(u)
+	updates, _ := x.bot.GetUpdatesChan(u)
 
 	for update := range updates {
 		switch {
 		case update.CallbackQuery != nil:
 			switch update.CallbackQuery.Data {
 			case "rules":
-				bot.AnswerCallbackQuery(
+				x.bot.AnswerCallbackQuery(
 					tgbotapi.CallbackConfig{
 						CallbackQueryID: update.CallbackQuery.ID,
-						Text:            msgs.Rules,
+						Text:            x.messages.Rules,
 						ShowAlert:       true,
 						CacheTime:       60,
 					},
@@ -69,15 +55,15 @@ func runBot(config botConfig, bot *tgbotapi.BotAPI) {
 			case update.Message.Location != nil:
 				user := update.Message.From
 				location := update.Message.Location
-				err := handleLocation(config.LocationKey, fmt.Sprintf("%d", user.ID), location.Latitude, location.Longitude)
+				err := handleLocation(x.config.LocationKey, fmt.Sprintf("%d", user.ID), location.Latitude, location.Longitude)
 
 				// Give feedback to user, if message was sent privately.
 				if isPrivateChat(update.Message.Chat) {
-					message := msgs.LocationSuccess
+					message := x.messages.LocationSuccess
 					if err != nil {
-						message = msgs.LocationFail
+						message = x.messages.LocationFail
 					}
-					sendReply(update.Message.Chat.ID, update.Message.MessageID, message, bot)
+					x.sendReply(update, message)
 				}
 
 			// Join event.
@@ -89,21 +75,17 @@ func runBot(config botConfig, bot *tgbotapi.BotAPI) {
 				name := strings.Join(names, ", ")
 
 				markup := tgbotapi.NewInlineKeyboardMarkup(
-					tgbotapi.NewInlineKeyboardRow(websiteButton(msgs)),
-					tgbotapi.NewInlineKeyboardRow(rulesButton(msgs)),
+					tgbotapi.NewInlineKeyboardRow(websiteButton(x.messages)),
+					tgbotapi.NewInlineKeyboardRow(rulesButton(x.messages)),
 				)
-				sendReplyWithMarkup(update.Message.Chat.ID,
-					update.Message.MessageID,
-					fmt.Sprintf(msgs.Welcome, name),
-					markup,
-					bot)
+				x.sendReplyWithMarkup(update, fmt.Sprintf(x.messages.Welcome, name), markup)
 
 			// User commands.
 			case update.Message.IsCommand():
 				cmd := strings.ToLower(update.Message.Command())
 				found := false
 
-				for _, c := range commands {
+				for _, c := range x.commands {
 					if c.cmd == cmd {
 						found = true
 
@@ -113,9 +95,9 @@ func runBot(config botConfig, bot *tgbotapi.BotAPI) {
 							break
 						}
 						// Handle command.
-						err := c.handler(update, bot, config, msgs)
+						err := c.handler(update)
 						if err != nil {
-							sendReply(update.Message.Chat.ID, update.Message.MessageID, err.Error(), bot)
+							x.sendReply(update, err.Error())
 						}
 						break
 					}
@@ -129,7 +111,7 @@ func runBot(config botConfig, bot *tgbotapi.BotAPI) {
 }
 
 // hackerHandler provides anti-hacker protection to the bot.
-func hackerHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI, config botConfig, msgs botMessages) error {
+func (x *opBot) hackerHandler(update tgbotapi.Update) error {
 	// This gif is available at http://i.imgur.com/LPn1Ya9.gif.
 	// Below we have a (bot-specific) Telegram document ID for it.
 	// It works for @osprogramadores_bot.
@@ -144,37 +126,51 @@ func hackerHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI, config botConfi
 
 	// Remove message that triggered /hackerdetected command.
 	toDelete := tgbotapi.DeleteMessageConfig{ChatID: update.Message.Chat.ID, MessageID: update.Message.MessageID}
-	bot.DeleteMessage(toDelete)
-	bot.Send(gif)
+	x.bot.DeleteMessage(toDelete)
+	x.bot.Send(gif)
 
 	return nil
 }
 
 // helpHandler sends a help message back to the user.
-func helpHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI, config botConfig, messages botMessages) error {
-	msgs := make([]string, len(commands))
-	for i, c := range commands {
-		msgs[i] = fmt.Sprintf("/%s: %s", c.cmd, c.desc)
+func (x *opBot) helpHandler(update tgbotapi.Update) error {
+	helpMsg := make([]string, len(x.commands))
+	for i, c := range x.commands {
+		helpMsg[i] = fmt.Sprintf("/%s: %s", c.cmd, c.desc)
 	}
 
-	sendReply(update.Message.Chat.ID, update.Message.MessageID, strings.Join(msgs, "\n"), bot)
+	x.sendReply(update, strings.Join(helpMsg, "\n"))
 
 	return nil
 }
 
 // indentHandler indents the code in a repl.it URL.
-func indentHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI, config botConfig, msgs botMessages) error {
+func (x *opBot) indentHandler(update tgbotapi.Update) error {
 	args := strings.Trim(update.Message.CommandArguments(), " ")
 
 	repl, err := handleReplItURL(&runner{}, args)
-
 	if err != nil {
 		return err
 	}
 
 	msg := fmt.Sprintf("Acesse a versão indentada em %s. Lembre que a última revisão sempre está disponível em https://repl.it/%s/latest.", repl.newURL, repl.SessionID)
-	sendReply(update.Message.Chat.ID, update.Message.MessageID, msg, bot)
+	x.sendReply(update, msg)
 	return nil
+}
+
+// sendReply sends a reply to a specific MessageID.
+func (x *opBot) sendReply(update tgbotapi.Update, text string) (tgbotapi.Message, error) {
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
+	msg.ReplyToMessageID = update.Message.MessageID
+	return x.bot.Send(msg)
+}
+
+// sendReplyWithMarkup sends a reply to a specific MessageID with markup.
+func (x *opBot) sendReplyWithMarkup(update tgbotapi.Update, text string, markup tgbotapi.InlineKeyboardMarkup) (tgbotapi.Message, error) {
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
+	msg.ReplyToMessageID = update.Message.MessageID
+	msg.ReplyMarkup = &markup
+	return x.bot.Send(msg)
 }
 
 // isPrivateChat returns true if a chat is private.
@@ -188,21 +184,6 @@ func formatName(user tgbotapi.User) string {
 	lastName := user.LastName
 
 	return strings.Trim(fmt.Sprintf("%s %s", firstName, lastName), " ")
-}
-
-// sendReply sends a reply to a specific MessageID.
-func sendReply(dest int64, replyToID int, text string, bot *tgbotapi.BotAPI) (tgbotapi.Message, error) {
-	msg := tgbotapi.NewMessage(dest, text)
-	msg.ReplyToMessageID = replyToID
-	return bot.Send(msg)
-}
-
-// sendReplyWithMarkup sends a reply to a specific MessageID with markup.
-func sendReplyWithMarkup(dest int64, replyToID int, text string, markup tgbotapi.InlineKeyboardMarkup, bot *tgbotapi.BotAPI) (tgbotapi.Message, error) {
-	msg := tgbotapi.NewMessage(dest, text)
-	msg.ReplyToMessageID = replyToID
-	msg.ReplyMarkup = &markup
-	return bot.Send(msg)
 }
 
 // rulesButton creates a button with the "rules" label.

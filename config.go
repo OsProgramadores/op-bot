@@ -13,11 +13,6 @@ const (
 	defaultServerPort = 3000
 )
 
-var (
-	configFile = ".op-bot.json"
-	msgsFile   = "config/messages.json"
-)
-
 type botConfig struct {
 	// BotToken contains the Telegram token for this bot.
 	BotToken string
@@ -42,6 +37,11 @@ type botMessages struct {
 	LocationSuccess      string
 	LocationFail         string
 }
+
+var (
+	configFile = ".op-bot.json"
+	msgsFile   = "config/messages.json"
+)
 
 // loadConfig loads the configuration items for the bot from 'configFile' under
 // the home directory, and assigns sane defaults to certain configuration items.
