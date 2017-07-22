@@ -57,29 +57,11 @@ func locationHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI, config botCon
 		cep = args[0]
 	}
 
-	if cmd == "setlocation" && len(args) != 2 {
-		return errors.New("/setlocation <pais> <código postal>")
+	if err := findCEP(user, cep, config); err != nil {
+		return fmt.Errorf("Não foi possível achar a sua localização . CEP %q", cep)
 	}
 
-	if cmd == "cep" && len(args) != 1 {
-		return errors.New("/cep <código postal>")
-	}
-
-	if (cmd == "setlocation" && args[0] == "br") || cmd == "cep" {
-		if cmd == "setlocation" {
-			cep = args[1]
-		} else {
-			cep = args[0]
-		}
-
-		if err := findCEP(user, cep, config); err != nil {
-			return fmt.Errorf("Não foi possível achar a sua localização . CEP %q", cep)
-		}
-
-		return errors.New(msgs.LocationSuccess)
-	}
-
-	return fmt.Errorf("Não sei como procurar o Código Postal deste país (%q)", args[0])
+	return errors.New(msgs.LocationSuccess)
 }
 
 // API Key from www.cepaberto.com (brazilian postal code to geo location service.)
