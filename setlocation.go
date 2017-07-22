@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -41,7 +42,7 @@ func trDelete(s, substr string) string {
 // locationHandler receive postal code from user.
 func locationHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI, config botConfig, msgs botMessages) error {
 
-	args := strings.Split(trDelete(update.Message.CommandArguments()), " ")
+	args := strings.Split(trDelete(update.Message.CommandArguments(),"/-."), " ")
 	user := update.Message.From
 	cep := ""
 
