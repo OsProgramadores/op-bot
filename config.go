@@ -29,7 +29,7 @@ type botConfig struct {
 	// ServerPort contains the TCP server port.
 	ServerPort int
 
-	// ApiKey from www.cepaberto.com
+	// API Key from www.cepaberto.com (brazilian postal code to geo location service.)
 	CepAbertoKey string
 }
 

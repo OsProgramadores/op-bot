@@ -24,7 +24,7 @@ func init() {
 	commands = []botCommand{
 		botCommand{"indent", "Indenta um programa no repl.it (/indent url)", false, indentHandler},
 		botCommand{"hackerdetected", "Dispara o alarme anti-hacker. :)", false, hackerHandler},
-		botCommand{"setlocation", "Recebe um código postal do cliente (/setlocation <pais> <código postal>)", true, locationHandler},
+		botCommand{"setlocation", "Atualiza posição geográfica usando código postal (/setlocation <pais> <código postal>)", true, locationHandler},
 		botCommand{"cep", "Recebe um código postal do cliente", true, locationHandler},
 		botCommand{"help", "Mensagem de help", true, helpHandler},
 	}
