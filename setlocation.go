@@ -26,14 +26,22 @@ type cepResponse struct {
 	IBGE       string  `json:"ibge"`
 }
 
+// clean a string
+func trDelete(s, substr string) string {
+  ret := bytes.Buffer{}
+
+  for _, r := range(s) {
+    if strings.ContainsRune(substr, r) {
+      continue
+    }
+    ret.WriteRune(r)
+  }
+  return ret.String()
+}
 // locationHandler receive postal code from user.
 func locationHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI, config botConfig, msgs botMessages) error {
 
-	tmp := strings.ToLower(strings.Trim(update.Message.CommandArguments(), " "))
-	tmp = strings.Replace(tmp, "-", "", -1)
-	tmp = strings.Replace(tmp, ".", "", -1)
-	tmp = strings.Replace(tmp, "/", "", -1)
-	args := strings.Split(tmp, " ")
+	args := strings.Split(trDelete(update.Message.CommandArguments()), " ")
 	user := update.Message.From
 	cep := ""
 
@@ -47,7 +55,7 @@ func locationHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI, config botCon
 		country := args[0]
 
 		if country != "br" {
-			return fmt.Errorf("Não sei como procurar o Código Postal deste país (%q)", args[0])
+			return fmt.Errorf("não sei como procurar o Código Postal deste país (%q)", args[0])
 		}
 		cep = args[1]
 	case "cep":
@@ -58,7 +66,7 @@ func locationHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI, config botCon
 	}
 
 	if err := findCEP(user, cep, config); err != nil {
-		return fmt.Errorf("Não foi possível achar a sua localização . CEP %q", cep)
+		return fmt.Errorf("não foi possível achar a sua localização . CEP %q", cep)
 	}
 
 	return errors.New(msgs.LocationSuccess)
@@ -71,9 +79,9 @@ func findCEP(user *tgbotapi.User, cep string, config botConfig) error {
 
 	req, err := http.NewRequest("GET", url, nil)
 
-	req.Header.Set("Authorization", `Token token="`+config.CepAbertoKey+`"`)
+	req.Header.Set("authorization", `Token token="`+config.CepAbertoKey+`"`)
 	if err != nil {
-		log.Printf("NewRequest: ", err)
+		log.Printf("wewRequest: ", err)
 		return err
 	}
 
