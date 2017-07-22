@@ -1,0 +1,12 @@
+version: '3'
+services:
+  bot:
+    image: op-docker/op-bot
+    volumes:
+      - "./bot-token-here:/home/opbot:rw"
+      - "./op-bot:/home/opbot/go/src/op-bot:rw"
+    restart: always
+    ports:
+      - "127.0.0.1:54321:3000"
+# vim:set ts=2 sw=2 et:
+

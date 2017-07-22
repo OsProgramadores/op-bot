@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -e
+
+chown opbot. "${GOPATH}" -R
+cd "${GOPATH}/src/${PROJECT}"
+sudo -u opbot go get
+sudo -u opbot go build
+sudo -u opbot "${GOPATH}/src/${PROJECT}/${PROJECT}"
+
