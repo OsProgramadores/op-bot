@@ -16,7 +16,7 @@ Successfully tagged op-docker/op-bot:latest
 ```
 
 
-3. 2. Place the file `.op-bot.json` inside folder `bot-token-here`.
+2. Place the file `.op-bot.json` inside folder `bot-token-here`.
 
 This file should have the following structure:
 
@@ -45,6 +45,6 @@ Attaching to docker_bot_1
 bot_1  | 2017/07/22 20:18:19 Authorized on account osprogramadores_bot
 ```
 
-If you find some problem, read the error messages carefully, as they usually explain what went wrong. Also make sure you did the previous steps correctly.
+In case of problems, read the error messages carefully, as they usually explain what went wrong. Also make sure you did the previous steps correctly.
 
 And that's it.

@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
+set -e
 
-# Run the bot, which is expected to be mounted at /bot
-( cd "${GOPATH}/src/${PROJECT}" && go get && go build && exec "${GOPATH}/src/${PROJECT}/${PROJECT}" )
+chown opbot. "${GOPATH}" -R
+cd "${GOPATH}/src/${PROJECT}"
+sudo -u opbot go get
+sudo -u opbot go build
+sudo -u opbot "${GOPATH}/src/${PROJECT}/${PROJECT}"
 

@@ -2,17 +2,20 @@ FROM alpine:latest
 
 MAINTAINER Sergio Correia <sergio@correia.cc>
 
+RUN addgroup -g 1000 opbot
+RUN adduser -u 1000 -S -G opbot -s /bin/bash -h /home/opbot opbot
+
 RUN apk update && \
     apk add --no-cache bash \
     coreutils \
+    sudo \
     alpine-sdk \
     wget \
     go \
-    indent && \
-    mkdir -p /root/go
+    indent
 
 ENV PROJECT=op-bot \
-    GOPATH=/go \
+    GOPATH=/home/opbot/go \
     SETUP_DIR=/setup \
     ASTYLE_VER=3.0.1
 
