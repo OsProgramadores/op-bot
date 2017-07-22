@@ -8,6 +8,7 @@ os:
 
 install:
   - go get -t ./...
+  - go get -u github.com/golang/lint/golint
 
 script:
   - ./travis-ci/codecheck.sh
