@@ -51,8 +51,8 @@ func locationHandler(update tgbotapi.Update, bot *tgbotapi.BotAPI, config botCon
 		}
 		cep = args[1]
 	case "cep":
-		if len(args) != 1 {
-			return errors.New("CEP não especificado.")
+		if len(args) != 1 || len(args[0]) == 0 {
+			return errors.New("código postal não especificado")
 		}
 		cep = args[0]
 	}
