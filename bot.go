@@ -83,27 +83,21 @@ func (x *opBot) Run() {
 			// User commands.
 			case update.Message.IsCommand():
 				cmd := strings.ToLower(update.Message.Command())
-				found := false
 
-				for c, bcmd := range x.commands {
-					if c == cmd {
-						found = true
-
-						// Fail silently if non-private request on private only command.
-						if bcmd.pvtOnly && !isPrivateChat(update.Message.Chat) {
-							log.Printf("Ignoring non-private request on private only command %q", cmd)
-							break
-						}
-						// Handle command.
-						err := bcmd.handler(update)
-						if err != nil {
-							x.sendReply(update, err.Error())
-						}
-						break
-					}
+				bcmd, ok := x.commands[cmd]
+				if !ok {
+					log.Printf("Ignoring invalid command: %q", cmd)
+					break
 				}
-				if !found {
-					log.Printf("Ignoring invalid command %q", cmd)
+				// Fail silently if non-private request on private only command.
+				if bcmd.pvtOnly && !isPrivateChat(update.Message.Chat) {
+					log.Printf("Ignoring non-private request on private only command %q", cmd)
+					break
+				}
+				// Handle command.
+				err := bcmd.handler(update)
+				if err != nil {
+					x.sendReply(update, err.Error())
 				}
 			}
 		}
