@@ -11,15 +11,15 @@ import (
 type opBot struct {
 	config   botConfig
 	messages botMessages
-	commands []botCommand
+	commands map[string]botCommand
 	bot      *tgbotapi.BotAPI
 }
 
 // botCommands holds the commands accepted by the bot, their description and a handler function.
 type botCommand struct {
-	cmd     string
 	desc    string
 	pvtOnly bool
+	enabled bool
 	handler func(tgbotapi.Update) error
 }
 
@@ -85,17 +85,17 @@ func (x *opBot) Run() {
 				cmd := strings.ToLower(update.Message.Command())
 				found := false
 
-				for _, c := range x.commands {
-					if c.cmd == cmd {
+				for c, bcmd := range x.commands {
+					if c == cmd {
 						found = true
 
 						// Fail silently if non-private request on private only command.
-						if c.pvtOnly && !isPrivateChat(update.Message.Chat) {
+						if bcmd.pvtOnly && !isPrivateChat(update.Message.Chat) {
 							log.Printf("Ignoring non-private request on private only command %q", cmd)
 							break
 						}
 						// Handle command.
-						err := c.handler(update)
+						err := bcmd.handler(update)
 						if err != nil {
 							x.sendReply(update, err.Error())
 						}
@@ -132,11 +132,28 @@ func (x *opBot) hackerHandler(update tgbotapi.Update) error {
 	return nil
 }
 
+// Register registers a command a its handler on the bot.
+func (x *opBot) Register(cmd string, desc string, pvtOnly bool, enabled bool, handler func(tgbotapi.Update) error) {
+	if x.commands == nil {
+		x.commands = map[string]botCommand{}
+	}
+
+	x.commands[cmd] = botCommand{
+		desc:    desc,
+		pvtOnly: pvtOnly,
+		enabled: enabled,
+		handler: handler,
+	}
+	log.Printf("Registered command %q, %q", cmd, desc)
+}
+
 // helpHandler sends a help message back to the user.
 func (x *opBot) helpHandler(update tgbotapi.Update) error {
 	helpMsg := make([]string, len(x.commands))
-	for i, c := range x.commands {
-		helpMsg[i] = fmt.Sprintf("/%s: %s", c.cmd, c.desc)
+	ix := 0
+	for c, bcmd := range x.commands {
+		helpMsg[ix] = fmt.Sprintf("/%s: %s", c, bcmd.desc)
+		ix++
 	}
 
 	x.sendReply(update, strings.Join(helpMsg, "\n"))

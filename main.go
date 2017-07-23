@@ -35,16 +35,12 @@ func main() {
 		messages: messages,
 		bot:      bot,
 	}
-
-	// TODO: Create "Set" functions inside opbot so we can set botCommands
-	// externally without mucking with the internals of the struct.
-	b.commands = []botCommand{
-		botCommand{"indent", "Indenta um programa no repl.it (/indent url)", false, b.indentHandler},
-		botCommand{"hackerdetected", "Dispara o alarme anti-hacker. :)", false, b.hackerHandler},
-		botCommand{"setlocation", "Atualiza posição geográfica usando código postal (/setlocation <pais> <código postal>)", true, b.locationHandler},
-		botCommand{"cep", "Atualiza posição geográfica usando CEP", true, b.locationHandler},
-		botCommand{"help", "Mensagem de help", true, b.helpHandler},
-	}
+	// Register commands
+	b.Register("indent", "Indenta um programa no repl.it (/indent url)", false, true, b.indentHandler)
+	b.Register("hackerdetected", "Dispara o alarme anti-hacker. :)", false, true, b.hackerHandler)
+	b.Register("setlocation", "Atualiza posição geográfica usando código postal (/setlocation <pais> <código postal>)", true, true, b.locationHandler)
+	b.Register("cep", "Atualiza posição geográfica usando CEP", true, true, b.locationHandler)
+	b.Register("help", "Mensagem de help", true, true, b.helpHandler)
 
 	// Make it so!
 	b.Run()
