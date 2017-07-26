@@ -70,8 +70,8 @@ func TestDownloadReplIt(t *testing.T) {
 				RevisionID: "0",
 				EditorText: "/* Fake program */",
 				Files: map[string]replFile{
-					"1545981": replFile{ID: 1545981, Name: "main.c", Content: "/*main.c*/", Index: 0},
-					"1545982": replFile{ID: 1545982, Name: "file1.c", Content: "/*file1.c*/", Index: 1},
+					"1545981": {ID: 1545981, Name: "main.c", Content: "/*main.c*/", Index: 0},
+					"1545982": {ID: 1545982, Name: "file1.c", Content: "/*file1.c*/", Index: 1},
 				},
 				IsProject: true,
 				Language:  "c",
@@ -191,7 +191,7 @@ func TestIndent(t *testing.T) {
 			repl: &replProject{
 				IsProject: true,
 				Files: map[string]replFile{
-					"1234": replFile{
+					"1234": {
 						ID:      1234,
 						Name:    "foo.c",
 						Content: "fake_editor_text",
@@ -209,7 +209,7 @@ func TestIndent(t *testing.T) {
 			wantRepl: &replProject{
 				IsProject: true,
 				Files: map[string]replFile{
-					"1234": replFile{
+					"1234": {
 						ID:       1234,
 						Name:     "foo.c",
 						Content:  "fake_editor_text",
@@ -320,7 +320,7 @@ func TestIndent(t *testing.T) {
 			repl: &replProject{
 				IsProject: true,
 				Files: map[string]replFile{
-					"1234": replFile{
+					"1234": {
 						ID:      1234,
 						Name:    "foo.c",
 						Content: "fake_editor_text",
@@ -343,7 +343,7 @@ func TestIndent(t *testing.T) {
 			repl: &replProject{
 				IsProject: true,
 				Files: map[string]replFile{
-					"1234": replFile{
+					"1234": {
 						ID:      1234,
 						Name:    "foo.c",
 						Content: "fake_editor_text",
@@ -368,7 +368,7 @@ func TestIndent(t *testing.T) {
 			repl: &replProject{
 				IsProject: true,
 				Files: map[string]replFile{
-					"1234": replFile{
+					"1234": {
 						ID:      1234,
 						Name:    "foo.c",
 						Content: "fake_editor_text",
@@ -394,7 +394,7 @@ func TestIndent(t *testing.T) {
 			repl: &replProject{
 				IsProject: true,
 				Files: map[string]replFile{
-					"1234": replFile{
+					"1234": {
 						ID:      1234,
 						Name:    "foo.c",
 						Content: "fake_editor_text",
@@ -421,7 +421,7 @@ func TestIndent(t *testing.T) {
 			repl: &replProject{
 				IsProject: true,
 				Files: map[string]replFile{
-					"1234": replFile{
+					"1234": {
 						ID:      1234,
 						Name:    "foo.c",
 						Content: "fake_editor_text",

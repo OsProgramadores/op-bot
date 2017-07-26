@@ -1,8 +1,9 @@
 package main
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/BurntSushi/toml"
 	"io/ioutil"
 	"os"
 	"os/user"
@@ -11,55 +12,60 @@ import (
 
 const (
 	defaultServerPort = 3000
+	configFile        = "config.toml"
+	msgsFile          = "messages.toml"
+
+	// Directory usually under $HOME/.config that holds all configurations.
+	opBotConfigDir = "op-bot"
 )
 
 type botConfig struct {
 	// BotToken contains the Telegram token for this bot.
-	BotToken string
+	BotToken string `toml:"token"`
 
 	// LocationKey contains an alphanum key used to scramble
 	// the user IDs when storing the location.
-	LocationKey string
+	LocationKey string `toml:"location_key"`
 
 	// ServerPort contains the TCP server port.
-	ServerPort int
+	ServerPort int `toml:"server_port"`
 
 	// API Key from www.cepaberto.com (brazilian postal code to geo location service.)
-	CepAbertoKey string
+	CepAbertoKey string `toml:"cep_aberto_key"`
 }
 
 type botMessages struct {
-	Welcome              string
-	Rules                string
-	ReadTheRules         string
-	VisitOurGroupWebsite string
-	URL                  string
-	LocationSuccess      string
-	LocationFail         string
+	Welcome              string `toml:"welcome"`
+	Rules                string `toml:"rules"`
+	ReadTheRules         string `toml:"read_the_rules"`
+	VisitOurGroupWebsite string `toml:"visit_our_group_website"`
+	URL                  string `toml:"url"`
+	LocationSuccess      string `toml:"location_success"`
+	LocationFail         string `toml:"location_fail"`
 }
-
-var (
-	configFile = ".op-bot.json"
-	msgsFile   = "config/messages.json"
-)
 
 // loadConfig loads the configuration items for the bot from 'configFile' under
 // the home directory, and assigns sane defaults to certain configuration items.
 func loadConfig() (botConfig, error) {
 	config := botConfig{}
 
-	home, err := homeDir()
+	cfgdir, err := configDir()
 	if err != nil {
-		return config, err
+		return botConfig{}, err
 	}
-	jsonFile := filepath.Join(home, configFile)
+	f := filepath.Join(cfgdir, configFile)
 
-	buf, err := ioutil.ReadFile(jsonFile)
+	buf, err := ioutil.ReadFile(f)
 	if err != nil {
 		return botConfig{}, err
 	}
-	if err := json.Unmarshal(buf, &config); err != nil {
+	if _, err := toml.Decode(string(buf), &config); err != nil {
 		return botConfig{}, err
+	}
+
+	// Check mandatory fields
+	if config.BotToken == "" {
+		return botConfig{}, errors.New("token não pode estar em branco")
 	}
 
 	// Defaults
@@ -70,18 +76,24 @@ func loadConfig() (botConfig, error) {
 	return config, nil
 }
 
-func loadMessages() (messages botMessages, err error) {
-	var jsonConfig *os.File
+func loadMessages() (botMessages, error) {
+	messages := botMessages{}
 
-	jsonConfig, err = os.Open(msgsFile)
+	cfgdir, err := configDir()
 	if err != nil {
-		return
+		return botMessages{}, err
 	}
-	defer jsonConfig.Close()
+	f := filepath.Join(cfgdir, msgsFile)
 
-	decoder := json.NewDecoder(jsonConfig)
-	err = decoder.Decode(&messages)
-	return
+	buf, err := ioutil.ReadFile(f)
+	if err != nil {
+		return botMessages{}, err
+	}
+	if _, err := toml.Decode(string(buf), &messages); err != nil {
+		return botMessages{}, err
+	}
+
+	return messages, nil
 }
 
 // homeDir returns the user's home directory or an error if the variable HOME
@@ -105,4 +117,19 @@ func homeDir() (string, error) {
 		return "", err
 	}
 	return home, nil
+}
+
+// configDir returns the location for config files. Use the XDG_CONFIG_HOME
+// environment variable, or the fallback value of $HOME/.config if the variable
+// is not set.
+func configDir() (string, error) {
+	xdg := os.Getenv("XDG_CONFIG_HOME")
+	if xdg != "" {
+		return filepath.Join(xdg, opBotConfigDir), nil
+	}
+	home, err := homeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".config", opBotConfigDir), nil
 }
