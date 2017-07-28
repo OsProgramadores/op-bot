@@ -63,11 +63,11 @@ func readLocations() error {
 	locations.RLock()
 	defer locations.RUnlock()
 
-	cfgdir, err := configDir()
+	datadir, err := dataDir()
 	if err != nil {
 		return err
 	}
-	f := filepath.Join(cfgdir, locationDb)
+	f := filepath.Join(datadir, locationDb)
 
 	buf, err := ioutil.ReadFile(f)
 	if err != nil {
