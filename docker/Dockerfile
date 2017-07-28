@@ -23,6 +23,11 @@ ARG OPBOT_GIT_ROOT="${GOPATH}/src/${OPBOT_PROJECT}"
 RUN addgroup -g 1000 ${OPBOT_USER}
 RUN adduser -u 1000 -S -G ${OPBOT_USER} -s /bin/bash -h ${OPBOT_HOME_DIR} ${OPBOT_USER}
 
+# This invalidates the cache for all run
+# commands from this point on. Without this, Docker build
+# won't re-run the RUN commands on newer builds.
+ADD cachebuster /tmp
+
 # Configure the required GOPATH structure and compile op-bot.
 # Move the binary to /tmp and remove the $GOPATH structure.
 RUN mkdir -p "${OPBOT_GIT_ROOT}" && \
