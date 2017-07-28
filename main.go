@@ -1,30 +1,30 @@
 package main
 
 import (
-	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
-	"os"
+)
+
+const (
+	configTipMsg = `You can find a sample config file inside the "examples" directory in the source tree.`
 )
 
 func main() {
+	log.SetFlags(0)
+
 	config, err := loadConfig()
 	if err != nil {
-		fmt.Println("Houston, we have a problem: ", err)
-		fmt.Println("You can see an example of bot token config file at 'config/token.json.sample'")
-		os.Exit(1)
+		log.Fatalf("Unable to load config file: %s\n%s", err, configTipMsg)
 	}
 
 	bot, err := tgbotapi.NewBotAPI(config.BotToken)
 	if err != nil {
-		log.Panic(err)
+		log.Fatalf("Unable to start the bot (missing token in config?): %s", err)
 	}
 
 	messages, err := loadMessages()
 	if err != nil {
-		fmt.Println("Unable to load messages file: ", err)
-		fmt.Println("You can see an example of bot messages file at 'config/messages.json.sample'")
-		os.Exit(1)
+		log.Fatalf("Unable to load messages file: %s\n%s", err, configTipMsg)
 	}
 
 	go serveLocations(config)

@@ -1,0 +1,19 @@
+# Configuration parameters for the op-bot.
+# See config.go for latest information.
+
+# Telegram bot api. The bot will *not* work without a proper API key.
+token = "<telegram_api_token>"
+
+# TCP server port for the location server. The mapping application will
+# dial back to the bot on this port to get coordinates. Make sure no other
+# service on this machine is listening on this port.
+server_port = 3000
+
+# LocationKey contains an alphanum key used to scramble the user IDs when
+# storing the location. It can be anything (but not blank).
+location_key = ""
+
+# Key for cepaberto.com (brazilian postal code to geo location service.)
+# Optional, but without a valid key, the /location command won't work for
+# locations in Brazil (cellular location still works, though).
+cep_aberto_key = "<cep_aberto_key>"

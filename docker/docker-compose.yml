@@ -3,8 +3,7 @@ services:
   bot:
     image: op-docker/op-bot
     volumes:
-      - "./bot-token-here:/home/opbot:rw"
-      - "./op-bot:/home/opbot/go/src/op-bot:rw"
+      - "./config:/home/opbot/.config/op-bot:rw"
     restart: always
     ports:
       - "127.0.0.1:54321:3000"
