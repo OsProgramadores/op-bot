@@ -94,10 +94,12 @@ func (x *opBot) Run() {
 					log.Printf("Ignoring non-private request on private only command %q", cmd)
 					break
 				}
-				// Handle command.
+				// Handle command. Emit (and log) error.
 				err := bcmd.handler(update)
 				if err != nil {
-					x.sendReply(update, err.Error())
+					e := "Erro: " + err.Error()
+					x.sendReply(update, e)
+					fmt.Println(e)
 				}
 			}
 		}
@@ -151,7 +153,6 @@ func (x *opBot) helpHandler(update tgbotapi.Update) error {
 	}
 
 	x.sendReply(update, strings.Join(helpMsg, "\n"))
-
 	return nil
 }
 

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -29,7 +28,6 @@ type cepResponse struct {
 
 // locationHandler receive postal code from user.
 func (x *opBot) locationHandler(update tgbotapi.Update) error {
-
 	args := strings.Split(trDelete(update.Message.CommandArguments(), "/-."), " ")
 	user := update.Message.From
 	cep := ""
@@ -55,36 +53,32 @@ func (x *opBot) locationHandler(update tgbotapi.Update) error {
 	}
 
 	if err := findCEP(user, cep, x.config); err != nil {
-		return fmt.Errorf("não foi possível achar a sua localização . CEP %q", cep)
+		return fmt.Errorf("não foi possível achar a sua localização: %q", cep)
 	}
 
-	return errors.New(x.messages.LocationSuccess)
+	x.sendReply(update, x.messages.LocationSuccess)
+	return nil
 }
 
 // API Key from www.cepaberto.com (brazilian postal code to geo location service.)
 func findCEP(user *tgbotapi.User, cep string, config botConfig) error {
-
 	url := fmt.Sprintf("http://www.cepaberto.com/api/v2/ceps.json?cep=%s", url.QueryEscape(cep))
 
 	req, err := http.NewRequest("GET", url, nil)
-
-	req.Header.Set("authorization", `Token token="`+config.CepAbertoKey+`"`)
 	if err != nil {
-		log.Printf("wewRequest: %s", err)
 		return err
 	}
 
+	req.Header.Set("authorization", `Token token="`+config.CepAbertoKey+`"`)
 	client := &http.Client{}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Printf("Do: %s", err)
 		return err
 	}
-
 	defer resp.Body.Close()
-	var res cepResponse
 
+	var res cepResponse
 	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
 		return err
 	}
@@ -99,12 +93,10 @@ func findCEP(user *tgbotapi.User, cep string, config botConfig) error {
 		return fmt.Errorf("longitude Inválida")
 	}
 
-	err = handleLocation(config.LocationKey, fmt.Sprintf("%d", user.ID), lat, long)
-
-	return nil
+	return handleLocation(config.LocationKey, fmt.Sprintf("%d", user.ID), lat, long)
 }
 
-// clean a string
+// trDelete returns a copy of the string with all runes in substring removed.
 func trDelete(s, substr string) string {
 	ret := bytes.Buffer{}
 

@@ -65,11 +65,7 @@ func readLocations() error {
 		return err
 	}
 
-	if err := json.Unmarshal(buf, &locations.coords); err != nil {
-		return err
-	}
-
-	return nil
+	return json.Unmarshal(buf, &locations.coords)
 }
 
 // randomizeCoordinate truncates the lat/long coordinate to one decimal and
@@ -88,10 +84,7 @@ func handleLocation(key, id string, lat, lon float64) error {
 	locations.Lock()
 	defer locations.Unlock()
 	locations.coords[userid] = geoLocation{randomizeCoordinate(lat), randomizeCoordinate(lon)}
-	if err := saveLocations(locations.coords); err != nil {
-		return err
-	}
-	return nil
+	return saveLocations(locations.coords)
 }
 
 // serveLocations serves the lat/long list in memory in JSON format over HTTP.
