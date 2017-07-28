@@ -141,6 +141,9 @@ func downloadReplIt(url string) (*replProject, error) {
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
 
 	repl, err := parseReplItDownload(body)
 	if err != nil {
@@ -181,6 +184,9 @@ func uploadToRepl(repl *replProject) (*replProject, error) {
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
 
 	url := repl.url
 	repl, err = parseReplItJSON(body)
