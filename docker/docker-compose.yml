@@ -4,6 +4,7 @@ services:
     image: op-docker/op-bot
     volumes:
       - "./config:/home/opbot/.config/op-bot:rw"
+      - "./data:/home/opbot/.local/share/op-bot:rw"
     restart: always
     ports:
       - "127.0.0.1:54321:3000"
