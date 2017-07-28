@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"path/filepath"
 	"sync"
 )
 
@@ -40,7 +41,12 @@ func saveLocations(m map[string]geoLocation) error {
 		return err
 	}
 
-	return ioutil.WriteFile(locationDb, buf, 0644)
+	cfgdir, err := configDir()
+	if err != nil {
+		return err
+	}
+	f := filepath.Join(cfgdir, locationDb)
+	return ioutil.WriteFile(f, buf, 0644)
 }
 
 // readLocations reads locations from the locationDb file.
@@ -48,7 +54,13 @@ func readLocations() error {
 	locations.RLock()
 	defer locations.RUnlock()
 
-	buf, err := ioutil.ReadFile(locationDb)
+	cfgdir, err := configDir()
+	if err != nil {
+		return err
+	}
+	f := filepath.Join(cfgdir, locationDb)
+
+	buf, err := ioutil.ReadFile(f)
 	if err != nil {
 		return err
 	}
