@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"os"
 	"path/filepath"
 	"sync"
 )
@@ -41,11 +42,19 @@ func saveLocations(m map[string]geoLocation) error {
 		return err
 	}
 
-	cfgdir, err := configDir()
+	datadir, err := dataDir()
 	if err != nil {
 		return err
 	}
-	f := filepath.Join(cfgdir, locationDb)
+
+	if _, err = os.Stat(datadir); os.IsNotExist(err) {
+		err = os.MkdirAll(datadir, os.ModeDir)
+	}
+	if err != nil {
+		return err
+	}
+
+	f := filepath.Join(datadir, locationDb)
 	return ioutil.WriteFile(f, buf, 0644)
 }
 

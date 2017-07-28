@@ -133,3 +133,18 @@ func configDir() (string, error) {
 	}
 	return filepath.Join(home, ".config", opBotConfigDir), nil
 }
+
+// dataDir returns the location for data files. Use the XDG_DATA_HOME
+// environment variable, or the fallback value of $HOME/.local/share if the variable
+// is not set.
+func dataDir() (string, error) {
+	xdg := os.Getenv("XDG_DATA_HOME")
+	if xdg != "" {
+		return filepath.Join(xdg, opBotConfigDir), nil
+	}
+	home, err := homeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".local", "share", opBotConfigDir), nil
+}
