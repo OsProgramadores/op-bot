@@ -37,26 +37,26 @@ func (x *opBot) locationHandler(update tgbotapi.Update) error {
 	switch cmd {
 	case "setlocation":
 		if len(args) != 2 {
-			return errors.New("/setlocation <pais> <código postal>")
+			return errors.New(T("setlocation_usage"))
 		}
 		country := args[0]
 
 		if country != "br" {
-			return fmt.Errorf("não sei como procurar o Código Postal deste país (%q)", args[0])
+			return fmt.Errorf(T("unsupported_country"), args[0])
 		}
 		cep = args[1]
 	case "cep":
 		if len(args) != 1 || len(args[0]) == 0 {
-			return errors.New("código postal não especificado")
+			return errors.New(T("missing_postal_code"))
 		}
 		cep = args[0]
 	}
 
 	if err := findCEP(user, cep, x.config); err != nil {
-		return fmt.Errorf("não foi possível achar a sua localização: %q", cep)
+		return fmt.Errorf(T("unable_to_find_location"), cep)
 	}
 
-	x.sendReply(update, x.messages.LocationSuccess)
+	x.sendReply(update, T("location_success"))
 	return nil
 }
 
@@ -85,12 +85,12 @@ func findCEP(user *tgbotapi.User, cep string, config botConfig) error {
 
 	lat, err := strconv.ParseFloat(res.Latitude, 64)
 	if err != nil {
-		return fmt.Errorf("latitude Inválida")
+		return errors.New(T("invalid_latitude"))
 	}
 
 	long, err := strconv.ParseFloat(res.Longitude, 64)
 	if err != nil {
-		return fmt.Errorf("longitude Inválida")
+		return errors.New(T("invalid_longitude"))
 	}
 
 	return handleLocation(config.LocationKey, fmt.Sprintf("%d", user.ID), lat, long)

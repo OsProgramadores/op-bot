@@ -21,8 +21,8 @@ Successfully tagged op-docker/op-bot:latest
    directory. Edit the file and set your token. There are additional settings,
    but `token` is the bare minimum required in order to run the bot.
 
-3. Copy the example `../examples/messages.toml` file into the `./config`
-   directory.  Edit the mesages, if desired.
+3. Copy the translations from the `../examples/translations` directory into
+   the `./config/translations` directory.
 
 4. Create the container with:
 ```

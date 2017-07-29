@@ -1,0 +1,102 @@
+# pt-br translation file for op-bot
+# http://github.com/osprogramadores/op-bot
+
+[welcome]
+other = "Bem-vindo(a) %s. Qual o seu interesse em programação? Divirta-se!\nEnvie um pequeno resumo sobre você para quebrarmos o gelo com a turma por cá!"
+
+[rules]
+other = "Regras:\n\n1-Proibido Pirataria ou incentivo a Pirataria.\n2-Tolerância ZERO com SPAM (banimento imediato)\n3-Respeite os participantes do grupo.\n4-Pense antes de postar.\n5-Divirta-se."
+
+[location_success]
+other = "Localização atualizada com sucesso."
+
+[location_fail]
+other = "Houve um imprevisto tentando atualizar a localização. Por favor, tente novamente mais tarde."
+
+[read_the_rules]
+other = "Leia as Regras"
+
+[visit_our_group_website]
+other = "Visite o site do Grupo"
+
+[error_starting_bot]
+other = "Erro inicializando o bot (verifique se o token no arquivo de configuração está configurado)"
+
+# Register help messages.
+
+[register_indent]
+other = "Indenta um programa no repl.it (/indent url)"
+
+[register_hackerdetected]
+other = "Dispara o alarme anti-hacker. :)"
+
+[register_setlocation]
+other = "Atualiza posição geográfica usando código postal (/setlocation <pais> <código postal>)"
+
+[register_cep]
+other = "Atualiza posição geográfica usando CEP"
+
+[register_help]
+other = "Help dos comandos"
+
+# Error messages
+
+[handler_error]
+other = "Erro: %s"
+
+[error_reading_user_info]
+other = "erro lendo informações sobre o usuário corrente: %s"
+
+[error_homedir_must_exist]
+other = "diretório home tem que existir e ser um diretório: %s"
+
+# Handler messages
+
+[indent_ok]
+other = "Acesse a versão indentada em %s. Lembre que a última revisão sempre está disponível em https://repl.it/%s/latest."
+
+# Indent messages
+
+[line]
+other = "linha"
+
+[error_extracting_from_replit]
+other = "não foi possível extrair os dados do repl.it"
+
+[code_already_indented]
+other = "código já estava indentado :)"
+
+[unknown_language]
+other = "ainda não sei indentar essa linguagem %q. Se puder ajudar, faça um pull request para https://github.com/OsProgramadores/op-bot :)"
+
+[errors_replit_file]
+other = "erros detectados no arquivo %s:\n%s"
+
+[errors_found]
+other = "erros detectados:\n%s"
+
+[invalid_replit_url]
+other = "esta não é uma URL válida do repl.it"
+
+[error_accesing_replit_url]
+other = "não foi possível acessar esta URL do repl.it"
+
+# Setlocation messages
+
+[setlocation_usage]
+other = "/setlocation <pais> <código postal>"
+
+[unsupported_country]
+other = "não sei como procurar o Código Postal deste país: %q"
+
+[missing_postal_code]
+other = "código postal não especificado"
+
+[unable_to_find_location]
+other = "não foi possível achar a sua localização: %q"
+
+[invalid_latitude]
+other = "latitude inválida"
+
+[invalid_longitude]
+other = "longitude inválida"
