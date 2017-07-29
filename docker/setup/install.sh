@@ -15,16 +15,15 @@ download_and_extract() {
   fi
 
   echo "Extracting ${tarball}..."
-  mkdir "${dest}"
-  tar -zxf "${SETUP_DIR}/sources/${tarball}" --strip=1 -C "${dest}"
+  mkdir "${dest}" -p
+  tar -xvf "${SETUP_DIR}/sources/${tarball}" -C "${dest}"
   rm -rf "${SETUP_DIR}/sources/${tarball}"
 }
 
 download_and_extract "${ASTYLE_DOWNLOAD_URL}" "${SETUP_DIR}/astyle"
-pushd "${SETUP_DIR}/astyle/build/gcc"
+pushd "${SETUP_DIR}/astyle/astyle/build/gcc"
 make -j"$(nproc)"
-cd bin
-ln -s "$(pwd)/astyle" /usr/bin/astyle
+cp bin/astyle /usr/bin
 popd
 
 # vim:set ts=2 sw=2 et:
