@@ -1,9 +1,0 @@
-# Bot messages
-
-welcome = "Bem-vindo/a %s. Qual o seu interesse em programação? Divirta-se!\nEnvie um pequeno resumo sobre você para quebrarmos o gelo com a turma por cá!"
-rules = "Regras:\n\n1-Proibido Pirataria ou incentivo a Pirataria.\n2-Tolerância ZERO com SPAM (banimento imediato)\n3-Respeite os participantes do grupo.\n4-Pense antes de postar.\n5-Divirta-se."
-read_the_rules = "Leia as Regras"
-visit_our_group_website = "Visite o site do Grupo"
-url = "https://osprogramadores.com"
-location_success = "Localização atualizada com sucesso."
-location_fail = "Houve um imprevisto tentando atualizar a localização. Por favor, tente novamente mais tarde."

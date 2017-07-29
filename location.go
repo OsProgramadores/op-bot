@@ -1,8 +1,5 @@
 package main
 
-// TODO
-// - Choose a fixed location for location.json (maybe under ~/.op-bot?)
-
 import (
 	"crypto/sha1"
 	"encoding/json"

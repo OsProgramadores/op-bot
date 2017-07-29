@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/BurntSushi/toml"
+	"github.com/nicksnyder/go-i18n/i18n"
 	"io/ioutil"
 	"os"
 	"os/user"
@@ -13,10 +14,12 @@ import (
 const (
 	defaultServerPort = 3000
 	configFile        = "config.toml"
-	msgsFile          = "messages.toml"
 
 	// Directory usually under $HOME/.config that holds all configurations.
 	opBotConfigDir = "op-bot"
+
+	// Directory under config where translations are stored.
+	opBotTranslationDir = "translations"
 )
 
 type botConfig struct {
@@ -27,21 +30,14 @@ type botConfig struct {
 	// the user IDs when storing the location.
 	LocationKey string `toml:"location_key"`
 
+	// Language defines the language for all bot messages
+	Language string `toml:"language"`
+
 	// ServerPort contains the TCP server port.
 	ServerPort int `toml:"server_port"`
 
 	// API Key from www.cepaberto.com (brazilian postal code to geo location service.)
 	CepAbertoKey string `toml:"cep_aberto_key"`
-}
-
-type botMessages struct {
-	Welcome              string `toml:"welcome"`
-	Rules                string `toml:"rules"`
-	ReadTheRules         string `toml:"read_the_rules"`
-	VisitOurGroupWebsite string `toml:"visit_our_group_website"`
-	URL                  string `toml:"url"`
-	LocationSuccess      string `toml:"location_success"`
-	LocationFail         string `toml:"location_fail"`
 }
 
 // loadConfig loads the configuration items for the bot from 'configFile' under
@@ -72,28 +68,32 @@ func loadConfig() (botConfig, error) {
 	if config.ServerPort == 0 {
 		config.ServerPort = defaultServerPort
 	}
+	if config.Language == "" {
+		config.Language = "en-us"
+	}
 
 	return config, nil
 }
 
-func loadMessages() (botMessages, error) {
-	messages := botMessages{}
+// loadTranslation loads the translation file for the specified language
+// and returns a Tfunc function to handle the translation.
+func loadTranslation(lang string) (i18n.TranslateFunc, error) {
+	// Empty translate func
+	tfunc := func(translationID string, args ...interface{}) string {
+		return ""
+	}
 
 	cfgdir, err := configDir()
 	if err != nil {
-		return botMessages{}, err
-	}
-	f := filepath.Join(cfgdir, msgsFile)
-
-	buf, err := ioutil.ReadFile(f)
-	if err != nil {
-		return botMessages{}, err
-	}
-	if _, err := toml.Decode(string(buf), &messages); err != nil {
-		return botMessages{}, err
+		return tfunc, err
 	}
 
-	return messages, nil
+	f := filepath.Join(cfgdir, opBotTranslationDir, lang+"-all.toml")
+	if err := i18n.LoadTranslationFile(f); err != nil {
+		return tfunc, err
+	}
+
+	return i18n.Tfunc(lang)
 }
 
 // homeDir returns the user's home directory or an error if the variable HOME
@@ -104,13 +104,13 @@ func homeDir() (string, error) {
 	if home == "" {
 		usr, err := user.Current()
 		if err != nil {
-			return "", fmt.Errorf("erro lendo informações sobre o usuário corrente: %q", err)
+			return "", fmt.Errorf(T("error_reading_user_info"), err)
 		}
 		home = usr.HomeDir
 	}
 	_, err := os.Stat(home)
 	if os.IsNotExist(err) || !os.ModeType.IsDir() {
-		return "", fmt.Errorf("diretório home %q tem que existir e ser um diretório", home)
+		return "", fmt.Errorf(T("error_homedir_must_exist"), home)
 	}
 	// Other errors than file not found.
 	if err != nil {

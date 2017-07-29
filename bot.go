@@ -7,10 +7,14 @@ import (
 	"strings"
 )
 
+const (
+	// osProgramadoresURL contains the main group URL.
+	osProgramadoresURL = "https://osprogramadores.com"
+)
+
 // opBot defines an instance of op-bot
 type opBot struct {
 	config   botConfig
-	messages botMessages
 	commands map[string]botCommand
 	bot      *tgbotapi.BotAPI
 }
@@ -41,7 +45,7 @@ func (x *opBot) Run() {
 				x.bot.AnswerCallbackQuery(
 					tgbotapi.CallbackConfig{
 						CallbackQueryID: update.CallbackQuery.ID,
-						Text:            x.messages.Rules,
+						Text:            T("rules"),
 						ShowAlert:       true,
 						CacheTime:       60,
 					},
@@ -59,9 +63,9 @@ func (x *opBot) Run() {
 
 				// Give feedback to user, if message was sent privately.
 				if isPrivateChat(update.Message.Chat) {
-					message := x.messages.LocationSuccess
+					message := T("location_success")
 					if err != nil {
-						message = x.messages.LocationFail
+						message = T("location_fail")
 					}
 					x.sendReply(update, message)
 				}
@@ -75,10 +79,10 @@ func (x *opBot) Run() {
 				name := strings.Join(names, ", ")
 
 				markup := tgbotapi.NewInlineKeyboardMarkup(
-					tgbotapi.NewInlineKeyboardRow(websiteButton(x.messages)),
-					tgbotapi.NewInlineKeyboardRow(rulesButton(x.messages)),
+					tgbotapi.NewInlineKeyboardRow(buttonURL(T("visit_our_group_website"), osProgramadoresURL)),
+					tgbotapi.NewInlineKeyboardRow(button(T("read_the_rules"), "rules")),
 				)
-				x.sendReplyWithMarkup(update, fmt.Sprintf(x.messages.Welcome, name), markup)
+				x.sendReplyWithMarkup(update, fmt.Sprintf(T("welcome"), name), markup)
 
 			// User commands.
 			case update.Message.IsCommand():
@@ -97,7 +101,7 @@ func (x *opBot) Run() {
 				// Handle command. Emit (and log) error.
 				err := bcmd.handler(update)
 				if err != nil {
-					e := "Erro: " + err.Error()
+					e := fmt.Sprintf(T("handler_error"), err.Error())
 					x.sendReply(update, e)
 					fmt.Println(e)
 				}
@@ -165,7 +169,7 @@ func (x *opBot) indentHandler(update tgbotapi.Update) error {
 		return err
 	}
 
-	msg := fmt.Sprintf("Acesse a versão indentada em %s. Lembre que a última revisão sempre está disponível em https://repl.it/%s/latest.", repl.newURL, repl.SessionID)
+	msg := fmt.Sprintf(T("indent_ok"), repl.newURL, repl.SessionID)
 	x.sendReply(update, msg)
 	return nil
 }
@@ -198,12 +202,12 @@ func formatName(user tgbotapi.User) string {
 	return strings.Trim(fmt.Sprintf("%s %s", firstName, lastName), " ")
 }
 
-// rulesButton creates a button with the "rules" label.
-func rulesButton(messages botMessages) tgbotapi.InlineKeyboardButton {
-	return tgbotapi.NewInlineKeyboardButtonData(messages.ReadTheRules, "rules")
+// button returns a button with the specified message and label.
+func button(msg, label string) tgbotapi.InlineKeyboardButton {
+	return tgbotapi.NewInlineKeyboardButtonData(msg, label)
 }
 
-// websiteButton creates a button with a preformatted message.
-func websiteButton(messages botMessages) tgbotapi.InlineKeyboardButton {
-	return tgbotapi.NewInlineKeyboardButtonURL(messages.VisitOurGroupWebsite, messages.URL)
+// buttonURL creates a button with an URL.
+func buttonURL(msg, url string) tgbotapi.InlineKeyboardButton {
+	return tgbotapi.NewInlineKeyboardButtonURL(msg, url)
 }

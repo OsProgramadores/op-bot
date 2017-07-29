@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html"
 	"io"
@@ -63,7 +64,7 @@ var (
 		"c": &indenterCmd{
 			cmd:        "indent",
 			args:       "--no-tabs --tab-size4 --indent-level4 --braces-on-if-line --cuddle-else --braces-on-func-def-line --braces-on-struct-decl-line --cuddle-do-while --no-space-after-function-call-names --no-space-after-parentheses --dont-break-procedure-type -l666",
-			replaceErr: &replaceString{src: "indent: Standard input:", dst: "linha "}},
+			replaceErr: &replaceString{src: "indent: Standard input:", dst: fmt.Sprintf("%s ", T("line"))}},
 		"cpp": &indenterCmd{
 			cmd:  "astyle",
 			args: aStyleBaseArgs + " --mode=c"},
@@ -129,7 +130,7 @@ func parseReplItDownload(body []byte) (*replProject, error) {
 	regex := regexp.MustCompile("(?s:REPLIT_DATA = ({.*?})[[:space:]]*?</script>)")
 	match := regex.FindSubmatch(body)
 	if match == nil {
-		return nil, fmt.Errorf("não foi possível extrair os dados do repl.it")
+		return nil, errors.New(T("error_extracting_from_replit"))
 	}
 	return parseReplItJSON(match[1])
 }
@@ -157,7 +158,7 @@ func downloadReplIt(url string) (*replProject, error) {
 
 func uploadToRepl(repl *replProject) (*replProject, error) {
 	if !repl.indentedByUs {
-		return nil, fmt.Errorf("código já estava indentado :)")
+		return nil, errors.New(T("code_already_indented"))
 	}
 
 	formData := url.Values{"id": {repl.SessionID}, "language": {repl.Language}}
@@ -205,7 +206,7 @@ func indentCode(rr execRunner, repl *replProject, indenters indenterPrograms) (*
 	// Fetch correct indenter parameters
 	indenter, ok := indenters[repl.Language]
 	if !ok {
-		return nil, fmt.Errorf("ainda não sei indentar essa linguagem %q. Se puder ajudar, faça um pull request para https://github.com/OsProgramadores/op-bot :)", repl.Language)
+		return nil, fmt.Errorf(T("unknown_language"), repl.Language)
 	}
 
 	// Indent each of the files, if we are dealing with a project.
@@ -218,7 +219,7 @@ func indentCode(rr execRunner, repl *replProject, indenters indenterPrograms) (*
 					if indenter.replaceErr != nil {
 						errorMsg = strings.Replace(errorMsg, indenter.replaceErr.src, indenter.replaceErr.dst, -1)
 					}
-					return nil, fmt.Errorf("erros detectados no arquivo %s:\n%s", file.Name, errorMsg)
+					return nil, fmt.Errorf(T("errors_replit_file"), file.Name, errorMsg)
 				}
 				return nil, err
 			}
@@ -242,7 +243,7 @@ func indentCode(rr execRunner, repl *replProject, indenters indenterPrograms) (*
 					errorMsg = strings.Replace(errorMsg, indenter.replaceErr.src, indenter.replaceErr.dst, -1)
 				}
 
-				return nil, fmt.Errorf("erros detectados:\n%s", errorMsg)
+				return nil, fmt.Errorf(T("errors_found"), errorMsg)
 			}
 			return nil, err
 		}
@@ -259,12 +260,12 @@ func indentCode(rr execRunner, repl *replProject, indenters indenterPrograms) (*
 
 func handleReplItURL(rr execRunner, url string) (*replProject, error) {
 	if !strings.HasPrefix(strings.ToLower(url), replBaseURL) {
-		return nil, fmt.Errorf("esta não é uma URL válida do repl.it")
+		return nil, errors.New(T("invalid_replit_url"))
 	}
 
 	repl, err := downloadReplIt(url)
 	if err != nil {
-		return nil, fmt.Errorf("não foi possível acessar esta URL do repl.it")
+		return nil, errors.New(T("error_accessing_replit_url"))
 	}
 
 	repl, err = indentCode(rr, repl, indenters)
