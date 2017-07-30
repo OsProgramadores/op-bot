@@ -36,6 +36,8 @@ echo -e "#!/usr/bin/env bash\nPYTHONPATH=\"${YAPF_DIR}\" python2 \"${YAPF_DIR}/y
 echo -e "#!/usr/bin/env bash\nPYTHONPATH=\"${YAPF_DIR}\" python3 \"${YAPF_DIR}/yapf\" \"\${@}\"" > /usr/bin/indent-python3
 chmod +x /usr/bin/indent-python*
 
+# gofmt.
+cp /usr/bin/gofmt /usr/bin/indent-golang
 
 # vim:set ts=2 sw=2 et:
 
