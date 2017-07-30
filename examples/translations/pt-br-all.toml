@@ -78,7 +78,7 @@ other = "erros detectados:\n%s"
 [invalid_replit_url]
 other = "esta não é uma URL válida do repl.it"
 
-[error_accesing_replit_url]
+[error_accessing_replit_url]
 other = "não foi possível acessar esta URL do repl.it"
 
 # Setlocation messages
