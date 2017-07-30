@@ -1,0 +1,102 @@
+# en-us translation file for op-bot
+# http://github.com/osprogramadores/op-bot
+
+[welcome]
+other = "Welcome %s. What your interest in coding? Have fun!\nDon't forget to introduce yourself to the group!"
+
+[rules]
+other = "Rules:\n\n1 - No warez, hacking, or anything illegal here.\n2-ZERO tolerance for spam (immediate ban).\n3-Respect your fellow group members.\n4-Think before you write something.\n5-Have fun."
+
+[location_success]
+other = "Location updated successfully."
+
+[location_fail]
+other = "Unable to update location. Please try again later."
+
+[read_the_rules]
+other = "Read the rules"
+
+[visit_our_group_website]
+other = "Visit the group website"
+
+[error_starting_bot]
+other = "Error initializing bot (make sure you have a configured token in the config file)"
+
+# Register help messages.
+
+[register_indent]
+other = "Indent a program on repl.it (/indent url)"
+
+[register_hackerdetected]
+other = "Fire the anti-hacker countermeasures. :)"
+
+[register_setlocation]
+other = "Update your geographic location using a postal code (/setlocation <country> <postal code>)"
+
+[register_cep]
+other = "Update your geographic location using the Brazilian postal code (CEP)"
+
+[register_help]
+other = "Command help"
+
+# Error messages
+
+[handler_error]
+other = "Error: %s"
+
+[error_reading_user_info]
+other = "error fetching information about the current user: %s"
+
+[error_homedir_must_exist]
+other = "home directory must exist (and be a directory): %s"
+
+# Handler messages
+
+[indent_ok]
+other = "Access the indented version at %s. The last revision is always available at https://repl.it/%s/latest."
+
+# Indent messages
+
+[line]
+other = "line"
+
+[error_extracting_from_replit]
+other = "unable to extract data from repl.it"
+
+[code_already_indented]
+other = "code is already indented :)"
+
+[unknown_language]
+other = "I don't know how to indent this language yet (%s). If you can, please help by adding support and opening a pull-request to https://github.com/OsProgramadores/op-bot :)"
+
+[errors_replit_file]
+other = "errors detected on file %q:\n%s"
+
+[errors_found]
+other = "errors detected:\n%s"
+
+[invalid_replit_url]
+other = "this is not a valid repl.it URL"
+
+[error_accessing_replit_url]
+other = "unable to access the repl.it URL"
+
+# Setlocation messages
+
+[setlocation_usage]
+other = "/setlocation <country> <postal code>"
+
+[unsupported_country]
+other = "I don't (yet) support postal code lookups for this country (%s)"
+
+[missing_postal_code]
+other = "missing postal code"
+
+[unable_to_find_location]
+other = "unable to find your location: %q"
+
+[invalid_latitude]
+other = "invalid latitude"
+
+[invalid_longitude]
+other = "invalid longitude"
