@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/kballard/go-shellquote"
 	"html"
 	"io"
 	"io/ioutil"
@@ -57,6 +58,8 @@ const (
 
 	// astyle uses consistent arts for C/C++/C#, and Java (we use indent for C)
 	aStyleBaseArgs = "--style=java --indent=spaces=4 --indent-classes --indent-switches --indent-cases --indent-namespaces --indent-labels --indent-col1-comments --pad-oper --pad-header --quiet"
+	// For python, we use yapf.
+	pythonIndenterArgs = "--style='{based_on_style: pep8, indent_width: 2}'"
 )
 
 var (
@@ -77,6 +80,14 @@ var (
 		"java": &indenterCmd{
 			cmd:  "astyle",
 			args: aStyleBaseArgs + " --mode=java"},
+		"python": &indenterCmd{
+			cmd:  "indent-python2",
+			args: pythonIndenterArgs,
+		},
+		"python3": &indenterCmd{
+			cmd:  "indent-python3",
+			args: pythonIndenterArgs,
+		},
 	}
 )
 
@@ -209,10 +220,15 @@ func indentCode(rr execRunner, repl *replProject, indenters indenterPrograms) (*
 		return nil, fmt.Errorf(T("unknown_language"), repl.Language)
 	}
 
+	args, err := shellquote.Split(indenter.args)
+	if err != nil {
+		return nil, err
+	}
+
 	// Indent each of the files, if we are dealing with a project.
 	if repl.IsProject {
 		for key, file := range repl.Files {
-			stdout, stderr, err := rr.run(file.Content, indenter.cmd, strings.Split(indenter.args, " ")...)
+			stdout, stderr, err := rr.run(file.Content, indenter.cmd, args...)
 			if err != nil {
 				if len(stderr) > 0 {
 					errorMsg := stderr
@@ -234,7 +250,7 @@ func indentCode(rr execRunner, repl *replProject, indenters indenterPrograms) (*
 		}
 	} else {
 		// If not a project, indent the content of EditorText.
-		stdout, stderr, err := rr.run(repl.EditorText, indenter.cmd, strings.Split(indenter.args, " ")...)
+		stdout, stderr, err := rr.run(repl.EditorText, indenter.cmd, args...)
 
 		if err != nil {
 			if len(stderr) > 0 {

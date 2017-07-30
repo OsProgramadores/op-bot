@@ -20,11 +20,22 @@ download_and_extract() {
   rm -rf "${SETUP_DIR}/sources/${tarball}"
 }
 
+# astyle.
 download_and_extract "${ASTYLE_DOWNLOAD_URL}" "${SETUP_DIR}/astyle"
 pushd "${SETUP_DIR}/astyle/astyle/build/gcc"
 make -j"$(nproc)"
 cp bin/astyle /usr/bin
 popd
+
+# yapf.
+YAPF_DIR="/opt/yapf"
+YAPF_GIT_URL="https://github.com/google/yapf.git"
+mkdir "${YAPF_DIR}" -p
+git clone "${YAPF_GIT_URL}" "${YAPF_DIR}"
+echo -e "#!/usr/bin/env bash\nPYTHONPATH=\"${YAPF_DIR}\" python2 \"${YAPF_DIR}/yapf\" \"\${@}\"" > /usr/bin/indent-python2
+echo -e "#!/usr/bin/env bash\nPYTHONPATH=\"${YAPF_DIR}\" python3 \"${YAPF_DIR}/yapf\" \"\${@}\"" > /usr/bin/indent-python3
+chmod +x /usr/bin/indent-python*
+
 
 # vim:set ts=2 sw=2 et:
 

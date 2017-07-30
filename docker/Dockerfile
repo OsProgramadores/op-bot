@@ -36,7 +36,7 @@ RUN addgroup -g 1000 ${OPBOT_USER} && \
     bash /tmp/install.sh && \
     rm -rf /tmp/install.sh "${SETUP_DIR}" && \
     apk del tar coreutils wget git g++ make libc-dev go && \
-    apk add ca-certificates libstdc++ && \
+    apk add ca-certificates libstdc++ python python3 && \
     rm -rf /var/cache/apk/*
 
 ENTRYPOINT ["/bin/su", "-", "opbot", "-c", "'/usr/bin/op-bot'"]
