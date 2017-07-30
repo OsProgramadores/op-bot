@@ -88,6 +88,10 @@ var (
 			cmd:  "indent-python3",
 			args: pythonIndenterArgs,
 		},
+		"go": &indenterCmd{
+			cmd:  "indent-golang",
+			args: "-s",
+		},
 	}
 )
 
