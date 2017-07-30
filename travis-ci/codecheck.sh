@@ -28,3 +28,6 @@ golint -set_exit_status
 
 echo "Checking source with go-vet."
 go vet
+
+echo "Checking translation IDs."
+travis-ci/transcheck/transcheck --source-dir "." --translations-dir "examples/translations"
