@@ -116,10 +116,10 @@ func parseReplItJSON(data []byte) (*replProject, error) {
 
 	// Unescaping HTML.
 	repl.Language = strings.ToLower(html.UnescapeString(repl.Language))
-	repl.EditorText = html.UnescapeString(repl.EditorText)
+	repl.EditorText = trDelete(html.UnescapeString(repl.EditorText), "\r")
 	for key, file := range repl.Files {
 		file.Name = html.UnescapeString(file.Name)
-		file.Content = html.UnescapeString(file.Content)
+		file.Content = trDelete(html.UnescapeString(file.Content), "\r")
 		repl.Files[key] = file
 	}
 
