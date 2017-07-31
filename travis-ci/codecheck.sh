@@ -1,6 +1,6 @@
 #!/bin/bash
 # Test Go formatting compliance with:
-# - gofmt
+# - gofmt -s
 # - golint
 # - go vet
 #
@@ -11,11 +11,12 @@ TMPFILE=$(mktemp)
 trap "rm -f $TMPFILE" EXIT
 
 # Run gofmt in all go files. Report diffs.
-find . -type f -name '*.go' -exec gofmt -l {} \; >"$TMPFILE"
+echo "Checking source with gofmt -s."
+find . -type f -name '*.go' -exec gofmt -s -l {} \; >"$TMPFILE"
 
 # Error out if any files need formatting.
 if grep -q . "$TMPFILE"; then
-  echo "ERROR: The following files need formatting with gofmt:"
+  echo "ERROR: The following files need formatting with gofmt -s:"
   cat $TMPFILE
   exit 1
 fi
