@@ -44,9 +44,7 @@ func saveLocations(m map[string]geoLocation) error {
 		return err
 	}
 
-	if _, err = os.Stat(datadir); os.IsNotExist(err) {
-		err = os.MkdirAll(datadir, os.ModeDir)
-	}
+	err = os.MkdirAll(datadir, 0755)
 	if err != nil {
 		return err
 	}

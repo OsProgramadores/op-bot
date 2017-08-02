@@ -36,8 +36,13 @@ func main() {
 
 	// Create new bot
 	b := opBot{
-		config: config,
-		bot:    bot,
+		config:            config,
+		bot:               bot,
+		userNotifications: notifications{Users: map[string]string{}},
+	}
+
+	if err = loadNotificationSettings(&b.userNotifications); err != nil {
+		log.Printf("Error loading notifications: %v", err)
 	}
 	// Register commands
 	b.Register("indent", T("register_indent"), false, true, b.indentHandler)
@@ -45,6 +50,7 @@ func main() {
 	b.Register("setlocation", T("register_setlocation"), true, true, b.locationHandler)
 	b.Register("cep", T("register_cep"), true, true, b.locationHandler)
 	b.Register("help", T("register_help"), true, true, b.helpHandler)
+	b.Register("notifications", T("notifications_help"), true, true, b.notificationHandler)
 
 	// Make it so!
 	b.Run()

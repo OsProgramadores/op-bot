@@ -39,6 +39,9 @@ other = "Update your geographic location using the Brazilian postal code (CEP)"
 [register_help]
 other = "Command help"
 
+[notifications_help]
+other = "Enables/disables notifications"
+
 # Error messages
 
 [handler_error]
@@ -100,3 +103,26 @@ other = "invalid latitude"
 
 [invalid_longitude]
 other = "invalid longitude"
+
+# Notifications messages.
+
+[notification_replied]
+other = "⚠️ *Notification* (%s) ⚠️\n%s replied to a message of yours:\n\n_%q_"
+
+[notification_mentioned]
+other = "⚠️ *Notification* (%s) ⚠️\n%s mentioned you:\n\n_%q_"
+
+[go_to_notification]
+other = "Go to message"
+
+[notification_fail]
+other = "Unable to update notification settings. Try again later (%s)"
+
+[notification_success]
+other = "Notification settings update sucessfully (%s)"
+
+[notifications_enabled]
+other = "notifications enabled"
+
+[notifications_disabled]
+other = "notifications disabled"

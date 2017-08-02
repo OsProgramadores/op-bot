@@ -12,11 +12,14 @@ const (
 	osProgramadoresURL = "https://osprogramadores.com"
 )
 
-// opBot defines an instance of op-bot
+// opBot defines an instance of op-bot.
 type opBot struct {
 	config   botConfig
 	commands map[string]botCommand
-	bot      *tgbotapi.BotAPI
+
+	// userNotifications stores the notification settings.
+	userNotifications notifications
+	bot               *tgbotapi.BotAPI
 }
 
 // botCommands holds the commands accepted by the bot, their description and a handler function.
@@ -53,8 +56,10 @@ func (x *opBot) Run() {
 			}
 
 		case update.Message != nil:
-			switch {
+			// Notifications.
+			manageNotifications(x, update)
 
+			switch {
 			//Location.
 			case update.Message.Location != nil:
 				user := update.Message.From
