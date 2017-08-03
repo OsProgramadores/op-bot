@@ -107,10 +107,10 @@ other = "longitude inválida"
 # Notifications messages.
 
 [notification_replied]
-other = "⚠️ *Notificação* (%s) ⚠️\n%s respondeu uma mensagem sua:\n\n_%q_"
+other = "⚠️ *Notificação* ⚠️\n%s respondeu uma mensagem sua em *%s*\n\n_%s_"
 
 [notification_mentioned]
-other = "⚠️ *Notificação* (%s) ⚠️\n%s mencionou você:\n\n_%q_"
+other = "⚠️ *Notificação* ⚠️\n%s mencionou você em *%s*\n\n_%s_"
 
 [go_to_notification]
 other = "Ir para a mensagem"
