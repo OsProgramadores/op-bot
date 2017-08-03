@@ -60,6 +60,9 @@ func toggleNotifications(n *notifications, userid, username string) error {
 	n.Lock()
 	defer n.Unlock()
 
+	// Since the saving to disk may fail, we are not touching the actual map
+	// here; instead, we copy the data and use this copy. If all goes well, we
+	// update the actual map with this copy, to keep consistency.
 	notificationSettings := map[string]string{}
 	for k, v := range n.Users {
 		notificationSettings[k] = v
