@@ -39,6 +39,9 @@ other = "Atualiza posição geográfica usando CEP"
 [register_help]
 other = "Help dos comandos"
 
+[notifications_help]
+other = "Ativa/desativa notificações"
+
 # Error messages
 
 [handler_error]
@@ -100,3 +103,26 @@ other = "latitude inválida"
 
 [invalid_longitude]
 other = "longitude inválida"
+
+# Notifications messages.
+
+[notification_replied]
+other = "⚠️ *Notificação* (%s) ⚠️\n%s respondeu uma mensagem sua:\n\n_%q_"
+
+[notification_mentioned]
+other = "⚠️ *Notificação* (%s) ⚠️\n%s mencionou você:\n\n_%q_"
+
+[go_to_notification]
+other = "Ir para a mensagem"
+
+[notification_fail]
+other = "Não foi possível atualizar as configurações de notificação. Tente novamente mais tarde (%s)"
+
+[notification_success]
+other = "Configurações de notificação atualizadas com sucesso (%s)"
+
+[notifications_enabled]
+other = "notificações ativadas"
+
+[notifications_disabled]
+other = "notificações desativadas"
