@@ -10,6 +10,9 @@ import (
 const (
 	// osProgramadoresURL contains the main group URL.
 	osProgramadoresURL = "https://osprogramadores.com"
+
+	// osProgramadoresUserName is the bot username.
+	osProgramadoresUserName = "osprogramadores_bot"
 )
 
 // opBot defines an instance of op-bot.
@@ -56,6 +59,13 @@ func (x *opBot) Run() {
 			}
 
 		case update.Message != nil:
+			// Stats.
+			if update.Message.From != nil && update.Message.From.UserName == osProgramadoresUserName {
+				if saved, err := saveStats(&update); err != nil {
+					log.Println(T("stats_error_saving"), err.Error(), saved)
+				}
+			}
+
 			// Notifications.
 			manageNotifications(x, update)
 
