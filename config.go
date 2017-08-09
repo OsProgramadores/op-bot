@@ -136,15 +136,19 @@ func configDir() (string, error) {
 
 // dataDir returns the location for data files. Use the XDG_DATA_HOME
 // environment variable, or the fallback value of $HOME/.local/share if the variable
-// is not set.
+// is not set. It also attempts to create dataDir, in case it does not exist.
 func dataDir() (string, error) {
 	xdg := os.Getenv("XDG_DATA_HOME")
+
 	if xdg != "" {
-		return filepath.Join(xdg, opBotConfigDir), nil
+		dir := filepath.Join(xdg, opBotConfigDir)
+		return dir, os.MkdirAll(dir, 0755)
 	}
+
 	home, err := homeDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".local", "share", opBotConfigDir), nil
+	dir := filepath.Join(home, ".local", "share", opBotConfigDir)
+	return dir, os.MkdirAll(dir, 0755)
 }

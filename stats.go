@@ -12,8 +12,28 @@ const (
 	statsDB = "stats.csv"
 )
 
+// initStats opens the stats file for logging the information.
+func initStats() (*os.File, error) {
+	datadir, err := dataDir()
+	if err != nil {
+		return nil, err
+	}
+
+	f, err := os.OpenFile(filepath.Join(datadir, statsDB), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+	if err != nil {
+		return nil, err
+	}
+
+	return f, nil
+}
+
 // saveStats saves information on the received message to statsDB file as CSV.
-func saveStats(u *tgbotapi.Update) (string, error) {
+func saveStats(f *os.File, u *tgbotapi.Update) (string, error) {
+	if f == nil {
+		//FIXME: maybe indicate in the error that the stats file writer is nil?
+		return "", nil
+	}
+
 	if u.Message == nil {
 		return "", errors.New(T("stats_error_empty_message"))
 	}
@@ -25,26 +45,6 @@ func saveStats(u *tgbotapi.Update) (string, error) {
 	// Chat id, UNIX timestamp, user id, msg len.
 	line := fmt.Sprintf("%d,%d,%d,%d\n", u.Message.MessageID, u.Message.Date, u.Message.From.ID, len(u.Message.Text)+len(u.Message.Caption))
 
-	datadir, err := dataDir()
-	if err != nil {
-		return "", err
-	}
-
-	err = os.MkdirAll(datadir, 0755)
-	if err != nil {
-		return "", err
-	}
-
-	filename := filepath.Join(datadir, statsDB)
-	f, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
-	if _, err = f.WriteString(line); err != nil {
-		line = ""
-	}
-
+	_, err := fmt.Fprintf(f, line)
 	return line, err
 }

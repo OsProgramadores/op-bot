@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
+	"os"
 	"strings"
 )
 
@@ -11,8 +12,8 @@ const (
 	// osProgramadoresURL contains the main group URL.
 	osProgramadoresURL = "https://osprogramadores.com"
 
-	// osProgramadoresUserName is the bot username.
-	osProgramadoresUserName = "osprogramadores_bot"
+	// osProgramadoresGroup is the group username.
+	osProgramadoresGroup = "osprogramadores"
 )
 
 // opBot defines an instance of op-bot.
@@ -22,7 +23,10 @@ type opBot struct {
 
 	// userNotifications stores the notification settings.
 	userNotifications notifications
-	bot               *tgbotapi.BotAPI
+	// statsFileWriter is responsible for writing the stats info to disk.
+	statsFileWriter *os.File
+
+	bot *tgbotapi.BotAPI
 }
 
 // botCommands holds the commands accepted by the bot, their description and a handler function.
@@ -59,9 +63,9 @@ func (x *opBot) Run() {
 			}
 
 		case update.Message != nil:
-			// Stats.
-			if update.Message.From != nil && update.Message.From.UserName == osProgramadoresUserName {
-				if saved, err := saveStats(&update); err != nil {
+			// Log stats if we the message comes from @osprogramadores.
+			if update.Message.From != nil && update.Message.Chat.UserName == osProgramadoresGroup {
+				if saved, err := saveStats(x.statsFileWriter, &update); err != nil {
 					log.Println(T("stats_error_saving"), err.Error(), saved)
 				}
 			}

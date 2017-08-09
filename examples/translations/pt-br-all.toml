@@ -130,7 +130,7 @@ other = "notificações desativadas"
 # Stats messages.
 
 [stats_error_saving]
-other = "Erro ao tentar salvar estatísticas de mensagens: %s (tentativa de salvar '%s')"
+other = "Erro ao tentar salvar estatísticas de mensagens: %s (dado não salvo: %q)"
 
 [stats_error_empty_message]
 other = "mensagem vazia recebida"
