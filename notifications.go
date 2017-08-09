@@ -103,11 +103,6 @@ func saveNotifications(settings map[string]string) error {
 		return err
 	}
 
-	err = os.MkdirAll(datadir, 0755)
-	if err != nil {
-		return err
-	}
-
 	tmpfile, err := ioutil.TempFile(datadir, "temp-notification")
 	if err != nil {
 		log.Printf("Error creating temp file to save notification settings: %v", err)

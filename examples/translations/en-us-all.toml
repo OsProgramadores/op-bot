@@ -126,3 +126,14 @@ other = "notifications enabled"
 
 [notifications_disabled]
 other = "notifications disabled"
+
+# Stats messages.
+
+[stats_error_saving]
+other = "Error while saving message stats: %s (unsaved data: %q)"
+
+[stats_error_empty_message]
+other= "empty message received"
+
+[stats_error_unknown_user]
+other = "message sent by unknown user"

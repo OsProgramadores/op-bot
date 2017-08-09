@@ -41,9 +41,17 @@ func main() {
 		userNotifications: notifications{Users: map[string]string{}},
 	}
 
+	b.statsWriter, err = initStats()
+	if err != nil {
+		log.Printf("Error initializing stats: %v", err)
+	} else {
+		defer b.statsWriter.Close()
+	}
+
 	if err = loadNotificationSettings(&b.userNotifications); err != nil {
 		log.Printf("Error loading notifications: %v", err)
 	}
+
 	// Register commands
 	b.Register("indent", T("register_indent"), false, true, b.indentHandler)
 	b.Register("hackerdetected", T("register_hackerdetected"), false, true, b.hackerHandler)

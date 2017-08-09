@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
-	"os"
 	"path/filepath"
 	"sync"
 )
@@ -40,11 +39,6 @@ func saveLocations(m map[string]geoLocation) error {
 	}
 
 	datadir, err := dataDir()
-	if err != nil {
-		return err
-	}
-
-	err = os.MkdirAll(datadir, 0755)
 	if err != nil {
 		return err
 	}
