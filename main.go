@@ -41,11 +41,11 @@ func main() {
 		userNotifications: notifications{Users: map[string]string{}},
 	}
 
-	b.statsFileWriter, err = initStats()
+	b.statsWriter, err = initStats()
 	if err != nil {
 		log.Printf("Error initializing stats: %v", err)
 	} else {
-		defer b.statsFileWriter.Close()
+		defer b.statsWriter.Close()
 	}
 
 	if err = loadNotificationSettings(&b.userNotifications); err != nil {

@@ -23,8 +23,8 @@ type opBot struct {
 
 	// userNotifications stores the notification settings.
 	userNotifications notifications
-	// statsFileWriter is responsible for writing the stats info to disk.
-	statsFileWriter *os.File
+	// statsWriter is responsible for writing the stats info to disk.
+	statsWriter *os.File
 
 	bot *tgbotapi.BotAPI
 }
@@ -65,7 +65,7 @@ func (x *opBot) Run() {
 		case update.Message != nil:
 			// Log stats if we the message comes from @osprogramadores.
 			if update.Message.From != nil && update.Message.Chat.UserName == osProgramadoresGroup {
-				if saved, err := saveStats(x.statsFileWriter, &update); err != nil {
+				if saved, err := saveStats(x.statsWriter, &update); err != nil {
 					log.Println(T("stats_error_saving"), err.Error(), saved)
 				}
 			}
