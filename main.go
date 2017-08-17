@@ -17,6 +17,10 @@ var (
 func main() {
 	log.SetFlags(0)
 
+	if err := initRNG(); err != nil {
+		log.Fatalf("Unable to initialize random number generator: %v", err)
+	}
+
 	config, err := loadConfig()
 	if err != nil {
 		log.Fatalf("Unable to load config: %s", err)
@@ -39,6 +43,7 @@ func main() {
 		config:            config,
 		bot:               bot,
 		userNotifications: notifications{Users: map[string]string{}},
+		media:             mediaList{Media: map[string]string{}},
 	}
 
 	b.statsWriter, err = initStats()
@@ -50,6 +55,10 @@ func main() {
 
 	if err = loadNotificationSettings(&b.userNotifications); err != nil {
 		log.Printf("Error loading notifications: %v", err)
+	}
+
+	if err = loadMedia(&b.media); err != nil {
+		log.Printf("Error loading media list: %v", err)
 	}
 
 	// Register commands

@@ -1,9 +1,12 @@
 package main
 
 import (
+	cryptrand "crypto/rand"
+	"encoding/binary"
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
+	"math/rand"
 	"os"
 	"strings"
 )
@@ -25,6 +28,8 @@ type opBot struct {
 	userNotifications notifications
 	// statsWriter is responsible for writing the stats info to disk.
 	statsWriter *os.File
+	// media has a list of media files used by the bot.
+	media mediaList
 
 	bot *tgbotapi.BotAPI
 }
@@ -35,6 +40,17 @@ type botCommand struct {
 	pvtOnly bool
 	enabled bool
 	handler func(tgbotapi.Update) error
+}
+
+// initRNG seeds the random number generator with data from crypto/rand.
+func initRNG() error {
+	var seed int64
+	if err := binary.Read(cryptrand.Reader, binary.LittleEndian, &seed); err != nil {
+		log.Printf("Error while reading from crypto/rand in order to initialize rand.Seed: %v", err)
+		return err
+	}
+	rand.Seed(seed)
+	return nil
 }
 
 // Run is the main message dispatcher for the bot.
@@ -131,23 +147,19 @@ func (x *opBot) Run() {
 
 // hackerHandler provides anti-hacker protection to the bot.
 func (x *opBot) hackerHandler(update tgbotapi.Update) error {
-	// This gif is available at http://i.imgur.com/LPn1Ya9.gif.
-	// Below we have a (bot-specific) Telegram document ID for it.
-	// It works for @osprogramadores_bot.
-	hackerGif := "CgADAQADFAADczjpRo3QR3X-LC5EAg"
-
-	gif := tgbotapi.NewDocumentShare(update.Message.Chat.ID, hackerGif)
-
-	// Reply to quoted message, if any.
-	if update.Message.ReplyToMessage != nil {
-		gif.ReplyToMessageID = update.Message.ReplyToMessage.MessageID
+	// Gifs for /hackerdetected.
+	media := []string{
+		"http://i.imgur.com/oubTSqS.gif",
+		"http://i.imgur.com/m4rP3jK.gif",
+		"http://i.imgur.com/LPn1Ya9.gif",
 	}
 
 	// Remove message that triggered /hackerdetected command.
 	toDelete := tgbotapi.DeleteMessageConfig{ChatID: update.Message.Chat.ID, MessageID: update.Message.MessageID}
 	x.bot.DeleteMessage(toDelete)
-	x.bot.Send(gif)
 
+	// Selects randomly one of the available media and send it.
+	sendMedia(x, update, media[rand.Int()%len(media)])
 	return nil
 }
 
