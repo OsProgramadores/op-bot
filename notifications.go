@@ -6,7 +6,6 @@ import (
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -82,7 +81,7 @@ func toggleNotifications(n *notifications, userid, username string) error {
 		}
 	}
 
-	err := saveNotifications(notificationSettings)
+	err := safeWriteJSON(notificationSettings, notificationsDB)
 
 	if err == nil {
 		// Save succeded, let's update our map.
@@ -90,38 +89,6 @@ func toggleNotifications(n *notifications, userid, username string) error {
 	}
 
 	return err
-}
-
-// saveNotification saves notifications settings to notificationsDB file.
-func saveNotifications(settings map[string]string) error {
-	buf, err := json.Marshal(settings)
-	if err != nil {
-		return err
-	}
-	datadir, err := dataDir()
-	if err != nil {
-		return err
-	}
-
-	tmpfile, err := ioutil.TempFile(datadir, "temp-notification")
-	if err != nil {
-		log.Printf("Error creating temp file to save notification settings: %v", err)
-		return err
-	}
-	defer os.Remove(tmpfile.Name())
-
-	if _, err = tmpfile.Write(buf); err != nil {
-		log.Printf("Error writing notification settings to temp file: %v", err)
-		return err
-	}
-
-	if err = tmpfile.Close(); err != nil {
-		log.Printf("Error closing temp file with notification settings: %v", err)
-		return err
-	}
-
-	f := filepath.Join(datadir, notificationsDB)
-	return os.Rename(tmpfile.Name(), f)
 }
 
 // loadNotificationSettings loads notifications database from notificationsDB
