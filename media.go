@@ -2,11 +2,9 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 	"sync"
 )
@@ -19,38 +17,6 @@ const (
 type mediaList struct {
 	sync.RWMutex
 	Media map[string]string `json:"media"`
-}
-
-// saveMedia saves media list to mediaDB file.
-func saveMedia(media map[string]string) error {
-	buf, err := json.Marshal(media)
-	if err != nil {
-		return err
-	}
-	datadir, err := dataDir()
-	if err != nil {
-		return err
-	}
-
-	tmpfile, err := ioutil.TempFile(datadir, "temp-media")
-	if err != nil {
-		log.Printf("Error creating temp file to save media list: %v", err)
-		return err
-	}
-	defer os.Remove(tmpfile.Name())
-
-	if _, err = tmpfile.Write(buf); err != nil {
-		log.Printf("Error writing media list to temp file: %v", err)
-		return err
-	}
-
-	if err = tmpfile.Close(); err != nil {
-		log.Printf("Error closing temp file with media list: %v", err)
-		return err
-	}
-
-	f := filepath.Join(datadir, mediaDB)
-	return os.Rename(tmpfile.Name(), f)
 }
 
 // loadMedia loads media list database from mediaDB file.
@@ -85,11 +51,8 @@ func sendMedia(x *opBot, update tgbotapi.Update, mediaURL string) error {
 	mediaID, ok := x.media.Media[mediaURL]
 
 	if ok {
-		fmt.Println("SUCESS, existing")
 		document = tgbotapi.NewDocumentShare(update.Message.Chat.ID, mediaID)
 	} else {
-		fmt.Println("OOPS, DOES NOT exist")
-
 		// Issue #74 is at play here, preventing us to upload via URL:
 		// https://github.com/go-telegram-bot-api/telegram-bot-api/issues/74
 		// We use the workaround described in https://goo.gl/1F9W1U.
@@ -112,7 +75,7 @@ func sendMedia(x *opBot, update tgbotapi.Update, mediaURL string) error {
 	// Let's store the Telegram ID, if we do not yet have the requested media.
 	if !ok {
 		x.media.Media[mediaURL] = message.Document.FileID
-		return saveMedia(x.media.Media)
+		return safeWriteJSON(x.media.Media, mediaDB)
 	}
 
 	return err

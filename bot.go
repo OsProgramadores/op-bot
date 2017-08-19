@@ -1,12 +1,11 @@
 package main
 
 import (
-	cryptrand "crypto/rand"
-	"encoding/binary"
+	"crypto/rand"
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
-	"math/rand"
+	"math/big"
 	"os"
 	"strings"
 )
@@ -40,17 +39,6 @@ type botCommand struct {
 	pvtOnly bool
 	enabled bool
 	handler func(tgbotapi.Update) error
-}
-
-// initRNG seeds the random number generator with data from crypto/rand.
-func initRNG() error {
-	var seed int64
-	if err := binary.Read(cryptrand.Reader, binary.LittleEndian, &seed); err != nil {
-		log.Printf("Error while reading from crypto/rand in order to initialize rand.Seed: %v", err)
-		return err
-	}
-	rand.Seed(seed)
-	return nil
 }
 
 // Run is the main message dispatcher for the bot.
@@ -149,8 +137,11 @@ func (x *opBot) Run() {
 func (x *opBot) hackerHandler(update tgbotapi.Update) error {
 	// Gifs for /hackerdetected.
 	media := []string{
+		// Balaclava guy "hacking".
 		"http://i.imgur.com/oubTSqS.gif",
+		// "Hacker" with gas mask.
 		"http://i.imgur.com/m4rP3jK.gif",
+		// "Anonymous hacker" kissed by mom.
 		"http://i.imgur.com/LPn1Ya9.gif",
 	}
 
@@ -159,7 +150,14 @@ func (x *opBot) hackerHandler(update tgbotapi.Update) error {
 	x.bot.DeleteMessage(toDelete)
 
 	// Selects randomly one of the available media and send it.
-	sendMedia(x, update, media[rand.Int()%len(media)])
+	// Here we are generating an integer in [0, len(media)).
+	randomIndex, err := rand.Int(rand.Reader, big.NewInt(int64(len(media))))
+	if err != nil {
+		log.Printf("Error generating random index for hackerHandler media: %v", err)
+		return nil
+	}
+
+	sendMedia(x, update, media[randomIndex.Int64()])
 	return nil
 }
 
@@ -203,42 +201,4 @@ func (x *opBot) indentHandler(update tgbotapi.Update) error {
 	msg := fmt.Sprintf(T("indent_ok"), repl.newURL, repl.SessionID)
 	x.sendReply(update, msg)
 	return nil
-}
-
-// sendReply sends a reply to a specific MessageID.
-func (x *opBot) sendReply(update tgbotapi.Update, text string) (tgbotapi.Message, error) {
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
-	msg.ReplyToMessageID = update.Message.MessageID
-	return x.bot.Send(msg)
-}
-
-// sendReplyWithMarkup sends a reply to a specific MessageID with markup.
-func (x *opBot) sendReplyWithMarkup(update tgbotapi.Update, text string, markup tgbotapi.InlineKeyboardMarkup) (tgbotapi.Message, error) {
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
-	msg.ReplyToMessageID = update.Message.MessageID
-	msg.ReplyMarkup = &markup
-	return x.bot.Send(msg)
-}
-
-// isPrivateChat returns true if a chat is private.
-func isPrivateChat(chat *tgbotapi.Chat) bool {
-	return chat.Type == "private"
-}
-
-// formatName returns the user full name in the form "Firstname Lastname".
-func formatName(user tgbotapi.User) string {
-	firstName := user.FirstName
-	lastName := user.LastName
-
-	return strings.Trim(fmt.Sprintf("%s %s", firstName, lastName), " ")
-}
-
-// button returns a button with the specified message and label.
-func button(msg, label string) tgbotapi.InlineKeyboardButton {
-	return tgbotapi.NewInlineKeyboardButtonData(msg, label)
-}
-
-// buttonURL creates a button with an URL.
-func buttonURL(msg, url string) tgbotapi.InlineKeyboardButton {
-	return tgbotapi.NewInlineKeyboardButtonURL(msg, url)
 }

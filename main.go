@@ -17,10 +17,6 @@ var (
 func main() {
 	log.SetFlags(0)
 
-	if err := initRNG(); err != nil {
-		log.Fatalf("Unable to initialize random number generator: %v", err)
-	}
-
 	config, err := loadConfig()
 	if err != nil {
 		log.Fatalf("Unable to load config: %s", err)
