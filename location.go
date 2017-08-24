@@ -30,23 +30,6 @@ var (
 	locations = geoLocationsMutex{coords: make(map[string]geoLocation)}
 )
 
-// saveLocations saves all known locations in the geoLocation map into
-// the locationDb file.
-func saveLocations(m map[string]geoLocation) error {
-	buf, err := json.Marshal(m)
-	if err != nil {
-		return err
-	}
-
-	datadir, err := dataDir()
-	if err != nil {
-		return err
-	}
-
-	f := filepath.Join(datadir, locationDb)
-	return ioutil.WriteFile(f, buf, 0644)
-}
-
 // readLocations reads locations from the locationDb file.
 func readLocations() error {
 	locations.RLock()
@@ -82,7 +65,7 @@ func handleLocation(key, id string, lat, lon float64) error {
 	locations.Lock()
 	defer locations.Unlock()
 	locations.coords[userid] = geoLocation{randomizeCoordinate(lat), randomizeCoordinate(lon)}
-	return saveLocations(locations.coords)
+	return safeWriteJSON(locations.coords, locationDb)
 }
 
 // serveLocations serves the lat/long list in memory in JSON format over HTTP.
