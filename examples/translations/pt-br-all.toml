@@ -42,6 +42,9 @@ other = "Help dos comandos"
 [notifications_help]
 other = "Ativa/desativa notificações"
 
+[ban_help]
+other = "Reporta mensagem para os admins. Lembre de usar o comando em resposta a uma mensagem"
+
 # Error messages
 
 [handler_error]
@@ -137,3 +140,40 @@ other = "mensagem vazia recebida"
 
 [stats_error_unknown_user]
 other = "mensagem enviada por usuário desconhecido"
+
+# Ban request messages.
+
+[remove_message]
+other = "Deletar mensagem"
+
+[remove_message_and_ban]
+other = "Deletar mensagem e banir"
+
+[notify_admin]
+other = "🚫 *Ban Solicitado*\n*%s* solicitou um _ban_ em *%s*\n\n_%s_"
+
+[delete_message_fail]
+other = "Erro ao deletar mensagem. Talvez ela já tenha sido deletada?"
+
+[delete_and_ban_fail]
+other = "Erro ao deletar mensagem e banir usuário. Talvez isso já tenha sido feito?"
+
+[delete_message_success]
+other =  "Mensagem deletada com sucesso"
+
+[delete_and_ban_success]
+other = "Mensagem deletada e usuário banido com sucesso"
+
+[notification_update_delete]
+other = "mensagem foi removida"
+
+[notification_update_delete_and_ban]
+other = "mensagem foi removida e o usuário banido"
+
+[notification_handled]
+other = "🚫 *Ban Solicitado* a seguir foi resolvido por *%s*: _%s_\n\n_%s_"
+
+# Callback query error.
+
+[callback_invalid_request]
+other = "Requisição inválida"

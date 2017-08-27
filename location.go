@@ -5,15 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
-	"path/filepath"
 	"sync"
 )
 
 const (
-	locationDb = "location.json"
+	locationDB = "location.json"
 )
 
 type geoLocation struct {
@@ -35,18 +33,7 @@ func readLocations() error {
 	locations.RLock()
 	defer locations.RUnlock()
 
-	datadir, err := dataDir()
-	if err != nil {
-		return err
-	}
-	f := filepath.Join(datadir, locationDb)
-
-	buf, err := ioutil.ReadFile(f)
-	if err != nil {
-		return err
-	}
-
-	return json.Unmarshal(buf, &locations.coords)
+	return readJSONFromDataDir(&locations.coords, locationDB)
 }
 
 // randomizeCoordinate truncates the lat/long coordinate to one decimal and
@@ -65,7 +52,7 @@ func handleLocation(key, id string, lat, lon float64) error {
 	locations.Lock()
 	defer locations.Unlock()
 	locations.coords[userid] = geoLocation{randomizeCoordinate(lat), randomizeCoordinate(lon)}
-	return safeWriteJSON(locations.coords, locationDb)
+	return safeWriteJSON(locations.coords, locationDB)
 }
 
 // serveLocations serves the lat/long list in memory in JSON format over HTTP.

@@ -1,12 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
-	"io/ioutil"
 	"log"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -97,18 +94,7 @@ func loadNotificationSettings(n *notifications) error {
 	n.Lock()
 	defer n.Unlock()
 
-	datadir, err := dataDir()
-	if err != nil {
-		return err
-	}
-	f := filepath.Join(datadir, notificationsDB)
-
-	buf, err := ioutil.ReadFile(f)
-	if err != nil {
-		return err
-	}
-
-	return json.Unmarshal(buf, &n.Users)
+	return readJSONFromDataDir(&n.Users, notificationsDB)
 }
 
 // idByNotificationUserName queries the notifications settings and returns both

@@ -1,11 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
-	"io/ioutil"
 	"log"
-	"path/filepath"
 	"sync"
 )
 
@@ -24,18 +21,7 @@ func loadMedia(m *mediaList) error {
 	m.Lock()
 	defer m.Unlock()
 
-	datadir, err := dataDir()
-	if err != nil {
-		return err
-	}
-	f := filepath.Join(datadir, mediaDB)
-
-	buf, err := ioutil.ReadFile(f)
-	if err != nil {
-		return err
-	}
-
-	return json.Unmarshal(buf, &m.Media)
+	return readJSONFromDataDir(&m.Media, mediaDB)
 }
 
 // sendMedia sends the media pointed out by `mediaURL' to the user/group
