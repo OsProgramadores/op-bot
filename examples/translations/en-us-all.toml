@@ -107,10 +107,10 @@ other = "invalid longitude"
 # Notifications messages.
 
 [notification_replied]
-other = "⚠️ *Notification* ⚠️\n%s replied to a message of yours in *%s*\n\n_%s_"
+other = "⚠️ *Notification*\n%s replied to a message of yours in *%s*\n\n_%s_"
 
 [notification_mentioned]
-other = "⚠️ *Notification* ⚠️\n%s mentioned you in *%s*\n\n_%s_"
+other = "⚠️ *Notification*\n%s mentioned you in *%s*\n\n_%s_"
 
 [go_to_notification]
 other = "Go to message"
