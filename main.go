@@ -40,6 +40,7 @@ func main() {
 		bot:               bot,
 		userNotifications: notifications{Users: map[string]string{}},
 		media:             mediaList{Media: map[string]string{}},
+		reportedBans:      requestedBans{Requests: banRequestList{NotificationThreshold: adminNotificationDefaultThreshold, Bans: map[string]banRequest{}}},
 	}
 
 	b.statsWriter, err = initStats()
@@ -57,13 +58,19 @@ func main() {
 		log.Printf("Error loading media list: %v", err)
 	}
 
-	// Register commands
-	b.Register("indent", T("register_indent"), false, true, b.indentHandler)
-	b.Register("hackerdetected", T("register_hackerdetected"), false, true, b.hackerHandler)
-	b.Register("setlocation", T("register_setlocation"), true, true, b.locationHandler)
-	b.Register("cep", T("register_cep"), true, true, b.locationHandler)
-	b.Register("help", T("register_help"), true, true, b.helpHandler)
-	b.Register("notifications", T("notifications_help"), true, true, b.notificationHandler)
+	if err = loadBanRequestsInfo(&b.reportedBans); err != nil {
+		log.Printf("Error loading info on the requested bans: %v", err)
+	}
+
+	// Register commands.
+	// Parameters: command, description, admin only, private only, enabled, handler.
+	b.Register("indent", T("register_indent"), false, false, true, b.indentHandler)
+	b.Register("hackerdetected", T("register_hackerdetected"), false, false, true, b.hackerHandler)
+	b.Register("setlocation", T("register_setlocation"), false, true, true, b.locationHandler)
+	b.Register("cep", T("register_cep"), false, true, true, b.locationHandler)
+	b.Register("help", T("register_help"), false, true, true, b.helpHandler)
+	b.Register("notifications", T("notifications_help"), false, true, true, b.notificationHandler)
+	b.Register("ban", T("ban_help"), false, false, true, b.banRequestHandler)
 
 	// Make it so!
 	b.Run()

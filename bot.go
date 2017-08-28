@@ -29,16 +29,19 @@ type opBot struct {
 	statsWriter *os.File
 	// media has a list of media files used by the bot.
 	media mediaList
+	// reportedBans lists the bans requested via /ban.
+	reportedBans requestedBans
 
 	bot *tgbotapi.BotAPI
 }
 
 // botCommands holds the commands accepted by the bot, their description and a handler function.
 type botCommand struct {
-	desc    string
-	pvtOnly bool
-	enabled bool
-	handler func(tgbotapi.Update) error
+	desc      string
+	adminOnly bool
+	pvtOnly   bool
+	enabled   bool
+	handler   func(tgbotapi.Update) error
 }
 
 // Run is the main message dispatcher for the bot.
@@ -54,17 +57,7 @@ func (x *opBot) Run() {
 	for update := range updates {
 		switch {
 		case update.CallbackQuery != nil:
-			switch update.CallbackQuery.Data {
-			case "rules":
-				x.bot.AnswerCallbackQuery(
-					tgbotapi.CallbackConfig{
-						CallbackQueryID: update.CallbackQuery.ID,
-						Text:            T("rules"),
-						ShowAlert:       true,
-						CacheTime:       60,
-					},
-				)
-			}
+			handleCallbackQuery(x, update)
 
 		case update.Message != nil:
 			// Log stats if we the message comes from @osprogramadores.
@@ -162,16 +155,17 @@ func (x *opBot) hackerHandler(update tgbotapi.Update) error {
 }
 
 // Register registers a command a its handler on the bot.
-func (x *opBot) Register(cmd string, desc string, pvtOnly bool, enabled bool, handler func(tgbotapi.Update) error) {
+func (x *opBot) Register(cmd string, desc string, adminOnly bool, pvtOnly bool, enabled bool, handler func(tgbotapi.Update) error) {
 	if x.commands == nil {
 		x.commands = map[string]botCommand{}
 	}
 
 	x.commands[cmd] = botCommand{
-		desc:    desc,
-		pvtOnly: pvtOnly,
-		enabled: enabled,
-		handler: handler,
+		desc:      desc,
+		adminOnly: adminOnly,
+		pvtOnly:   pvtOnly,
+		enabled:   enabled,
+		handler:   handler,
 	}
 	log.Printf("Registered command %q, %q", cmd, desc)
 }
@@ -181,8 +175,10 @@ func (x *opBot) helpHandler(update tgbotapi.Update) error {
 	helpMsg := make([]string, len(x.commands))
 	ix := 0
 	for c, bcmd := range x.commands {
-		helpMsg[ix] = fmt.Sprintf("/%s: %s", c, bcmd.desc)
-		ix++
+		if !bcmd.adminOnly {
+			helpMsg[ix] = fmt.Sprintf("/%s: %s", c, bcmd.desc)
+			ix++
+		}
 	}
 
 	x.sendReply(update, strings.Join(helpMsg, "\n"))

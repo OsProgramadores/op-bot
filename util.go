@@ -43,6 +43,29 @@ func safeWriteJSON(data interface{}, file string) error {
 	return os.Rename(tmpfile.Name(), f)
 }
 
+// readFromJSON loads the JSON content from `file' into `data'. Note that locks
+// -- if needed -- are assumed to be taken care of outside this function.
+func readFromJSON(data interface{}, file string) error {
+	buf, err := ioutil.ReadFile(file)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(buf, data)
+}
+
+// readJSONFromDataDir loads the JSON content from `file', which is located
+// within the data dir. As with readFromJSON, locks are assumed to be handled
+// externally.
+func readJSONFromDataDir(data interface{}, file string) error {
+	datadir, err := dataDir()
+	if err != nil {
+		return err
+	}
+	f := filepath.Join(datadir, file)
+	return readFromJSON(data, f)
+}
+
 // formatName returns the user full name in the form "Firstname Lastname".
 func formatName(user tgbotapi.User) string {
 	firstName := user.FirstName
