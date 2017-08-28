@@ -144,31 +144,31 @@ other = "mensagem enviada por usuário desconhecido"
 # Ban request messages.
 
 [remove_message]
-other = "Deletar mensagem"
+other = "Apagar mensagem"
 
 [remove_message_and_ban]
-other = "Deletar mensagem e banir"
+other = "Apagar mensagem e banir"
 
 [notify_admin]
 other = "🚫 *Ban Solicitado*\n*%s* solicitou um _ban_ em *%s*\n\n_%s_"
 
 [delete_message_fail]
-other = "Erro ao deletar mensagem. Talvez ela já tenha sido deletada?"
+other = "Erro ao apagar mensagem. Talvez ela já tenha sido apagada?"
 
 [delete_and_ban_fail]
-other = "Erro ao deletar mensagem e banir usuário. Talvez isso já tenha sido feito?"
+other = "Erro ao apagar mensagem e banir usuário. Talvez isso já tenha sido feito?"
 
 [delete_message_success]
-other =  "Mensagem deletada com sucesso"
+other =  "Mensagem apagada com sucesso"
 
 [delete_and_ban_success]
-other = "Mensagem deletada e usuário banido com sucesso"
+other = "Mensagem apagada e usuário banido com sucesso"
 
 [notification_update_delete]
-other = "mensagem foi removida"
+other = "mensagem apagada"
 
 [notification_update_delete_and_ban]
-other = "mensagem foi removida e o usuário banido"
+other = "mensagem apagada e usuário banido"
 
 [notification_handled]
 other = "🚫 *Ban Solicitado* a seguir foi resolvido por *%s*: _%s_\n\n_%s_"

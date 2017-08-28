@@ -159,16 +159,16 @@ other = "Error deleting message. Maybe it was already deleted?"
 other = "Error deleting message and banning user. Maybe this was already done?"
 
 [delete_message_success]
-other =  "Message was deleted"
+other =  "Message deleted"
 
 [delete_and_ban_success]
-other = "Message was delete and user was banned"
+other = "Message deleted and user banned"
 
 [notification_update_delete]
-other = "message was deleted"
+other = "message deleted"
 
 [notification_update_delete_and_ban]
-other = "message was deleted and user was banned"
+other = "message deleted and user banned"
 
 [notification_handled]
 other = "🚫  Following *Ban Requested* was handled by *%s*: _%s_\n\n%s_"

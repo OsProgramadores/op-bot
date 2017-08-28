@@ -175,8 +175,10 @@ func (x *opBot) helpHandler(update tgbotapi.Update) error {
 	helpMsg := make([]string, len(x.commands))
 	ix := 0
 	for c, bcmd := range x.commands {
-		helpMsg[ix] = fmt.Sprintf("/%s: %s", c, bcmd.desc)
-		ix++
+		if !bcmd.adminOnly {
+			helpMsg[ix] = fmt.Sprintf("/%s: %s", c, bcmd.desc)
+			ix++
+		}
 	}
 
 	x.sendReply(update, strings.Join(helpMsg, "\n"))
