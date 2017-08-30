@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
@@ -102,4 +103,17 @@ func (x *opBot) sendReplyWithMarkup(update tgbotapi.Update, text string, markup 
 // isPrivateChat returns true if a chat is private.
 func isPrivateChat(chat *tgbotapi.Chat) bool {
 	return chat.Type == "private"
+}
+
+// trDelete returns a copy of the string with all runes in substring removed.
+func trDelete(s, substr string) string {
+	ret := bytes.Buffer{}
+
+	for _, r := range s {
+		if strings.ContainsRune(substr, r) {
+			continue
+		}
+		ret.WriteRune(r)
+	}
+	return ret.String()
 }

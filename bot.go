@@ -31,6 +31,8 @@ type opBot struct {
 	media mediaList
 	// reportedBans lists the bans requested via /ban.
 	reportedBans requestedBans
+	// locations lists the geolocation info from users.
+	locations geoLocationList
 
 	bot *tgbotapi.BotAPI
 }
@@ -75,7 +77,7 @@ func (x *opBot) Run() {
 			case update.Message.Location != nil:
 				user := update.Message.From
 				location := update.Message.Location
-				err := handleLocation(x.config.LocationKey, fmt.Sprintf("%d", user.ID), location.Latitude, location.Longitude)
+				err := handleLocation(&x.locations, x.config.LocationKey, fmt.Sprintf("%d", user.ID), location.Latitude, location.Longitude)
 
 				// Give feedback to user, if message was sent privately.
 				if isPrivateChat(update.Message.Chat) {
