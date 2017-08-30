@@ -120,11 +120,11 @@ func findCEP(user *tgbotapi.User, cep string, config botConfig, locations *geoLo
 }
 
 // readLocations reads locations from the locationDb file.
-func readLocations(l *geoLocationList) error {
-	l.RLock()
-	defer l.RUnlock()
+func readLocations(locations *geoLocationList) error {
+	locations.RLock()
+	defer locations.RUnlock()
 
-	return readJSONFromDataDir(&l.coords, locationDB)
+	return readJSONFromDataDir(&locations.coords, locationDB)
 }
 
 // randomizeCoordinate truncates the lat/long coordinate to one decimal and
