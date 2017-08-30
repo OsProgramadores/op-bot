@@ -23,11 +23,11 @@ type notifications struct {
 func (x *opBot) notificationHandler(update tgbotapi.Update) error {
 	uidstr := fmt.Sprintf("%d", update.Message.From.ID)
 
-	if err := toggleNotifications(&x.userNotifications, uidstr, update.Message.From.UserName); err != nil {
-		return fmt.Errorf(T("notification_fail"), notificationStatus(&x.userNotifications, uidstr))
+	if err := toggleNotifications(&x.modules.userNotifications, uidstr, update.Message.From.UserName); err != nil {
+		return fmt.Errorf(T("notification_fail"), notificationStatus(&x.modules.userNotifications, uidstr))
 	}
 
-	text := fmt.Sprintf(T("notification_success"), notificationStatus(&x.userNotifications, uidstr))
+	text := fmt.Sprintf(T("notification_success"), notificationStatus(&x.modules.userNotifications, uidstr))
 	x.sendReply(update, text)
 	return nil
 }
@@ -136,7 +136,7 @@ func manageNotifications(x *opBot, update tgbotapi.Update) error {
 		uidstr := fmt.Sprintf("%d", uid)
 
 		_, ok := notified[uidstr]
-		if !ok && notificationsEnabled(&x.userNotifications, uidstr) {
+		if !ok && notificationsEnabled(&x.modules.userNotifications, uidstr) {
 			// Using `true' here because this notification is due to a message
 			// being replied to.
 			_, err := sendNotification(x, uid, update, true)
@@ -160,13 +160,13 @@ func manageNotifications(x *opBot, update tgbotapi.Update) error {
 				if entity.Type == "mention" {
 					username := trDelete(update.Message.Text[entity.Offset:entity.Offset+entity.Length], "@")
 
-					if notificationsEnabled(&x.userNotifications, username) {
+					if notificationsEnabled(&x.modules.userNotifications, username) {
 						if _, ok := notified[username]; ok {
 							// User was notified already.
 							continue
 						}
 
-						uidstr, ok := idByNotificationUserName(&x.userNotifications, username)
+						uidstr, ok := idByNotificationUserName(&x.modules.userNotifications, username)
 						if !ok {
 							continue
 						}
@@ -188,7 +188,7 @@ func manageNotifications(x *opBot, update tgbotapi.Update) error {
 				} else {
 					// entity.Type == "text_mention".
 					uidstr := fmt.Sprintf("%d", entity.User.ID)
-					if notificationsEnabled(&x.userNotifications, uidstr) {
+					if notificationsEnabled(&x.modules.userNotifications, uidstr) {
 						if _, ok := notified[uidstr]; ok {
 							// User was notified already.
 							continue

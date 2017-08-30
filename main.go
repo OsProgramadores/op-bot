@@ -34,33 +34,35 @@ func main() {
 
 	// Create new bot
 	b := opBot{
-		config:            config,
-		bot:               bot,
-		userNotifications: notifications{Users: map[string]string{}},
-		media:             mediaList{Media: map[string]string{}},
-		reportedBans:      requestedBans{Requests: banRequestList{NotificationThreshold: adminNotificationDefaultThreshold, Bans: map[string]banRequest{}}},
-		locations:         geoLocationList{coords: map[string]geoLocation{}},
+		config: config,
+		bot:    bot,
+		modules: opBotModules{
+			userNotifications: notifications{Users: map[string]string{}},
+			media:             mediaList{Media: map[string]string{}},
+			reportedBans:      requestedBans{Requests: banRequestList{NotificationThreshold: adminNotificationDefaultThreshold, Bans: map[string]banRequest{}}},
+			locations:         geoLocationList{coords: map[string]geoLocation{}},
+		},
 	}
 
 	// Start the HTTP server listing the location info.
-	go serveLocations(config, &b.locations)
+	go serveLocations(config, &b.modules.locations)
 
-	b.statsWriter, err = initStats()
+	b.modules.statsWriter, err = initStats()
 	if err != nil {
 		log.Printf("Error initializing stats: %v", err)
 	} else {
-		defer b.statsWriter.Close()
+		defer b.modules.statsWriter.Close()
 	}
 
-	if err = loadNotificationSettings(&b.userNotifications); err != nil {
+	if err = loadNotificationSettings(&b.modules.userNotifications); err != nil {
 		log.Printf("Error loading notifications: %v", err)
 	}
 
-	if err = loadMedia(&b.media); err != nil {
+	if err = loadMedia(&b.modules.media); err != nil {
 		log.Printf("Error loading media list: %v", err)
 	}
 
-	if err = loadBanRequestsInfo(&b.reportedBans); err != nil {
+	if err = loadBanRequestsInfo(&b.modules.reportedBans); err != nil {
 		log.Printf("Error loading info on the requested bans: %v", err)
 	}
 

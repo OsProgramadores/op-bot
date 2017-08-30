@@ -18,11 +18,8 @@ const (
 	osProgramadoresGroup = "osprogramadores"
 )
 
-// opBot defines an instance of op-bot.
-type opBot struct {
-	config   botConfig
-	commands map[string]botCommand
-
+// opBotModules defines the data used by the modules the bot implements.
+type opBotModules struct {
 	// userNotifications stores the notification settings.
 	userNotifications notifications
 	// statsWriter is responsible for writing the stats info to disk.
@@ -33,8 +30,14 @@ type opBot struct {
 	reportedBans requestedBans
 	// locations lists the geolocation info from users.
 	locations geoLocationList
+}
 
-	bot *tgbotapi.BotAPI
+// opBot defines an instance of op-bot.
+type opBot struct {
+	config   botConfig
+	commands map[string]botCommand
+	modules  opBotModules
+	bot      *tgbotapi.BotAPI
 }
 
 // botCommands holds the commands accepted by the bot, their description and a handler function.
@@ -64,7 +67,7 @@ func (x *opBot) Run() {
 		case update.Message != nil:
 			// Log stats if we the message comes from @osprogramadores.
 			if update.Message.From != nil && update.Message.Chat.UserName == osProgramadoresGroup {
-				if saved, err := saveStats(x.statsWriter, &update); err != nil {
+				if saved, err := saveStats(x.modules.statsWriter, &update); err != nil {
 					log.Println(T("stats_error_saving"), err.Error(), saved)
 				}
 			}
@@ -77,7 +80,7 @@ func (x *opBot) Run() {
 			case update.Message.Location != nil:
 				user := update.Message.From
 				location := update.Message.Location
-				err := handleLocation(&x.locations, x.config.LocationKey, fmt.Sprintf("%d", user.ID), location.Latitude, location.Longitude)
+				err := handleLocation(&x.modules.locations, x.config.LocationKey, fmt.Sprintf("%d", user.ID), location.Latitude, location.Longitude)
 
 				// Give feedback to user, if message was sent privately.
 				if isPrivateChat(update.Message.Chat) {
