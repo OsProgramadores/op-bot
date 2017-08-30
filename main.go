@@ -32,8 +32,6 @@ func main() {
 		log.Fatalf("%s: %s", T("error_starting_bot"), err)
 	}
 
-	go serveLocations(config)
-
 	// Create new bot
 	b := opBot{
 		config:            config,
@@ -41,7 +39,11 @@ func main() {
 		userNotifications: notifications{Users: map[string]string{}},
 		media:             mediaList{Media: map[string]string{}},
 		reportedBans:      requestedBans{Requests: banRequestList{NotificationThreshold: adminNotificationDefaultThreshold, Bans: map[string]banRequest{}}},
+		locations:         geoLocationList{coords: map[string]geoLocation{}},
 	}
+
+	// Start the HTTP server listing the location info.
+	go serveLocations(config, &b.locations)
 
 	b.statsWriter, err = initStats()
 	if err != nil {
