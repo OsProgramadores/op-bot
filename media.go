@@ -28,13 +28,13 @@ func loadMedia(m *mediaList) error {
 // indicated by `update'. If said media is not yet saved in the database, we do
 // it so that we can reuse it in future requests.
 func sendMedia(x *opBot, update tgbotapi.Update, mediaURL string) error {
-	x.media.Lock()
-	defer x.media.Unlock()
+	x.modules.media.Lock()
+	defer x.modules.media.Unlock()
 
 	var document tgbotapi.DocumentConfig
 
 	// Let's first see if we have this media available from a previous request.
-	mediaID, ok := x.media.Media[mediaURL]
+	mediaID, ok := x.modules.media.Media[mediaURL]
 
 	if ok {
 		document = tgbotapi.NewDocumentShare(update.Message.Chat.ID, mediaID)
@@ -60,8 +60,8 @@ func sendMedia(x *opBot, update tgbotapi.Update, mediaURL string) error {
 
 	// Let's store the Telegram ID, if we do not yet have the requested media.
 	if !ok {
-		x.media.Media[mediaURL] = message.Document.FileID
-		return safeWriteJSON(x.media.Media, mediaDB)
+		x.modules.media.Media[mediaURL] = message.Document.FileID
+		return safeWriteJSON(x.modules.media.Media, mediaDB)
 	}
 
 	return err

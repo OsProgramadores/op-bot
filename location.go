@@ -74,7 +74,7 @@ func (x *opBot) locationHandler(update tgbotapi.Update) error {
 		cep = args[0]
 	}
 
-	if err := findCEP(user, cep, x.config, &x.locations); err != nil {
+	if err := findCEP(user, cep, x.config, &x.modules.locations); err != nil {
 		return fmt.Errorf(T("unable_to_find_location"), cep)
 	}
 
