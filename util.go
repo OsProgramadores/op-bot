@@ -117,3 +117,86 @@ func trDelete(s, substr string) string {
 	}
 	return ret.String()
 }
+
+// createMediaMessage returns a `Chattable' (which can be sent with bot.Send)
+// targeted at `destination', made with the media received in the message passed
+// as parameter, if there is any media in this message.
+func createMediaMessage(message *tgbotapi.Message, destination int64, markup *tgbotapi.InlineKeyboardMarkup) (tgbotapi.Chattable, error) {
+	if message == nil {
+		return nil, fmt.Errorf("message is nil")
+	}
+
+	var chattable tgbotapi.Chattable
+	switch {
+	case message.Sticker != nil:
+		sticker := tgbotapi.NewStickerShare(destination, message.Sticker.FileID)
+		if markup != nil {
+			sticker.ReplyMarkup = markup
+		}
+		chattable = sticker
+	case message.Audio != nil:
+		audio := tgbotapi.NewAudioShare(destination, message.Audio.FileID)
+		if markup != nil {
+			audio.ReplyMarkup = markup
+		}
+		chattable = audio
+	case message.Document != nil:
+		document := tgbotapi.NewDocumentShare(destination, message.Document.FileID)
+		// Document, video and photo may have caption, up to 200 characters.
+		document.Caption = message.Caption
+		if markup != nil {
+			document.ReplyMarkup = markup
+		}
+		chattable = document
+	case message.Photo != nil:
+		// We get an array with different dimensions of the received photo, and
+		// want to send the largest one. Let's first find out which one it is.
+		largestPhotoDimension := 0
+		indexLargestPhoto := 0
+		dimension := 0
+		for index, photoSize := range *message.Photo {
+			dimension = photoSize.Width * photoSize.Height
+			if dimension > largestPhotoDimension {
+				largestPhotoDimension = dimension
+				indexLargestPhoto = index
+			}
+		}
+		photo := tgbotapi.NewPhotoShare(destination, (*message.Photo)[indexLargestPhoto].FileID)
+		// Document, video and photo may have caption, up to 200 characters.
+		photo.Caption = message.Caption
+		if markup != nil {
+			photo.ReplyMarkup = markup
+		}
+		chattable = photo
+	case message.Video != nil:
+		video := tgbotapi.NewVideoShare(destination, message.Video.FileID)
+		// Document, video and photo may have caption, up to 200 characters.
+		video.Caption = message.Caption
+		if markup != nil {
+			video.ReplyMarkup = markup
+		}
+		chattable = video
+	case message.Venue != nil:
+		venue := tgbotapi.NewVenue(destination, message.Venue.Title, message.Venue.Address, message.Venue.Location.Latitude, message.Venue.Location.Longitude)
+		if markup != nil {
+			venue.ReplyMarkup = markup
+		}
+		chattable = venue
+	case message.Location != nil:
+		location := tgbotapi.NewLocation(destination, message.Location.Latitude, message.Location.Longitude)
+		if markup != nil {
+			location.ReplyMarkup = markup
+		}
+		chattable = location
+	case message.Contact != nil:
+		contact := tgbotapi.NewContact(destination, message.Contact.PhoneNumber, message.Contact.FirstName)
+		if markup != nil {
+			contact.ReplyMarkup = markup
+		}
+		chattable = contact
+	default:
+		// Simple text message or unhandled media type.
+		return nil, fmt.Errorf("no media available")
+	}
+	return chattable, nil
+}

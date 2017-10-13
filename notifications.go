@@ -229,22 +229,40 @@ func sendNotification(x *opBot, recipient int, update tgbotapi.Update, response 
 		notificationMsg = T("notification_replied")
 	}
 
-	notificationText := fmt.Sprintf(notificationMsg, formatName(*update.Message.From), update.Message.Chat.Title, update.Message.Text)
+	notificationText := fmt.Sprintf(notificationMsg, formatName(*update.Message.From), update.Message.From.ID, update.Message.Chat.Title, update.Message.Text)
 
 	// We also replace literal newline `\n` with "\n", so that the lines will
 	// actually break, instead of displaying \n's.
 	notificationText = strings.Replace(notificationText, `\n`, "\n", -1)
 
-	msg := tgbotapi.NewMessage(int64(recipient), notificationText)
-	msg.ParseMode = "Markdown"
-
+	// Now the markup, which will contain a link to the message, if applicable.
+	var markup *tgbotapi.InlineKeyboardMarkup
 	// Links won't work if there is no username.
 	if len(update.Message.Chat.UserName) > 0 {
-		markup := tgbotapi.NewInlineKeyboardMarkup(
+		inlineKeyboard := tgbotapi.NewInlineKeyboardMarkup(
 			tgbotapi.NewInlineKeyboardRow(buttonURL(T("go_to_notification"), fmt.Sprintf("https://t.me/%s/%d", update.Message.Chat.UserName, update.Message.MessageID))),
 		)
-		msg.ReplyMarkup = &markup
+		markup = &inlineKeyboard
 	}
 
-	return x.bot.Send(msg)
+	destination := int64(recipient)
+	msg := tgbotapi.NewMessage(destination, notificationText)
+	msg.ParseMode = "Markdown"
+
+	// Now let's check if there is additional media to send as well.
+	mediaMsg, err := createMediaMessage(update.Message, destination, markup)
+	if err != nil {
+		log.Printf("error creating media message: %v\n", err)
+		if markup != nil {
+			msg.ReplyMarkup = markup
+		}
+		return x.bot.Send(msg)
+	}
+
+	// There's additional media, so send the text message followed by the one
+	// containing the media.
+	if _, err = x.bot.Send(msg); err != nil {
+		return tgbotapi.Message{}, err
+	}
+	return x.bot.Send(mediaMsg)
 }
