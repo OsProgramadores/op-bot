@@ -102,7 +102,7 @@ func findCEP(user *tgbotapi.User, cep string, config botConfig, locations *geoLo
 	defer resp.Body.Close()
 
 	var res cepResponse
-	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+	if err = json.NewDecoder(resp.Body).Decode(&res); err != nil {
 		return err
 	}
 
