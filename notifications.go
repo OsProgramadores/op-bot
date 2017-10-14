@@ -250,9 +250,11 @@ func sendNotification(x *opBot, recipient int, update tgbotapi.Update, response 
 	msg.ParseMode = "Markdown"
 
 	// Now let's check if there is additional media to send as well.
-	mediaMsg, err := createMediaMessage(update.Message, destination, markup)
-	if err != nil {
-		log.Printf("error creating media message: %v\n", err)
+	mediaMsg, ok, err := createMediaMessage(update.Message, destination, markup)
+	if err != nil || !ok {
+		if err != nil {
+			log.Printf("error creating media message: %v\n", err)
+		}
 		if markup != nil {
 			msg.ReplyMarkup = markup
 		}

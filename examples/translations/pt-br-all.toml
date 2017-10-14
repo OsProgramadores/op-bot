@@ -110,7 +110,7 @@ other = "longitude inválida"
 # Notifications messages.
 
 [notification_replied]
-other = "⚠️ *Notificação*\n[%s](tg://user?id=%d) respondeu uma mensagem sua em *%s*\n\n_%s_"
+other = "⚠️ *Notificação*\n[%s](tg://user?id=%d) respondeu a uma mensagem sua em *%s*\n\n_%s_"
 
 [notification_mentioned]
 other = "⚠️ *Notificação*\n[%s](tg://user?id=%d) mencionou você em *%s*\n\n_%s_"

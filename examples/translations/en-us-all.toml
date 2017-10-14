@@ -110,7 +110,7 @@ other = "invalid longitude"
 # Notifications messages.
 
 [notification_replied]
-other = "⚠️ *Notification*\n[%s](tg://user?id=%d) replied to a message of yours in *%s*\n\n_%s_"
+other = "⚠️ *Notification*\n[%s](tg://user?id=%d) replied to your message in *%s*\n\n_%s_"
 
 [notification_mentioned]
 other = "⚠️ *Notification*\n[%s](tg://user?id=%d) mentioned you in *%s*\n\n_%s_"

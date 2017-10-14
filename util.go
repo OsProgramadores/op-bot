@@ -118,12 +118,38 @@ func trDelete(s, substr string) string {
 	return ret.String()
 }
 
-// createMediaMessage returns a `Chattable' (which can be sent with bot.Send)
+// largestPhotoFromMessage returns the file ID of the photo with the largest
+// dimension contained in the message.
+func largestPhotoFromMessage(message *tgbotapi.Message) (string, error) {
+	if message == nil {
+		return "", fmt.Errorf("cannot process empty message")
+	}
+
+	if message.Photo == nil {
+		return "", fmt.Errorf("message does not contain a photo")
+	}
+
+	// We get an array with different dimensions of the received photo, and
+	// want to send the largest one. Let's first find out which one it is.
+	largestPhotoDimension := 0
+	indexLargestPhoto := 0
+	dimension := 0
+	for index, photoSize := range *message.Photo {
+		dimension = photoSize.Width * photoSize.Height
+		if dimension > largestPhotoDimension {
+			largestPhotoDimension = dimension
+			indexLargestPhoto = index
+		}
+	}
+	return (*message.Photo)[indexLargestPhoto].FileID, nil
+}
+
+// createMediaMessage returns a "Chattable" (which can be sent with bot.Send)
 // targeted at `destination', made with the media received in the message passed
 // as parameter, if there is any media in this message.
-func createMediaMessage(message *tgbotapi.Message, destination int64, markup *tgbotapi.InlineKeyboardMarkup) (tgbotapi.Chattable, error) {
+func createMediaMessage(message *tgbotapi.Message, destination int64, markup *tgbotapi.InlineKeyboardMarkup) (tgbotapi.Chattable, bool, error) {
 	if message == nil {
-		return nil, fmt.Errorf("message is nil")
+		return nil, false, fmt.Errorf("cannot process empty message")
 	}
 
 	var chattable tgbotapi.Chattable
@@ -149,19 +175,13 @@ func createMediaMessage(message *tgbotapi.Message, destination int64, markup *tg
 		}
 		chattable = document
 	case message.Photo != nil:
-		// We get an array with different dimensions of the received photo, and
-		// want to send the largest one. Let's first find out which one it is.
-		largestPhotoDimension := 0
-		indexLargestPhoto := 0
-		dimension := 0
-		for index, photoSize := range *message.Photo {
-			dimension = photoSize.Width * photoSize.Height
-			if dimension > largestPhotoDimension {
-				largestPhotoDimension = dimension
-				indexLargestPhoto = index
-			}
+		// The message contains the photo in different dimensions. We want to
+		// use the largest one.
+		photoID, err := largestPhotoFromMessage(message)
+		if err != nil {
+			return nil, false, err
 		}
-		photo := tgbotapi.NewPhotoShare(destination, (*message.Photo)[indexLargestPhoto].FileID)
+		photo := tgbotapi.NewPhotoShare(destination, photoID)
 		// Document, video and photo may have caption, up to 200 characters.
 		photo.Caption = message.Caption
 		if markup != nil {
@@ -196,7 +216,7 @@ func createMediaMessage(message *tgbotapi.Message, destination int64, markup *tg
 		chattable = contact
 	default:
 		// Simple text message or unhandled media type.
-		return nil, fmt.Errorf("no media available")
+		return nil, false, nil
 	}
-	return chattable, nil
+	return chattable, true, nil
 }
