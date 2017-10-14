@@ -3,6 +3,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"github.com/kylelemons/godebug/pretty"
@@ -12,9 +13,13 @@ import (
 	"testing"
 )
 
-func TestDownloadReplIt(t *testing.T) {
+func prepareDownloadBody(bodyTemplate, jsonData string) []byte {
+	return []byte(fmt.Sprintf(bodyTemplate, base64.StdEncoding.EncodeToString([]byte(jsonData))))
+}
 
-	templateJSON := `<script>REPLIT_DATA = {
+func TestDownloadReplIt(t *testing.T) {
+	templateDownload := `<script>REPLIT_DATA = JSON.parse(atob('%s'))</script>`
+	templateJSON := `{
 		"id":10126000,
 		"session_id":"ABCD",
 		"revision_id":"0",
@@ -33,12 +38,8 @@ func TestDownloadReplIt(t *testing.T) {
 		  "views":12,
 		  "id":38889},
 		"owner":9920,
-		"title":null}
-		</script>
-    	<script>GOVAL_TOKEN={"time_created":1499297884813,"msg_mac":"yfT1mBBT2qmOj0ahbF5EP7a3iYVm2otqSEjaf11MQiQ="}</script>
-    	<script>undefined</script>
-    	<script>undefined</script>
-	`
+		"title":null
+	}`
 
 	projectJSON := `{
 		"1545981":{"id":1545981, "name":"main.c", "content":"/*main.c*/", "index":0},
@@ -52,7 +53,7 @@ func TestDownloadReplIt(t *testing.T) {
 	}{
 		// Valid JSON, single file
 		{
-			body: []byte(fmt.Sprintf(templateJSON, "false", "{}")),
+			body: prepareDownloadBody(templateDownload, fmt.Sprintf(templateJSON, "false", "{}")),
 			want: &replProject{
 				SessionID:  "ABCD",
 				RevisionID: "0",
@@ -64,7 +65,7 @@ func TestDownloadReplIt(t *testing.T) {
 		},
 		// Valid JSON, multi-file project
 		{
-			body: []byte(fmt.Sprintf(templateJSON, "true", projectJSON)),
+			body: prepareDownloadBody(templateDownload, fmt.Sprintf(templateJSON, "true", projectJSON)),
 			want: &replProject{
 				SessionID:  "ABCD",
 				RevisionID: "0",
@@ -86,7 +87,7 @@ func TestDownloadReplIt(t *testing.T) {
 		},
 		// replit output, invalid JSON inside.
 		{
-			body:      []byte("<script>REPLIT_DATA = {b0rken}</script>"),
+			body:      prepareDownloadBody(templateDownload, "{b0rken}"),
 			want:      &replProject{},
 			wantError: true,
 		},
