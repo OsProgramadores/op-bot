@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"html"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"os/exec"
@@ -142,12 +144,20 @@ func parseReplItJSON(data []byte) (*replProject, error) {
 }
 
 func parseReplItDownload(body []byte) (*replProject, error) {
-	regex := regexp.MustCompile("(?s:REPLIT_DATA = ({.*?})[[:space:]]*?</script>)")
+	// Repl.it now returns REPLIT_DATA in base64. Let's extract and decode it.
+	regex := regexp.MustCompile(`(?s:REPLIT_DATA = JSON\.parse\(atob\('(.*?)\'\)\))`)
 	match := regex.FindSubmatch(body)
 	if match == nil {
+		log.Println("Error extracting REPLIT_DATA base64; no matches")
 		return nil, errors.New(T("error_extracting_from_replit"))
 	}
-	return parseReplItJSON(match[1])
+
+	decoded, err := base64.StdEncoding.DecodeString(string(match[1]))
+	if err != nil {
+		log.Printf("Error decoding base64 %q: %v\n", string(match[1]), err)
+		return nil, errors.New(T("error_extracting_from_replit"))
+	}
+	return parseReplItJSON(decoded)
 }
 
 func downloadReplIt(url string) (*replProject, error) {
