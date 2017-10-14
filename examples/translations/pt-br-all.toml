@@ -150,7 +150,7 @@ other = "Apagar mensagem"
 other = "Apagar mensagem e banir"
 
 [notify_admin]
-other = "🚫 *Ban Solicitado*\n*%s* solicitou um _ban_ em *%s*\n\n_%s_"
+other = "🚫 *Ban Solicitado*\n[%s](tg://user?id=%d) solicitou um _ban_ em *%s*\n\n_%s_"
 
 [delete_message_fail]
 other = "Erro ao apagar mensagem. Talvez ela já tenha sido apagada?"
@@ -171,7 +171,7 @@ other = "mensagem apagada"
 other = "mensagem apagada e usuário banido"
 
 [notification_handled]
-other = "🚫 *Ban Solicitado* a seguir foi resolvido por *%s*: _%s_\n\n_%s_"
+other = "🚫 *Ban Solicitado* a seguir foi resolvido por [%s](tg://user?id=%d): _%s_\n\n_%s_"
 
 # Callback query error.
 
