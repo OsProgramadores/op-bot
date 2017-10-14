@@ -31,6 +31,9 @@ type banRequest struct {
 	Reporters map[int64]int64 `json:"reporters"`
 	// Map of notifications sent about this message. Here we have the ID of the
 	// admin notified and the ID of the notification (message) sent.
+	// The additional media message -- in case there was media in the message
+	// being reported -- will not be changed, and stays so it is easy to see
+	// what the report was about once it has been deleted.
 	Notifications map[int64]int64 `json:"notifications"`
 	// Indicates whether this message has been removed by an admin.
 	MessageRemoved bool `json:"removed"`
@@ -188,7 +191,7 @@ func notifyAdmin(x *opBot, admin *tgbotapi.User, update tgbotapi.Update) (int64,
 		)
 	}
 
-	notificationText := fmt.Sprintf(T("notify_admin"), formatName(*update.Message.From), update.Message.Chat.Title, update.Message.ReplyToMessage.Text)
+	notificationText := fmt.Sprintf(T("notify_admin"), formatName(*update.Message.From), update.Message.From.ID, update.Message.Chat.Title, update.Message.ReplyToMessage.Text)
 	// We also replace literal newline `\n` with "\n", so that the lines will
 	// actually break, instead of displaying \n's.
 	notificationText = strings.Replace(notificationText, `\n`, "\n", -1)
@@ -197,12 +200,26 @@ func notifyAdmin(x *opBot, admin *tgbotapi.User, update tgbotapi.Update) (int64,
 	msg.ParseMode = "Markdown"
 	msg.ReplyMarkup = &markup
 
-	sentMessage, err := x.bot.Send(msg)
-	if err == nil {
-		return int64(sentMessage.MessageID), nil
+	// Let's create a media message, if there's any media in the reported message.
+	mediaMsg, ok, err := createMediaMessage(update.Message.ReplyToMessage, int64(admin.ID), nil)
+	if err != nil {
+		return 0, err
 	}
 
-	return 0, err
+	// Send the notification message first.
+	sentMessage, err := x.bot.Send(msg)
+	if err != nil {
+		return 0, err
+	}
+
+	// Now send the media message, if there is one.
+	if ok {
+		x.bot.Send(mediaMsg)
+	}
+
+	// We return the ID of the notification message, as we may want to update
+	// it eventually, such as when it has been dealt with.
+	return int64(sentMessage.MessageID), nil
 }
 
 // deleteMessageFromBanRequest delestes the offending message, and optionally
@@ -263,7 +280,7 @@ func deleteMessage(x *opBot, admin *tgbotapi.User, requestID string) error {
 func updateBanRequestNotification(x *opBot, requestID string, admin *tgbotapi.User, message string) error {
 	report, _ := x.modules.reportedBans.Requests.Bans[requestID]
 
-	notificationMessage := fmt.Sprintf(T("notification_handled"), formatName(*admin), message, report.Text)
+	notificationMessage := fmt.Sprintf(T("notification_handled"), formatName(*admin), admin.ID, message, report.Text)
 	for adminID, notificationID := range report.Notifications {
 		editmsg := tgbotapi.NewEditMessageText(adminID, int(notificationID), notificationMessage)
 		editmsg.ParseMode = "Markdown"

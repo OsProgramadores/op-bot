@@ -150,7 +150,7 @@ other = "Remove message"
 other = "Remove message and ban"
 
 [notify_admin]
-other = "🚫 *Ban Requested*\n*%s* requested a ban in *%s*\n\n_%s_"
+other = "🚫 *Ban Requested*\n[%s](tg://user?id=%d) requested a ban in *%s*\n\n_%s_"
 
 [delete_message_fail]
 other = "Error deleting message. Maybe it was already deleted?"
@@ -171,7 +171,7 @@ other = "message deleted"
 other = "message deleted and user banned"
 
 [notification_handled]
-other = "🚫  Following *Ban Requested* was handled by *%s*: _%s_\n\n%s_"
+other = "🚫  Following *Ban Requested* was handled by [%s](tg://user?id=%d): _%s_\n\n%s_"
 
 # Callback query error.
 
