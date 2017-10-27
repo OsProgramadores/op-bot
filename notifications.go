@@ -158,7 +158,11 @@ func manageNotifications(x *opBot, update tgbotapi.Update) error {
 		for _, entity := range *update.Message.Entities {
 			if entity.Type == "mention" || entity.Type == "text_mention" {
 				if entity.Type == "mention" {
-					username := trDelete(update.Message.Text[entity.Offset:entity.Offset+entity.Length], "@")
+					// The text may contain UTF-8 literals, so we need to
+					// convert it to runes to be able to use the offset and
+					// length properly.
+					runes := []rune(update.Message.Text)
+					username := trDelete(string(runes[entity.Offset:entity.Offset+entity.Length]), "@")
 
 					if notificationsEnabled(&x.modules.userNotifications, username) {
 						if _, ok := notified[username]; ok {
