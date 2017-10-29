@@ -56,6 +56,15 @@ other = "erro lendo informações sobre o usuário corrente: %s"
 [error_homedir_must_exist]
 other = "diretório home tem que existir e ser um diretório: %s"
 
+[callback_query_error]
+other = "erro de callback"
+
+[manage_notification_error]
+other = "erro de gerenciamento de notificação"
+
+[reply_with_markup_error]
+other = "erro de resposta com markup"
+
 # Handler messages
 
 [indent_ok]

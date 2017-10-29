@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 const (
@@ -28,8 +29,8 @@ func (x *opBot) notificationHandler(update tgbotapi.Update) error {
 	}
 
 	text := fmt.Sprintf(T("notification_success"), notificationStatus(&x.modules.userNotifications, uidstr))
-	x.sendReply(update, text)
-	return nil
+	_, err := x.sendReply(update, text)
+	return err
 }
 
 // notificationStatus returns a string with the enabled/disabled status of

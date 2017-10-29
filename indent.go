@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/kballard/go-shellquote"
 	"html"
 	"io"
 	"io/ioutil"
@@ -16,6 +15,8 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+
+	shellquote "github.com/kballard/go-shellquote"
 )
 
 type replFile struct {
@@ -114,8 +115,14 @@ func (x runner) run(cmdIn string, command string, args ...string) (string, strin
 	cmd.Stdout = &outbuf
 	cmd.Stderr = &errbuf
 
-	io.WriteString(stdin, cmdIn)
-	stdin.Close()
+	_, err = io.WriteString(stdin, cmdIn)
+	if err != nil {
+		return "", errbuf.String(), err
+	}
+	err = stdin.Close()
+	if err != nil {
+		return "", errbuf.String(), err
+	}
 
 	if err = cmd.Run(); err != nil {
 		return "", errbuf.String(), err

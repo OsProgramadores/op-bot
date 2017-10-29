@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"io"
 	"math/rand"
 	"net/http"
@@ -13,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 const (
@@ -78,8 +79,8 @@ func (x *opBot) locationHandler(update tgbotapi.Update) error {
 		return fmt.Errorf(T("unable_to_find_location"), cep)
 	}
 
-	x.sendReply(update, T("location_success"))
-	return nil
+	_, err := x.sendReply(update, T("location_success"))
+	return err
 }
 
 // API Key from www.cepaberto.com (brazilian postal code to geo location
@@ -137,7 +138,10 @@ func randomizeCoordinate(c float64) string {
 // handleLocation handles the /location request to the bot.
 func handleLocation(locations *geoLocationList, key, id string, lat, lon float64) error {
 	h := sha1.New()
-	io.WriteString(h, fmt.Sprintf("%s%s", key, id))
+	_, err := io.WriteString(h, fmt.Sprintf("%s%s", key, id))
+	if err != nil {
+		return err
+	}
 	userid := fmt.Sprintf("%x", h.Sum(nil))
 
 	locations.Lock()
@@ -148,8 +152,11 @@ func handleLocation(locations *geoLocationList, key, id string, lat, lon float64
 
 // serveLocations serves the lat/long list in memory in JSON format over HTTP.
 // Only (previously obfuscated) lat/long coordinates are served, not user IDs.
-func serveLocations(config botConfig, locations *geoLocationList) {
-	readLocations(locations)
+func serveLocations(config botConfig, locations *geoLocationList) (err error) {
+	err = readLocations(locations)
+	if err != nil {
+		return
+	}
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		locations.RLock()
 		data := make([]geoLocation, len(locations.coords))
@@ -169,8 +176,11 @@ func serveLocations(config botConfig, locations *geoLocationList) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(js)
+		_, err = w.Write(js)
+		if err != nil {
+			return
+		}
 	})
 
-	http.ListenAndServe(fmt.Sprintf(":%d", config.ServerPort), nil)
+	return http.ListenAndServe(fmt.Sprintf(":%d", config.ServerPort), nil)
 }

@@ -141,6 +141,15 @@ other= "empty message received"
 [stats_error_unknown_user]
 other = "message sent by unknown user"
 
+[callback_query_error]
+other = "callback error"
+
+[manage_notification_error]
+other = "manage notification error"
+
+[reply_with_markup_error]
+other = "error on reply with markup"
+
 # Ban request messages.
 
 [remove_message]

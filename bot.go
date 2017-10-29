@@ -3,11 +3,12 @@ package main
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
 	"math/big"
 	"os"
 	"strings"
+
+	"github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 const (
@@ -62,7 +63,9 @@ func (x *opBot) Run() {
 	for update := range updates {
 		switch {
 		case update.CallbackQuery != nil:
-			handleCallbackQuery(x, update)
+			if err := handleCallbackQuery(x, update); err != nil {
+				log.Println(T("callback_query_error"), err.Error())
+			}
 
 		case update.Message != nil:
 			// Log stats if we the message comes from @osprogramadores.
@@ -73,7 +76,9 @@ func (x *opBot) Run() {
 			}
 
 			// Notifications.
-			manageNotifications(x, update)
+			if err := manageNotifications(x, update); err != nil {
+				log.Println(T("manage_notification_error"), err.Error())
+			}
 
 			switch {
 			//Location.
@@ -88,10 +93,13 @@ func (x *opBot) Run() {
 					if err != nil {
 						message = T("location_fail")
 					}
-					x.sendReply(update, message)
+					if _, err = x.sendReply(update, message); err != nil {
+						log.Println(message, err.Error())
+					}
+
 				}
 
-			// Join event.
+				// Join event.
 			case update.Message.NewChatMembers != nil:
 				names := make([]string, len(*update.Message.NewChatMembers))
 				for index, user := range *update.Message.NewChatMembers {
@@ -103,7 +111,10 @@ func (x *opBot) Run() {
 					tgbotapi.NewInlineKeyboardRow(buttonURL(T("visit_our_group_website"), osProgramadoresURL)),
 					tgbotapi.NewInlineKeyboardRow(button(T("read_the_rules"), "rules")),
 				)
-				x.sendReplyWithMarkup(update, fmt.Sprintf(T("welcome"), name), markup)
+				_, err := x.sendReplyWithMarkup(update, fmt.Sprintf(T("welcome"), name), markup)
+				if err != nil {
+					log.Println(T("reply_with_markup_error"), err.Error())
+				}
 
 			// User commands.
 			case update.Message.IsCommand():
@@ -123,7 +134,10 @@ func (x *opBot) Run() {
 				err := bcmd.handler(update)
 				if err != nil {
 					e := fmt.Sprintf(T("handler_error"), err.Error())
-					x.sendReply(update, e)
+					log.Println(T("handler_error"), err.Error())
+					if _, err = x.sendReply(update, e); err != nil {
+						log.Println(T("handler_error"), err.Error())
+					}
 					fmt.Println(e)
 				}
 			}
@@ -145,18 +159,20 @@ func (x *opBot) hackerHandler(update tgbotapi.Update) error {
 
 	// Remove message that triggered /hackerdetected command.
 	toDelete := tgbotapi.DeleteMessageConfig{ChatID: update.Message.Chat.ID, MessageID: update.Message.MessageID}
-	x.bot.DeleteMessage(toDelete)
+	_, err := x.bot.DeleteMessage(toDelete)
+	if err != nil {
+		return err
+	}
 
 	// Selects randomly one of the available media and send it.
 	// Here we are generating an integer in [0, len(media)).
 	randomIndex, err := rand.Int(rand.Reader, big.NewInt(int64(len(media))))
 	if err != nil {
 		log.Printf("Error generating random index for hackerHandler media: %v", err)
-		return nil
+		return err
 	}
 
-	sendMedia(x, update, media[randomIndex.Int64()])
-	return nil
+	return sendMedia(x, update, media[randomIndex.Int64()])
 }
 
 // Register registers a command a its handler on the bot.
@@ -186,8 +202,8 @@ func (x *opBot) helpHandler(update tgbotapi.Update) error {
 		}
 	}
 
-	x.sendReply(update, strings.Join(helpMsg, "\n"))
-	return nil
+	_, err := x.sendReply(update, strings.Join(helpMsg, "\n"))
+	return err
 }
 
 // indentHandler indents the code in a repl.it URL.
@@ -200,6 +216,6 @@ func (x *opBot) indentHandler(update tgbotapi.Update) error {
 	}
 
 	msg := fmt.Sprintf(T("indent_ok"), repl.newURL, repl.SessionID)
-	x.sendReply(update, msg)
-	return nil
+	_, err = x.sendReply(update, msg)
+	return err
 }

@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
 	"strings"
 	"sync"
+
+	"github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 const (
@@ -214,7 +215,10 @@ func notifyAdmin(x *opBot, admin *tgbotapi.User, update tgbotapi.Update) (int64,
 
 	// Now send the media message, if there is one.
 	if ok {
-		x.bot.Send(mediaMsg)
+		_, err := x.bot.Send(mediaMsg)
+		if err != nil {
+			return int64(sentMessage.MessageID), err
+		}
 	}
 
 	// We return the ID of the notification message, as we may want to update
@@ -284,7 +288,10 @@ func updateBanRequestNotification(x *opBot, requestID string, admin *tgbotapi.Us
 	for adminID, notificationID := range report.Notifications {
 		editmsg := tgbotapi.NewEditMessageText(adminID, int(notificationID), notificationMessage)
 		editmsg.ParseMode = "Markdown"
-		x.bot.Send(editmsg)
+		_, err := x.bot.Send(editmsg)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
