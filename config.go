@@ -36,6 +36,9 @@ type botConfig struct {
 	// ServerPort contains the TCP server port.
 	ServerPort int `toml:"server_port"`
 
+	// Automatically delete all forwarded messages?
+	DeleteFwd bool `toml:"delete_fwd"`
+
 	// API Key from www.cepaberto.com (brazilian postal code to geo location service.)
 	CepAbertoKey string `toml:"cep_aberto_key"`
 }
@@ -61,7 +64,7 @@ func loadConfig() (botConfig, error) {
 
 	// Check mandatory fields
 	if config.BotToken == "" {
-		return botConfig{}, errors.New("token não pode estar em branco")
+		return botConfig{}, errors.New("token cannot be null")
 	}
 
 	// Defaults
