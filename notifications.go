@@ -112,9 +112,8 @@ func idByNotificationUserName(n *notifications, username string) (string, bool) 
 	return uidstr, ok
 }
 
-// manageNotifications is going to notify users based on the message being
-// replied to and user mentions, based on whether such users have enabled
-// notifications.
+// manageNotifications notifies users based on the message being replied to and
+// user mentions, if the user has notifications enabled.
 func manageNotifications(x *opBot, update tgbotapi.Update) error {
 	if isPrivateChat(update.Message.Chat) {
 		return nil

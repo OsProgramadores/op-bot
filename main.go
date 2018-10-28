@@ -15,8 +15,6 @@ var (
 )
 
 func main() {
-	log.SetFlags(0)
-
 	config, err := loadConfig()
 	if err != nil {
 		log.Fatalf("Unable to load config: %s", err)

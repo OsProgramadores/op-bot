@@ -13,6 +13,11 @@ server_port = 3000
 # storing the location. It can be anything (but not blank).
 location_key = ""
 
+# Delete forwarded messages. Setting this will cause the bot to summarily
+# remove all forwarded messages (a common source of spam). Please note that in
+# regular groups messages already delivered won't be removed.
+delete_fwd = true
+
 # Key for cepaberto.com (brazilian postal code to geo location service.)
 # Optional, but without a valid key, the /location command won't work for
 # locations in Brazil (cellular location still works, though).

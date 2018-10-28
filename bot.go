@@ -65,7 +65,7 @@ func (x *opBot) Run() {
 			handleCallbackQuery(x, update)
 
 		case update.Message != nil:
-			// Log stats if we the message comes from @osprogramadores.
+			// Log stats if the message comes from @osprogramadores.
 			if update.Message.From != nil && update.Message.Chat.UserName == osProgramadoresGroup {
 				if saved, err := saveStats(x.modules.statsWriter, &update); err != nil {
 					log.Println(T("stats_error_saving"), err.Error(), saved)
@@ -76,7 +76,16 @@ func (x *opBot) Run() {
 			manageNotifications(x, update)
 
 			switch {
-			//Location.
+			// Forward message handling.
+			case update.Message.ForwardFrom != nil && x.config.DeleteFwd:
+				// Remove forwarded message and log.
+				x.bot.DeleteMessage(tgbotapi.DeleteMessageConfig{
+					ChatID:    update.Message.Chat.ID,
+					MessageID: update.Message.MessageID,
+				})
+				log.Printf("Removed forwarded message. ChatID: %v, MessageID: %v", update.Message.Chat.ID, update.Message.MessageID)
+
+			// Location.
 			case update.Message.Location != nil:
 				user := update.Message.From
 				location := update.Message.Location
@@ -144,8 +153,10 @@ func (x *opBot) hackerHandler(update tgbotapi.Update) error {
 	}
 
 	// Remove message that triggered /hackerdetected command.
-	toDelete := tgbotapi.DeleteMessageConfig{ChatID: update.Message.Chat.ID, MessageID: update.Message.MessageID}
-	x.bot.DeleteMessage(toDelete)
+	x.bot.DeleteMessage(tgbotapi.DeleteMessageConfig{
+		ChatID:    update.Message.Chat.ID,
+		MessageID: update.Message.MessageID,
+	})
 
 	// Selects randomly one of the available media and send it.
 	// Here we are generating an integer in [0, len(media)).
