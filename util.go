@@ -144,6 +144,7 @@ func largestPhotoFromMessage(message *tgbotapi.Message) (string, error) {
 	return (*message.Photo)[indexLargestPhoto].FileID, nil
 }
 
+// nolint: gocyclo
 // createMediaMessage returns a "Chattable" (which can be sent with bot.Send)
 // targeted at `destination', made with the media received in the message passed
 // as parameter, if there is any media in this message.

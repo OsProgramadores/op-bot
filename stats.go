@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
+	"io"
 	"os"
 	"path/filepath"
 )
@@ -13,7 +14,7 @@ const (
 )
 
 // initStats opens the stats file for logging the information.
-func initStats() (*os.File, error) {
+func initStats() (io.WriteCloser, error) {
 	datadir, err := dataDir()
 	if err != nil {
 		return nil, err
@@ -28,8 +29,8 @@ func initStats() (*os.File, error) {
 }
 
 // saveStats saves information on the received message to statsDB file as CSV.
-func saveStats(f *os.File, u *tgbotapi.Update) (string, error) {
-	if f == nil {
+func saveStats(w io.Writer, u *tgbotapi.Update) (string, error) {
+	if w == nil {
 		//FIXME: maybe indicate in the error that the stats file writer is nil?
 		return "", nil
 	}
@@ -45,6 +46,6 @@ func saveStats(f *os.File, u *tgbotapi.Update) (string, error) {
 	// Chat id, UNIX timestamp, user id, msg len.
 	line := fmt.Sprintf("%d,%d,%d,%d\n", u.Message.MessageID, u.Message.Date, u.Message.From.ID, len(u.Message.Text)+len(u.Message.Caption))
 
-	_, err := fmt.Fprintf(f, line)
+	_, err := fmt.Fprintf(w, line)
 	return line, err
 }

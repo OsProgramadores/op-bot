@@ -31,7 +31,6 @@ type replProject struct {
 	SessionID  string              `json:"session_id"`
 	RevisionID string              `json:"revision_id"`
 	EditorText string              `json:"editor_text"`
-	IsProject  bool                `json:"is_project"`
 	Language   string              `json:"language"`
 	Files      map[string]replFile `json:"files"`
 
@@ -39,6 +38,8 @@ type replProject struct {
 	newURL             string
 	editorTextIndented string
 	indentedByUs       bool
+
+	IsProject bool `json:"is_project"`
 }
 
 type replaceString struct {
@@ -227,6 +228,8 @@ func uploadToRepl(repl *replProject) (*replProject, error) {
 	return repl, nil
 }
 
+// nolint: gocyclo
+// indentCode indents code in a repl.it snippet.
 func indentCode(rr execRunner, repl *replProject, indenters indenterPrograms) (*replProject, error) {
 	// Fetch correct indenter parameters
 	indenter, ok := indenters[repl.Language]

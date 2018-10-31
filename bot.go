@@ -4,9 +4,9 @@ import (
 	"crypto/rand"
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
+	"io"
 	"log"
 	"math/big"
-	"os"
 	"strings"
 )
 
@@ -23,7 +23,7 @@ type opBotModules struct {
 	// userNotifications stores the notification settings.
 	userNotifications notifications
 	// statsWriter is responsible for writing the stats info to disk.
-	statsWriter *os.File
+	statsWriter io.WriteCloser
 	// media has a list of media files used by the bot.
 	media mediaList
 	// reportedBans lists the bans requested via /ban.
@@ -65,12 +65,8 @@ func (x *opBot) Run() {
 			handleCallbackQuery(x, update)
 
 		case update.Message != nil:
-			// Log stats if the message comes from @osprogramadores.
-			if update.Message.From != nil && update.Message.Chat.UserName == osProgramadoresGroup {
-				if saved, err := saveStats(x.modules.statsWriter, &update); err != nil {
-					log.Println(T("stats_error_saving"), err.Error(), saved)
-				}
-			}
+			// Update stats if the message comes from @osprogramadores.
+			updateMessageStats(x.modules.statsWriter, update, osProgramadoresGroup)
 
 			// Notifications.
 			manageNotifications(x, update)
@@ -87,54 +83,15 @@ func (x *opBot) Run() {
 
 			// Location.
 			case update.Message.Location != nil:
-				user := update.Message.From
-				location := update.Message.Location
-				err := handleLocation(&x.modules.locations, x.config.LocationKey, fmt.Sprintf("%d", user.ID), location.Latitude, location.Longitude)
-
-				// Give feedback to user, if message was sent privately.
-				if isPrivateChat(update.Message.Chat) {
-					message := T("location_success")
-					if err != nil {
-						message = T("location_fail")
-					}
-					x.sendReply(update, message)
-				}
+				x.processLocationRequest(update)
 
 			// Join event.
 			case update.Message.NewChatMembers != nil:
-				names := make([]string, len(*update.Message.NewChatMembers))
-				for index, user := range *update.Message.NewChatMembers {
-					names[index] = formatName(user)
-				}
-				name := strings.Join(names, ", ")
-
-				markup := tgbotapi.NewInlineKeyboardMarkup(
-					tgbotapi.NewInlineKeyboardRow(buttonURL(T("visit_our_group_website"), osProgramadoresURL)),
-					tgbotapi.NewInlineKeyboardRow(button(T("read_the_rules"), "rules")),
-				)
-				x.sendReplyWithMarkup(update, fmt.Sprintf(T("welcome"), name), markup)
+				x.processJoinEvents(update)
 
 			// User commands.
 			case update.Message.IsCommand():
-				cmd := strings.ToLower(update.Message.Command())
-
-				bcmd, ok := x.commands[cmd]
-				if !ok {
-					log.Printf("Ignoring invalid command: %q", cmd)
-					break
-				}
-				// Fail silently if non-private request on private only command.
-				if bcmd.pvtOnly && !isPrivateChat(update.Message.Chat) {
-					log.Printf("Ignoring non-private request on private only command %q", cmd)
-					break
-				}
-				// Handle command. Emit (and log) error.
-				err := bcmd.handler(update)
-				if err != nil {
-					e := fmt.Sprintf(T("handler_error"), err.Error())
-					x.sendReply(update, e)
-					fmt.Println(e)
-				}
+				x.processUserCommands(update)
 			}
 		}
 	}
@@ -213,4 +170,77 @@ func (x *opBot) indentHandler(update tgbotapi.Update) error {
 	msg := fmt.Sprintf(T("indent_ok"), repl.newURL, repl.SessionID)
 	x.sendReply(update, msg)
 	return nil
+}
+
+// updateMessageStats updates the message statistics for all messages from a
+// specific username.  Emits an error message to output in case of errors.
+func updateMessageStats(w io.Writer, update tgbotapi.Update, username string) {
+	if update.Message.From != nil && update.Message.Chat.UserName == username {
+		if saved, err := saveStats(w, &update); err != nil {
+			log.Println(T("stats_error_saving"), err.Error(), saved)
+		}
+	}
+}
+
+// processLocationRequest fetches user geo-location information from the
+// request and adds the approximate location of the user to a point in the map
+// using handleLocation.  Returns a visible message to the user in case of
+// problems.
+func (x *opBot) processLocationRequest(update tgbotapi.Update) {
+	userid := update.Message.From.ID
+	location := update.Message.Location
+
+	err := handleLocation(&x.modules.locations,
+		x.config.LocationKey,
+		fmt.Sprintf("%d", userid),
+		location.Latitude,
+		location.Longitude)
+
+	// Give feedback to user, if message was sent privately.
+	if isPrivateChat(update.Message.Chat) {
+		message := T("location_success")
+		if err != nil {
+			message = T("location_fail")
+		}
+		x.sendReply(update, message)
+	}
+}
+
+// processJoinEvent sends a new message to newly joined users.
+func (x *opBot) processJoinEvents(update tgbotapi.Update) {
+	names := make([]string, len(*update.Message.NewChatMembers))
+	for index, user := range *update.Message.NewChatMembers {
+		names[index] = formatName(user)
+	}
+	name := strings.Join(names, ", ")
+
+	markup := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(buttonURL(T("visit_our_group_website"), osProgramadoresURL)),
+		tgbotapi.NewInlineKeyboardRow(button(T("read_the_rules"), "rules")),
+	)
+	x.sendReplyWithMarkup(update, fmt.Sprintf(T("welcome"), name), markup)
+}
+
+// processUserCommands processes all user to bot commands (usually starting with a slash) by
+// parsing the input and calling the appropriate command handler.
+func (x *opBot) processUserCommands(update tgbotapi.Update) {
+	cmd := strings.ToLower(update.Message.Command())
+
+	bcmd, ok := x.commands[cmd]
+	if !ok {
+		log.Printf("Ignoring invalid command: %q", cmd)
+		return
+	}
+	// Fail silently if non-private request on private only command.
+	if bcmd.pvtOnly && !isPrivateChat(update.Message.Chat) {
+		log.Printf("Ignoring non-private request on private only command %q", cmd)
+		return
+	}
+	// Handle command. Emit (and log) error.
+	err := bcmd.handler(update)
+	if err != nil {
+		e := fmt.Sprintf(T("handler_error"), err.Error())
+		x.sendReply(update, e)
+		log.Println(e)
+	}
 }
