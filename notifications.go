@@ -81,7 +81,7 @@ func toggleNotifications(n *notifications, userid, username string) error {
 	err := safeWriteJSON(notificationSettings, notificationsDB)
 
 	if err == nil {
-		// Save succeded, let's update our map.
+		// Save succeeded, let's update our map.
 		n.Users = notificationSettings
 	}
 
@@ -112,6 +112,7 @@ func idByNotificationUserName(n *notifications, username string) (string, bool) 
 	return uidstr, ok
 }
 
+// nolint: gocyclo
 // manageNotifications notifies users based on the message being replied to and
 // user mentions, if the user has notifications enabled.
 func manageNotifications(x *opBot, update tgbotapi.Update) error {
@@ -250,7 +251,7 @@ func sendNotification(x *opBot, recipient int, update tgbotapi.Update, response 
 
 	destination := int64(recipient)
 	msg := tgbotapi.NewMessage(destination, notificationText)
-	msg.ParseMode = "Markdown"
+	msg.ParseMode = parseModeMarkdown
 
 	// Now let's check if there is additional media to send as well.
 	mediaMsg, ok, err := createMediaMessage(update.Message, destination, markup)

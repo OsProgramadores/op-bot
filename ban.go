@@ -14,6 +14,8 @@ const (
 	// Threshold to notify admins. If the offending message reaches this number
 	// of reports, the admins are notified.
 	adminNotificationDefaultThreshold = 1
+	// Parsing mode: Markdown.
+	parseModeMarkdown = "Markdown"
 )
 
 // banRequest stores info on each ban requested via the /ban command.
@@ -59,6 +61,7 @@ type requestedBans struct {
 	Requests banRequestList
 }
 
+// nolint: gocyclo
 // banRequestHandler does it all.
 func (x *opBot) banRequestHandler(update tgbotapi.Update) error {
 	// This command is not supposed to be issued in private.
@@ -197,7 +200,7 @@ func notifyAdmin(x *opBot, admin *tgbotapi.User, update tgbotapi.Update) (int64,
 	notificationText = strings.Replace(notificationText, `\n`, "\n", -1)
 
 	msg := tgbotapi.NewMessage(int64(admin.ID), notificationText)
-	msg.ParseMode = "Markdown"
+	msg.ParseMode = parseModeMarkdown
 	msg.ReplyMarkup = &markup
 
 	// Let's create a media message, if there's any media in the reported message.
@@ -283,7 +286,7 @@ func updateBanRequestNotification(x *opBot, requestID string, admin *tgbotapi.Us
 	notificationMessage := fmt.Sprintf(T("notification_handled"), formatName(*admin), admin.ID, message, report.Text)
 	for adminID, notificationID := range report.Notifications {
 		editmsg := tgbotapi.NewEditMessageText(adminID, int(notificationID), notificationMessage)
-		editmsg.ParseMode = "Markdown"
+		editmsg.ParseMode = parseModeMarkdown
 		x.bot.Send(editmsg)
 	}
 	return nil
