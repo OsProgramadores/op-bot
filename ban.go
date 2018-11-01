@@ -139,7 +139,7 @@ func (x *opBot) banRequestHandler(update tgbotapi.Update) error {
 
 		// Update file if we have sent any notifcations.
 		if len(x.modules.reportedBans.Requests.Bans[key].Notifications) > 0 {
-			report, _ := x.modules.reportedBans.Requests.Bans[key]
+			report := x.modules.reportedBans.Requests.Bans[key]
 			// Since we are going to update the info on disk, we take the
 			// opportunity to also save the content of the offending message.
 			// We use this information when updating the notifications, once an
@@ -225,9 +225,9 @@ func notifyAdmin(x *opBot, admin *tgbotapi.User, update tgbotapi.Update) (int64,
 	return int64(sentMessage.MessageID), nil
 }
 
-// deleteMessageFromBanRequest delestes the offending message, and optionally
-// also bans the user who sent it.
-func deleteMessageFromBanRequest(x *opBot, admin *tgbotapi.User, requestID string, shouldBanAsWell bool) error {
+// deleteMessageFromBanRequest deletes the offending message, and optionally
+// bans the user who sent it.
+func deleteMessageFromBanRequest(x *opBot, admin *tgbotapi.User, requestID string, ban bool) error {
 	err := deleteMessage(x, admin, requestID)
 	if err != nil {
 		return err
@@ -236,18 +236,26 @@ func deleteMessageFromBanRequest(x *opBot, admin *tgbotapi.User, requestID strin
 	x.modules.reportedBans.RLock()
 	defer x.modules.reportedBans.RUnlock()
 
-	if !shouldBanAsWell {
+	if !ban {
 		// We already did what we were intended to do, so just update the
 		// notifications sent and return.
 		return updateBanRequestNotification(x, requestID, admin, T("notification_update_delete"))
 	}
 
-	memberConfig := tgbotapi.ChatMemberConfig{ChatID: x.modules.reportedBans.Requests.Bans[requestID].ChatID, UserID: int(x.modules.reportedBans.Requests.Bans[requestID].Author)}
-	_, err = x.bot.KickChatMember(tgbotapi.KickChatMemberConfig{ChatMemberConfig: memberConfig})
-	if err != nil {
+	if err := banUser(
+		x.bot,
+		x.modules.reportedBans.Requests.Bans[requestID].ChatID,
+		int(x.modules.reportedBans.Requests.Bans[requestID].Author)); err != nil {
 		return err
 	}
 	return updateBanRequestNotification(x, requestID, admin, T("notification_update_delete_and_ban"))
+}
+
+// banUser bans a user using a ChatID and UserID.
+func banUser(bot *tgbotapi.BotAPI, chatID int64, userID int) error {
+	memberConfig := tgbotapi.ChatMemberConfig{ChatID: chatID, UserID: userID}
+	_, err := bot.KickChatMember(tgbotapi.KickChatMemberConfig{ChatMemberConfig: memberConfig})
+	return err
 }
 
 // deleteMessage deletes the message indicated by `requestID' and updates the
@@ -281,7 +289,7 @@ func deleteMessage(x *opBot, admin *tgbotapi.User, requestID string) error {
 // decision made and the admin who made it. Locks, if needed, should be taken
 // care of outside this function.
 func updateBanRequestNotification(x *opBot, requestID string, admin *tgbotapi.User, message string) error {
-	report, _ := x.modules.reportedBans.Requests.Bans[requestID]
+	report := x.modules.reportedBans.Requests.Bans[requestID]
 
 	notificationMessage := fmt.Sprintf(T("notification_handled"), formatName(*admin), admin.ID, message, report.Text)
 	for adminID, notificationID := range report.Notifications {

@@ -18,6 +18,12 @@ location_key = ""
 # regular groups messages already delivered won't be removed.
 delete_fwd = true
 
+# Kick other bots from the channel at join time.
+kick_bots = true
+
+# Bots in this whitelist won't be automatically kicked.
+bot_whitelist = [ "friendlybot", "myottherbot" ]
+
 # Key for cepaberto.com (brazilian postal code to geo location service.)
 # Optional, but without a valid key, the /location command won't work for
 # locations in Brazil (cellular location still works, though).

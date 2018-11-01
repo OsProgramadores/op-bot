@@ -39,6 +39,12 @@ type botConfig struct {
 	// Automatically delete all forwarded messages?
 	DeleteFwd bool `toml:"delete_fwd"`
 
+	// Kick other bots from the channel at join time.
+	KickBots bool `toml:"kick_bots"`
+
+	// Bots in this whitelist won't be automatically kicked.
+	BotWhitelist []string `toml:"bot_whitelist"`
+
 	// API Key from www.cepaberto.com (brazilian postal code to geo location service.)
 	CepAbertoKey string `toml:"cep_aberto_key"`
 }
