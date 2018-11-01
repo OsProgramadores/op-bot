@@ -87,6 +87,7 @@ func (x *opBot) Run() {
 
 			// Join event.
 			case update.Message.NewChatMembers != nil:
+				x.processBotJoin(update)
 				x.processJoinEvents(update)
 
 			// User commands.
@@ -206,14 +207,47 @@ func (x *opBot) processLocationRequest(update tgbotapi.Update) {
 	}
 }
 
+// processBotJoin reads new users from the update event and kicks bots not in
+// our bot whitelist from the group. Due to the way telegram works, this only
+// works for supergroups.
+func (x *opBot) processBotJoin(update tgbotapi.Update) {
+	// Only if configured.
+	if !x.config.KickBots {
+		return
+	}
+	for _, user := range *update.Message.NewChatMembers {
+		// Bots only.
+		if !user.IsBot {
+			continue
+		}
+		// Skip whitelisted bots.
+		if stringInSlice(user.UserName, x.config.BotWhitelist) {
+			log.Printf("Whitelisted bot %q has joined", user.UserName)
+			continue
+		}
+		// Ban!
+		if err := banUser(x.bot, update.Message.Chat.ID, user.ID); err != nil {
+			log.Printf("Error attempting to ban bot named %q: %v", user.UserName, err)
+		}
+		log.Printf("Banned bot %q. Hasta la vista, baby...", user.UserName)
+	}
+}
+
 // processJoinEvent sends a new message to newly joined users.
 func (x *opBot) processJoinEvents(update tgbotapi.Update) {
-	names := make([]string, len(*update.Message.NewChatMembers))
-	for index, user := range *update.Message.NewChatMembers {
-		names[index] = formatName(user)
+	names := []string{}
+	for _, user := range *update.Message.NewChatMembers {
+		// Do not send welcome messages to bots.
+		if !user.IsBot {
+			names = append(names, formatName(user))
+		}
 	}
-	name := strings.Join(names, ", ")
+	// Any human users?
+	if len(names) == 0 {
+		return
+	}
 
+	name := strings.Join(names, ", ")
 	markup := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(buttonURL(T("visit_our_group_website"), osProgramadoresURL)),
 		tgbotapi.NewInlineKeyboardRow(button(T("read_the_rules"), "rules")),
@@ -243,4 +277,14 @@ func (x *opBot) processUserCommands(update tgbotapi.Update) {
 		x.sendReply(update, e)
 		log.Println(e)
 	}
+}
+
+// stringInSlice returns true if a given string is in a string slice, false otherwise.
+func stringInSlice(str string, list []string) bool {
+	for _, s := range list {
+		if str == s {
+			return true
+		}
+	}
+	return false
 }
