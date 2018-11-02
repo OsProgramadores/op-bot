@@ -3,7 +3,7 @@ package main
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
+	"gopkg.in/telegram-bot-api.v4"
 	"io"
 	"log"
 	"math/big"
@@ -37,7 +37,6 @@ type opBot struct {
 	config   botConfig
 	commands map[string]botCommand
 	modules  opBotModules
-	bot      *tgbotapi.BotAPI
 }
 
 // botCommands holds the commands accepted by the bot, their description and a handler function.
@@ -46,36 +45,36 @@ type botCommand struct {
 	adminOnly bool
 	pvtOnly   bool
 	enabled   bool
-	handler   func(tgbotapi.Update) error
+	handler   func(*tgbotapi.BotAPI, tgbotapi.Update) error
 }
 
 // Run is the main message dispatcher for the bot.
-func (x *opBot) Run() {
-	x.bot.Debug = true
-	log.Printf("Authorized on account %s", x.bot.Self.UserName)
+func (x *opBot) Run(bot *tgbotapi.BotAPI) {
+	bot.Debug = true
+	log.Printf("Authorized on account %s", bot.Self.UserName)
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
-	updates, _ := x.bot.GetUpdatesChan(u)
+	updates, _ := bot.GetUpdatesChan(u)
 
 	for update := range updates {
 		switch {
 		case update.CallbackQuery != nil:
-			handleCallbackQuery(x, update)
+			x.handleCallbackQuery(bot, update)
 
 		case update.Message != nil:
 			// Update stats if the message comes from @osprogramadores.
 			updateMessageStats(x.modules.statsWriter, update, osProgramadoresGroup)
 
 			// Notifications.
-			manageNotifications(x, update)
+			x.manageNotifications(bot, update)
 
 			switch {
 			// Forward message handling.
 			case update.Message.ForwardFrom != nil && x.config.DeleteFwd:
 				// Remove forwarded message and log.
-				x.bot.DeleteMessage(tgbotapi.DeleteMessageConfig{
+				bot.DeleteMessage(tgbotapi.DeleteMessageConfig{
 					ChatID:    update.Message.Chat.ID,
 					MessageID: update.Message.MessageID,
 				})
@@ -83,23 +82,23 @@ func (x *opBot) Run() {
 
 			// Location.
 			case update.Message.Location != nil:
-				x.processLocationRequest(update)
+				x.processLocationRequest(bot, update)
 
 			// Join event.
 			case update.Message.NewChatMembers != nil:
-				x.processBotJoin(update)
-				x.processJoinEvents(update)
+				x.processBotJoin(bot, update)
+				x.processJoinEvents(bot, update)
 
 			// User commands.
 			case update.Message.IsCommand():
-				x.processUserCommands(update)
+				x.processUserCommands(bot, update)
 			}
 		}
 	}
 }
 
 // hackerHandler provides anti-hacker protection to the bot.
-func (x *opBot) hackerHandler(update tgbotapi.Update) error {
+func (x *opBot) hackerHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
 	// Gifs for /hackerdetected.
 	media := []string{
 		// Balaclava guy "hacking".
@@ -111,7 +110,7 @@ func (x *opBot) hackerHandler(update tgbotapi.Update) error {
 	}
 
 	// Remove message that triggered /hackerdetected command.
-	x.bot.DeleteMessage(tgbotapi.DeleteMessageConfig{
+	bot.DeleteMessage(tgbotapi.DeleteMessageConfig{
 		ChatID:    update.Message.Chat.ID,
 		MessageID: update.Message.MessageID,
 	})
@@ -124,12 +123,12 @@ func (x *opBot) hackerHandler(update tgbotapi.Update) error {
 		return nil
 	}
 
-	sendMedia(x, update, media[randomIndex.Int64()])
+	x.sendMedia(bot, update, media[randomIndex.Int64()])
 	return nil
 }
 
 // Register registers a command a its handler on the bot.
-func (x *opBot) Register(cmd string, desc string, adminOnly bool, pvtOnly bool, enabled bool, handler func(tgbotapi.Update) error) {
+func (x *opBot) Register(cmd string, desc string, adminOnly bool, pvtOnly bool, enabled bool, handler func(*tgbotapi.BotAPI, tgbotapi.Update) error) {
 	if x.commands == nil {
 		x.commands = map[string]botCommand{}
 	}
@@ -145,7 +144,7 @@ func (x *opBot) Register(cmd string, desc string, adminOnly bool, pvtOnly bool, 
 }
 
 // helpHandler sends a help message back to the user.
-func (x *opBot) helpHandler(update tgbotapi.Update) error {
+func (x *opBot) helpHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
 	helpMsg := make([]string, len(x.commands))
 	ix := 0
 	for c, bcmd := range x.commands {
@@ -155,12 +154,12 @@ func (x *opBot) helpHandler(update tgbotapi.Update) error {
 		}
 	}
 
-	x.sendReply(update, strings.Join(helpMsg, "\n"))
+	sendReply(bot, update, strings.Join(helpMsg, "\n"))
 	return nil
 }
 
 // indentHandler indents the code in a repl.it URL.
-func (x *opBot) indentHandler(update tgbotapi.Update) error {
+func (x *opBot) indentHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
 	args := strings.Trim(update.Message.CommandArguments(), " ")
 
 	repl, err := handleReplItURL(&runner{}, args)
@@ -169,7 +168,7 @@ func (x *opBot) indentHandler(update tgbotapi.Update) error {
 	}
 
 	msg := fmt.Sprintf(T("indent_ok"), repl.newURL, repl.SessionID)
-	x.sendReply(update, msg)
+	sendReply(bot, update, msg)
 	return nil
 }
 
@@ -187,7 +186,7 @@ func updateMessageStats(w io.Writer, update tgbotapi.Update, username string) {
 // request and adds the approximate location of the user to a point in the map
 // using handleLocation.  Returns a visible message to the user in case of
 // problems.
-func (x *opBot) processLocationRequest(update tgbotapi.Update) {
+func (x *opBot) processLocationRequest(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	userid := update.Message.From.ID
 	location := update.Message.Location
 
@@ -203,14 +202,14 @@ func (x *opBot) processLocationRequest(update tgbotapi.Update) {
 		if err != nil {
 			message = T("location_fail")
 		}
-		x.sendReply(update, message)
+		sendReply(bot, update, message)
 	}
 }
 
 // processBotJoin reads new users from the update event and kicks bots not in
 // our bot whitelist from the group. Due to the way telegram works, this only
 // works for supergroups.
-func (x *opBot) processBotJoin(update tgbotapi.Update) {
+func (x *opBot) processBotJoin(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	// Only if configured.
 	if !x.config.KickBots {
 		return
@@ -226,7 +225,7 @@ func (x *opBot) processBotJoin(update tgbotapi.Update) {
 			continue
 		}
 		// Ban!
-		if err := banUser(x.bot, update.Message.Chat.ID, user.ID); err != nil {
+		if err := banUser(bot, update.Message.Chat.ID, user.ID); err != nil {
 			log.Printf("Error attempting to ban bot named %q: %v", user.UserName, err)
 		}
 		log.Printf("Banned bot %q. Hasta la vista, baby...", user.UserName)
@@ -234,7 +233,7 @@ func (x *opBot) processBotJoin(update tgbotapi.Update) {
 }
 
 // processJoinEvent sends a new message to newly joined users.
-func (x *opBot) processJoinEvents(update tgbotapi.Update) {
+func (x *opBot) processJoinEvents(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	names := []string{}
 	for _, user := range *update.Message.NewChatMembers {
 		// Do not send welcome messages to bots.
@@ -252,12 +251,12 @@ func (x *opBot) processJoinEvents(update tgbotapi.Update) {
 		tgbotapi.NewInlineKeyboardRow(buttonURL(T("visit_our_group_website"), osProgramadoresURL)),
 		tgbotapi.NewInlineKeyboardRow(button(T("read_the_rules"), "rules")),
 	)
-	x.sendReplyWithMarkup(update, fmt.Sprintf(T("welcome"), name), markup)
+	x.sendReplyWithMarkup(bot, update, fmt.Sprintf(T("welcome"), name), markup)
 }
 
 // processUserCommands processes all user to bot commands (usually starting with a slash) by
 // parsing the input and calling the appropriate command handler.
-func (x *opBot) processUserCommands(update tgbotapi.Update) {
+func (x *opBot) processUserCommands(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	cmd := strings.ToLower(update.Message.Command())
 
 	bcmd, ok := x.commands[cmd]
@@ -271,10 +270,10 @@ func (x *opBot) processUserCommands(update tgbotapi.Update) {
 		return
 	}
 	// Handle command. Emit (and log) error.
-	err := bcmd.handler(update)
+	err := bcmd.handler(bot, update)
 	if err != nil {
 		e := fmt.Sprintf(T("handler_error"), err.Error())
-		x.sendReply(update, e)
+		sendReply(bot, update, e)
 		log.Println(e)
 	}
 }

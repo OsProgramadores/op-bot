@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/go-telegram-bot-api/telegram-bot-api"
+	"gopkg.in/telegram-bot-api.v4"
 	"log"
 	"sync"
 )
@@ -27,7 +27,7 @@ func loadMedia(m *mediaList) error {
 // sendMedia sends the media pointed out by `mediaURL' to the user/group
 // indicated by `update'. If said media is not yet saved in the database, we do
 // it so that we can reuse it in future requests.
-func sendMedia(x *opBot, update tgbotapi.Update, mediaURL string) error {
+func (x *opBot) sendMedia(bot *tgbotapi.BotAPI, update tgbotapi.Update, mediaURL string) error {
 	x.modules.media.Lock()
 	defer x.modules.media.Unlock()
 
@@ -52,7 +52,7 @@ func sendMedia(x *opBot, update tgbotapi.Update, mediaURL string) error {
 		document.ReplyToMessageID = update.Message.ReplyToMessage.MessageID
 	}
 
-	message, err := x.bot.Send(document)
+	message, err := bot.Send(document)
 	if err != nil {
 		log.Printf("Error sending media (url: %s, existing: %v): %v", mediaURL, ok, err)
 		return err

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/go-telegram-bot-api/telegram-bot-api"
+	"gopkg.in/telegram-bot-api.v4"
 	"log"
 )
 
@@ -33,7 +33,6 @@ func main() {
 	// Create new bot
 	b := opBot{
 		config: config,
-		bot:    bot,
 		modules: opBotModules{
 			userNotifications: notifications{Users: map[string]string{}},
 			media:             mediaList{Media: map[string]string{}},
@@ -75,5 +74,5 @@ func main() {
 	b.Register("ban", T("ban_help"), false, false, true, b.banRequestHandler)
 
 	// Make it so!
-	b.Run()
+	b.Run(bot)
 }

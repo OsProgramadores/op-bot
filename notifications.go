@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
+	"gopkg.in/telegram-bot-api.v4"
 	"log"
 	"strconv"
 	"strings"
@@ -20,7 +20,7 @@ type notifications struct {
 }
 
 // notificationHandler enables/disables user notifications.
-func (x *opBot) notificationHandler(update tgbotapi.Update) error {
+func (x *opBot) notificationHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
 	uidstr := fmt.Sprintf("%d", update.Message.From.ID)
 
 	if err := toggleNotifications(&x.modules.userNotifications, uidstr, update.Message.From.UserName); err != nil {
@@ -28,7 +28,7 @@ func (x *opBot) notificationHandler(update tgbotapi.Update) error {
 	}
 
 	text := fmt.Sprintf(T("notification_success"), notificationStatus(&x.modules.userNotifications, uidstr))
-	x.sendReply(update, text)
+	sendReply(bot, update, text)
 	return nil
 }
 
@@ -115,7 +115,7 @@ func idByNotificationUserName(n *notifications, username string) (string, bool) 
 // nolint: gocyclo
 // manageNotifications notifies users based on the message being replied to and
 // user mentions, if the user has notifications enabled.
-func manageNotifications(x *opBot, update tgbotapi.Update) error {
+func (x *opBot) manageNotifications(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
 	if isPrivateChat(update.Message.Chat) {
 		return nil
 	}
@@ -139,7 +139,7 @@ func manageNotifications(x *opBot, update tgbotapi.Update) error {
 		if !ok && notificationsEnabled(&x.modules.userNotifications, uidstr) {
 			// Using `true' here because this notification is due to a message
 			// being replied to.
-			_, err := sendNotification(x, uid, update, true)
+			_, err := x.sendNotification(bot, uid, update, true)
 			if err != nil {
 				log.Printf("Failed to send notification to %q (%d)", formatName(*update.Message.From), update.Message.From.ID)
 			} else {
@@ -180,7 +180,7 @@ func manageNotifications(x *opBot, update tgbotapi.Update) error {
 						}
 						// Using `false' here because this notification is not
 						// due to a  message being replied to.
-						_, err = sendNotification(x, uid, update, false)
+						_, err = x.sendNotification(bot, uid, update, false)
 						if err != nil {
 							log.Printf("Failed to send notification to %q (%d)", formatName(*update.Message.From), update.Message.From.ID)
 						} else {
@@ -200,7 +200,7 @@ func manageNotifications(x *opBot, update tgbotapi.Update) error {
 
 						// Using `false' here because this notification is not
 						// due to a message being replied to.
-						_, err := sendNotification(x, entity.User.ID, update, false)
+						_, err := x.sendNotification(bot, entity.User.ID, update, false)
 						if err != nil {
 							log.Printf("Failed to send notification to %q (%d)", formatName(*update.Message.From), update.Message.From.ID)
 						} else {
@@ -222,7 +222,7 @@ func manageNotifications(x *opBot, update tgbotapi.Update) error {
 // whether this notification is due to a message being replied to, in which case
 // it will be `true', or if it is due to a mention, in which case it will be
 // `false'.
-func sendNotification(x *opBot, recipient int, update tgbotapi.Update, response bool) (tgbotapi.Message, error) {
+func (x *opBot) sendNotification(bot *tgbotapi.BotAPI, recipient int, update tgbotapi.Update, response bool) (tgbotapi.Message, error) {
 	if recipient == update.Message.From.ID {
 		log.Printf("Not sending notification to %d, the same sender of the message", recipient)
 		return tgbotapi.Message{}, nil
@@ -262,13 +262,13 @@ func sendNotification(x *opBot, recipient int, update tgbotapi.Update, response 
 		if markup != nil {
 			msg.ReplyMarkup = markup
 		}
-		return x.bot.Send(msg)
+		return bot.Send(msg)
 	}
 
 	// There's additional media, so send the text message followed by the one
 	// containing the media.
-	if _, err = x.bot.Send(msg); err != nil {
+	if _, err = bot.Send(msg); err != nil {
 		return tgbotapi.Message{}, err
 	}
-	return x.bot.Send(mediaMsg)
+	return bot.Send(mediaMsg)
 }
