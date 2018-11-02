@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
+	"gopkg.in/telegram-bot-api.v4"
 	"io/ioutil"
 	"log"
 	"os"
@@ -86,18 +86,18 @@ func buttonURL(msg, url string) tgbotapi.InlineKeyboardButton {
 }
 
 // sendReply sends a reply to a specific MessageID.
-func (x *opBot) sendReply(update tgbotapi.Update, text string) (tgbotapi.Message, error) {
+func sendReply(bot *tgbotapi.BotAPI, update tgbotapi.Update, text string) (tgbotapi.Message, error) {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
 	msg.ReplyToMessageID = update.Message.MessageID
-	return x.bot.Send(msg)
+	return bot.Send(msg)
 }
 
 // sendReplyWithMarkup sends a reply to a specific MessageID with markup.
-func (x *opBot) sendReplyWithMarkup(update tgbotapi.Update, text string, markup tgbotapi.InlineKeyboardMarkup) (tgbotapi.Message, error) {
+func (x *opBot) sendReplyWithMarkup(bot *tgbotapi.BotAPI, update tgbotapi.Update, text string, markup tgbotapi.InlineKeyboardMarkup) (tgbotapi.Message, error) {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
 	msg.ReplyToMessageID = update.Message.MessageID
 	msg.ReplyMarkup = &markup
-	return x.bot.Send(msg)
+	return bot.Send(msg)
 }
 
 // isPrivateChat returns true if a chat is private.

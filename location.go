@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
+	"gopkg.in/telegram-bot-api.v4"
 	"io"
 	"math/rand"
 	"net/http"
@@ -49,7 +49,7 @@ type cepResponse struct {
 }
 
 // locationHandler receive postal code from user.
-func (x *opBot) locationHandler(update tgbotapi.Update) error {
+func (x *opBot) locationHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
 	args := strings.Split(trDelete(update.Message.CommandArguments(), "/-."), " ")
 	user := update.Message.From
 	cep := ""
@@ -78,7 +78,7 @@ func (x *opBot) locationHandler(update tgbotapi.Update) error {
 		return fmt.Errorf(T("unable_to_find_location"), cep)
 	}
 
-	x.sendReply(update, T("location_success"))
+	sendReply(bot, update, T("location_success"))
 	return nil
 }
 
