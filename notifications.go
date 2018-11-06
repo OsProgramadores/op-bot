@@ -20,7 +20,7 @@ type notifications struct {
 }
 
 // notificationHandler enables/disables user notifications.
-func (x *opBot) notificationHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
+func (x *opBot) notificationHandler(bot botface, update tgbotapi.Update) error {
 	uidstr := fmt.Sprintf("%d", update.Message.From.ID)
 
 	if err := toggleNotifications(&x.modules.userNotifications, uidstr, update.Message.From.UserName); err != nil {

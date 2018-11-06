@@ -45,7 +45,19 @@ type botCommand struct {
 	adminOnly bool
 	pvtOnly   bool
 	enabled   bool
-	handler   func(*tgbotapi.BotAPI, tgbotapi.Update) error
+	handler   func(botface, tgbotapi.Update) error
+}
+
+// botface defines our main interface to the bot, via tgbotapi. All functions which need to
+// perform operations using the bot api will use this interface. This allows us to easily
+// mock the calls for testing.
+type botface interface {
+	AnswerCallbackQuery(tgbotapi.CallbackConfig) (tgbotapi.APIResponse, error)
+	DeleteMessage(tgbotapi.DeleteMessageConfig) (tgbotapi.APIResponse, error)
+	GetChatAdministrators(tgbotapi.ChatConfig) ([]tgbotapi.ChatMember, error)
+	GetUpdatesChan(tgbotapi.UpdateConfig) (tgbotapi.UpdatesChannel, error)
+	KickChatMember(tgbotapi.KickChatMemberConfig) (tgbotapi.APIResponse, error)
+	Send(tgbotapi.Chattable) (tgbotapi.Message, error)
 }
 
 // Run is the main message dispatcher for the bot.
@@ -98,7 +110,7 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 }
 
 // hackerHandler provides anti-hacker protection to the bot.
-func (x *opBot) hackerHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
+func (x *opBot) hackerHandler(bot botface, update tgbotapi.Update) error {
 	// Gifs for /hackerdetected.
 	media := []string{
 		// Balaclava guy "hacking".
@@ -128,7 +140,7 @@ func (x *opBot) hackerHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update) erro
 }
 
 // Register registers a command a its handler on the bot.
-func (x *opBot) Register(cmd string, desc string, adminOnly bool, pvtOnly bool, enabled bool, handler func(*tgbotapi.BotAPI, tgbotapi.Update) error) {
+func (x *opBot) Register(cmd string, desc string, adminOnly bool, pvtOnly bool, enabled bool, handler func(botface, tgbotapi.Update) error) {
 	if x.commands == nil {
 		x.commands = map[string]botCommand{}
 	}
@@ -144,7 +156,7 @@ func (x *opBot) Register(cmd string, desc string, adminOnly bool, pvtOnly bool, 
 }
 
 // helpHandler sends a help message back to the user.
-func (x *opBot) helpHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
+func (x *opBot) helpHandler(bot botface, update tgbotapi.Update) error {
 	helpMsg := make([]string, len(x.commands))
 	ix := 0
 	for c, bcmd := range x.commands {
@@ -159,7 +171,7 @@ func (x *opBot) helpHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update) error 
 }
 
 // indentHandler indents the code in a repl.it URL.
-func (x *opBot) indentHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
+func (x *opBot) indentHandler(bot botface, update tgbotapi.Update) error {
 	args := strings.Trim(update.Message.CommandArguments(), " ")
 
 	repl, err := handleReplItURL(&runner{}, args)

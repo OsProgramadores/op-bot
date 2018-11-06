@@ -63,7 +63,7 @@ type requestedBans struct {
 
 // nolint: gocyclo
 // banRequestHandler does it all.
-func (x *opBot) banRequestHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
+func (x *opBot) banRequestHandler(bot botface, update tgbotapi.Update) error {
 	// This command is not supposed to be issued in private.
 	if update.Message == nil || update.Message.Chat == nil || isPrivateChat(update.Message.Chat) {
 		log.Printf("banRequestHandler: either i) the message or chat was nil or ii) this command was issued in a private message")
@@ -170,7 +170,7 @@ func loadBanRequestsInfo(b *requestedBans) error {
 // - remove the offending message;
 // - remove the offending message and ban its author.
 // It returns the id of the notification message sent.
-func notifyAdmin(bot *tgbotapi.BotAPI, admin *tgbotapi.User, update tgbotapi.Update) (int64, error) {
+func notifyAdmin(bot botface, admin *tgbotapi.User, update tgbotapi.Update) (int64, error) {
 	offendingMessageID := update.Message.ReplyToMessage.MessageID
 	chatID := update.Message.Chat.ID
 
@@ -227,7 +227,7 @@ func notifyAdmin(bot *tgbotapi.BotAPI, admin *tgbotapi.User, update tgbotapi.Upd
 
 // deleteMessageFromBanRequest deletes the offending message, and optionally
 // bans the user who sent it.
-func (x *opBot) deleteMessageFromBanRequest(bot *tgbotapi.BotAPI, admin *tgbotapi.User, requestID string, ban bool) error {
+func (x *opBot) deleteMessageFromBanRequest(bot botface, admin *tgbotapi.User, requestID string, ban bool) error {
 	err := x.deleteMessage(bot, admin, requestID)
 	if err != nil {
 		return err
@@ -252,7 +252,7 @@ func (x *opBot) deleteMessageFromBanRequest(bot *tgbotapi.BotAPI, admin *tgbotap
 }
 
 // banUser bans a user using a ChatID and UserID.
-func banUser(bot *tgbotapi.BotAPI, chatID int64, userID int) error {
+func banUser(bot botface, chatID int64, userID int) error {
 	memberConfig := tgbotapi.ChatMemberConfig{ChatID: chatID, UserID: userID}
 	_, err := bot.KickChatMember(tgbotapi.KickChatMemberConfig{ChatMemberConfig: memberConfig})
 	return err
@@ -260,7 +260,7 @@ func banUser(bot *tgbotapi.BotAPI, chatID int64, userID int) error {
 
 // deleteMessage deletes the message indicated by `requestID' and updates the
 // information on disk relative to it.
-func (x *opBot) deleteMessage(bot *tgbotapi.BotAPI, admin *tgbotapi.User, requestID string) error {
+func (x *opBot) deleteMessage(bot botface, admin *tgbotapi.User, requestID string) error {
 	x.modules.reportedBans.Lock()
 	defer x.modules.reportedBans.Unlock()
 
@@ -288,7 +288,7 @@ func (x *opBot) deleteMessage(bot *tgbotapi.BotAPI, admin *tgbotapi.User, reques
 // updateBanRequestNotification updates the notifications sent informing the
 // decision made and the admin who made it. Locks, if needed, should be taken
 // care of outside this function.
-func (x *opBot) updateBanRequestNotification(bot *tgbotapi.BotAPI, requestID string, admin *tgbotapi.User, message string) error {
+func (x *opBot) updateBanRequestNotification(bot botface, requestID string, admin *tgbotapi.User, message string) error {
 	report := x.modules.reportedBans.Requests.Bans[requestID]
 
 	notificationMessage := fmt.Sprintf(T("notification_handled"), formatName(*admin), admin.ID, message, report.Text)

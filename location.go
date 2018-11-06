@@ -49,7 +49,7 @@ type cepResponse struct {
 }
 
 // locationHandler receive postal code from user.
-func (x *opBot) locationHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
+func (x *opBot) locationHandler(bot botface, update tgbotapi.Update) error {
 	args := strings.Split(trDelete(update.Message.CommandArguments(), "/-."), " ")
 	user := update.Message.From
 	cep := ""

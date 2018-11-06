@@ -27,7 +27,7 @@ func loadMedia(m *mediaList) error {
 // sendMedia sends the media pointed out by `mediaURL' to the user/group
 // indicated by `update'. If said media is not yet saved in the database, we do
 // it so that we can reuse it in future requests.
-func (x *opBot) sendMedia(bot *tgbotapi.BotAPI, update tgbotapi.Update, mediaURL string) error {
+func (x *opBot) sendMedia(bot botface, update tgbotapi.Update, mediaURL string) error {
 	x.modules.media.Lock()
 	defer x.modules.media.Unlock()
 
