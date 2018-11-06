@@ -160,7 +160,7 @@ func (x *opBot) Register(cmd string, desc string, adminOnly bool, pvtOnly bool, 
 func (x *opBot) helpHandler(bot botface, update tgbotapi.Update) error {
 	var helpMsg []string
 	for c, bcmd := range x.commands {
-		if !bcmd.adminOnly {
+		if !bcmd.adminOnly && bcmd.enabled {
 			helpMsg = append(helpMsg, fmt.Sprintf("/%s: %s", c, bcmd.desc))
 		}
 	}
