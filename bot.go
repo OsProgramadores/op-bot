@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"math/big"
+	"sort"
 	"strings"
 )
 
@@ -157,15 +158,15 @@ func (x *opBot) Register(cmd string, desc string, adminOnly bool, pvtOnly bool, 
 
 // helpHandler sends a help message back to the user.
 func (x *opBot) helpHandler(bot botface, update tgbotapi.Update) error {
-	helpMsg := make([]string, len(x.commands))
-	ix := 0
+	var helpMsg []string
 	for c, bcmd := range x.commands {
 		if !bcmd.adminOnly {
-			helpMsg[ix] = fmt.Sprintf("/%s: %s", c, bcmd.desc)
-			ix++
+			helpMsg = append(helpMsg, fmt.Sprintf("/%s: %s", c, bcmd.desc))
 		}
 	}
 
+	// Predictable order.
+	sort.Strings(helpMsg)
 	sendReply(bot, update, strings.Join(helpMsg, "\n"))
 	return nil
 }
