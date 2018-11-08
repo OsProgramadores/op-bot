@@ -130,3 +130,52 @@ func TestHelpHandler(t *testing.T) {
 		b.helpHandler(testBotface, u)
 	}
 }
+
+func TestHackerHandler(t *testing.T) {
+	type registry struct {
+		cmd       string
+		desc      string
+		adminOnly bool
+		pvtOnly   bool
+		enabled   bool
+	}
+
+	b := opBot{
+		modules: opBotModules{
+			media: mediaList{
+				Media: map[string]string{}},
+		},
+	}
+
+	chatID := int64(1234)
+	msgID := 2222
+
+	// test Update instance.
+	u := tgbotapi.Update{
+		UpdateID: int(chatID),
+		Message: &tgbotapi.Message{
+			Chat: &tgbotapi.Chat{
+				ID: chatID,
+			},
+			MessageID: msgID,
+		},
+	}
+
+	// Expected parameters.
+	wantDeleteMsgConfig := tgbotapi.DeleteMessageConfig{
+		ChatID:    chatID,
+		MessageID: msgID,
+	}
+
+	testBotface := &MockBotface{}
+	testBotface.On("DeleteMessage", wantDeleteMsgConfig).Return(tgbotapi.APIResponse{}, nil).Once()
+
+	// Send
+	m := tgbotapi.Message{
+		Document: &tgbotapi.Document{
+			FileID: "test_file_id",
+		},
+	}
+	testBotface.On("Send", mock.Anything).Return(m, nil).Once()
+	b.hackerHandler(testBotface, u)
+}

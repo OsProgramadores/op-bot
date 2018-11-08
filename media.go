@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"gopkg.in/telegram-bot-api.v4"
 	"log"
 	"sync"
@@ -58,7 +59,14 @@ func (x *opBot) sendMedia(bot botface, update tgbotapi.Update, mediaURL string) 
 		return err
 	}
 
-	// Let's store the Telegram ID, if we do not yet have the requested media.
+	// Sanity check: Don't allow nil document in return message from Send.
+	if message.Document == nil {
+		err := errors.New("internal error: bot.Send received a nil Document as a response")
+		log.Print(err)
+		return err
+	}
+
+	// Store the Telegram ID, if we do not yet have the requested media.
 	if !ok {
 		x.modules.media.Media[mediaURL] = message.Document.FileID
 		return safeWriteJSON(x.modules.media.Media, mediaDB)
