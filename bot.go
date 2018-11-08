@@ -123,10 +123,12 @@ func (x *opBot) hackerHandler(bot botface, update tgbotapi.Update) error {
 	}
 
 	// Remove message that triggered /hackerdetected command.
-	bot.DeleteMessage(tgbotapi.DeleteMessageConfig{
+	if _, err := bot.DeleteMessage(tgbotapi.DeleteMessageConfig{
 		ChatID:    update.Message.Chat.ID,
 		MessageID: update.Message.MessageID,
-	})
+	}); err != nil {
+		log.Printf("Error deleting message %v on chat id %v", update.Message.MessageID, update.Message.Chat.ID)
+	}
 
 	// Selects randomly one of the available media and send it.
 	// Here we are generating an integer in [0, len(media)).
@@ -137,6 +139,8 @@ func (x *opBot) hackerHandler(bot botface, update tgbotapi.Update) error {
 	}
 
 	x.sendMedia(bot, update, media[randomIndex.Int64()])
+
+	// No need to report on errors.
 	return nil
 }
 
