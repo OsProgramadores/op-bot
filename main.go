@@ -35,7 +35,7 @@ func main() {
 		config: config,
 		modules: opBotModules{
 			userNotifications: notifications{Users: map[string]string{}},
-			media:             mediaList{Media: map[string]string{}},
+			media:             newBotMedia(),
 			reportedBans:      requestedBans{Requests: banRequestList{NotificationThreshold: adminNotificationDefaultThreshold, Bans: map[string]banRequest{}}},
 			locations:         geoLocationList{coords: map[string]geoLocation{}},
 		},
@@ -55,7 +55,7 @@ func main() {
 		log.Printf("Error loading notifications: %v", err)
 	}
 
-	if err = loadMedia(&b.modules.media); err != nil {
+	if err = b.modules.media.loadMedia(); err != nil {
 		log.Printf("Error loading media list: %v", err)
 	}
 

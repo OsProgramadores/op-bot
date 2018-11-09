@@ -19,6 +19,12 @@ const (
 	osProgramadoresGroup = "osprogramadores"
 )
 
+// botMediaSender defines a minimal interface to botMedia.
+type botMediaSender interface {
+	sendMedia(botface, tgbotapi.Update, string) error
+	loadMedia() error
+}
+
 // opBotModules defines the data used by the modules the bot implements.
 type opBotModules struct {
 	// userNotifications stores the notification settings.
@@ -26,7 +32,7 @@ type opBotModules struct {
 	// statsWriter is responsible for writing the stats info to disk.
 	statsWriter io.WriteCloser
 	// media has a list of media files used by the bot.
-	media mediaList
+	media botMediaSender
 	// reportedBans lists the bans requested via /ban.
 	reportedBans requestedBans
 	// locations lists the geolocation info from users.
@@ -138,7 +144,7 @@ func (x *opBot) hackerHandler(bot botface, update tgbotapi.Update) error {
 		return nil
 	}
 
-	x.sendMedia(bot, update, media[randomIndex.Int64()])
+	x.modules.media.sendMedia(bot, update, media[randomIndex.Int64()])
 
 	// No need to report on errors.
 	return nil
