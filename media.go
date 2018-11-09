@@ -1,3 +1,5 @@
+// Media operations for the bot.
+
 package main
 
 import (
@@ -8,34 +10,50 @@ import (
 )
 
 const (
-	mediaDB = "media.json"
+	mediaDBCache = "media.json"
 )
 
-// mediaList maps `media urls' -> `Telegram media IDs'.
-type mediaList struct {
+// botMedia contains all media related operations on the bot.
+type botMedia struct {
 	sync.RWMutex
-	Media map[string]string `json:"media"`
+	urlToMediaID map[string]string `json:"media"`
+	cfile        string
+}
+
+// newBotMedia creates a new bot media type.
+func newBotMedia() *botMedia {
+	return &botMedia{
+		urlToMediaID: map[string]string{},
+	}
+}
+
+// cacheFile returns the name specified in cfile or a default name
+// if cfile is nil.
+func (m *botMedia) cacheFile() string {
+	if m.cfile == "" {
+		return mediaDBCache
+	}
+	return m.cfile
 }
 
 // loadMedia loads media list database from mediaDB file.
-func loadMedia(m *mediaList) error {
+func (m *botMedia) loadMedia() error {
 	m.Lock()
 	defer m.Unlock()
-
-	return readJSONFromDataDir(&m.Media, mediaDB)
+	return readJSONFromDataDir(&m.urlToMediaID, m.cacheFile())
 }
 
 // sendMedia sends the media pointed out by `mediaURL' to the user/group
 // indicated by `update'. If said media is not yet saved in the database, we do
 // it so that we can reuse it in future requests.
-func (x *opBot) sendMedia(bot botface, update tgbotapi.Update, mediaURL string) error {
-	x.modules.media.Lock()
-	defer x.modules.media.Unlock()
+func (m *botMedia) sendMedia(bot botface, update tgbotapi.Update, mediaURL string) error {
+	m.Lock()
+	defer m.Unlock()
 
 	var document tgbotapi.DocumentConfig
 
 	// Let's first see if we have this media available from a previous request.
-	mediaID, ok := x.modules.media.Media[mediaURL]
+	mediaID, ok := m.urlToMediaID[mediaURL]
 
 	if ok {
 		document = tgbotapi.NewDocumentShare(update.Message.Chat.ID, mediaID)
@@ -68,8 +86,8 @@ func (x *opBot) sendMedia(bot botface, update tgbotapi.Update, mediaURL string) 
 
 	// Store the Telegram ID, if we do not yet have the requested media.
 	if !ok {
-		x.modules.media.Media[mediaURL] = message.Document.FileID
-		return safeWriteJSON(x.modules.media.Media, mediaDB)
+		m.urlToMediaID[mediaURL] = message.Document.FileID
+		return safeWriteJSON(m.urlToMediaID, m.cacheFile())
 	}
 
 	return err
