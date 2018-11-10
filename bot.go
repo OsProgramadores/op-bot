@@ -29,12 +29,16 @@ type botMediaSender interface {
 type opBotModules struct {
 	// userNotifications stores the notification settings.
 	userNotifications notifications
+
 	// statsWriter is responsible for writing the stats info to disk.
 	statsWriter io.WriteCloser
+
 	// media has a list of media files used by the bot.
 	media botMediaSender
+
 	// reportedBans lists the bans requested via /ban.
 	reportedBans requestedBans
+
 	// locations lists the geolocation info from users.
 	locations geoLocationList
 }

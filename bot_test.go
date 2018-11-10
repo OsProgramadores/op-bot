@@ -1,6 +1,8 @@
+// Unit tests for the bot module.
 package main
 
 import (
+	"errors"
 	"github.com/stretchr/testify/mock"
 	"gopkg.in/telegram-bot-api.v4"
 	"testing"
@@ -39,6 +41,21 @@ func (m *MockBotface) KickChatMember(config tgbotapi.KickChatMemberConfig) (tgbo
 func (m *MockBotface) Send(c tgbotapi.Chattable) (tgbotapi.Message, error) {
 	args := m.Called(c)
 	return args.Get(0).(tgbotapi.Message), args.Error(1)
+}
+
+// MockBotMedia defines a mock botMedia struct
+type MockBotMedia struct {
+	mock.Mock
+}
+
+func (m *MockBotMedia) loadMedia() error {
+	args := &mock.Arguments{}
+	return args.Error(0)
+}
+
+func (m *MockBotMedia) sendMedia(bot botface, update tgbotapi.Update, mediaURL string) error {
+	args := m.Called(bot, update, mediaURL)
+	return args.Error(0)
 }
 
 func TestHelpHandler(t *testing.T) {
@@ -132,17 +149,11 @@ func TestHelpHandler(t *testing.T) {
 }
 
 func TestHackerHandler(t *testing.T) {
-	type registry struct {
-		cmd       string
-		desc      string
-		adminOnly bool
-		pvtOnly   bool
-		enabled   bool
-	}
-
+	// Prep a mock BotMedia module and create a bot with it as media module.
+	testBotMedia := &MockBotMedia{}
 	b := opBot{
 		modules: opBotModules{
-			media: newBotMedia(),
+			media: testBotMedia,
 		},
 	}
 
@@ -160,7 +171,7 @@ func TestHackerHandler(t *testing.T) {
 		},
 	}
 
-	// Expected parameters.
+	// Mock DeleteMessage.
 	wantDeleteMsgConfig := tgbotapi.DeleteMessageConfig{
 		ChatID:    chatID,
 		MessageID: msgID,
@@ -169,12 +180,14 @@ func TestHackerHandler(t *testing.T) {
 	testBotface := &MockBotface{}
 	testBotface.On("DeleteMessage", wantDeleteMsgConfig).Return(tgbotapi.APIResponse{}, nil).Once()
 
-	// Send
-	m := tgbotapi.Message{
-		Document: &tgbotapi.Document{
-			FileID: "test_file_id",
-		},
-	}
-	testBotface.On("Send", mock.Anything).Return(m, nil).Once()
+	// Mock sendMedia.
+	testBotMedia.On("sendMedia", testBotface, u, mock.Anything).Return(nil).Once()
+
+	b.hackerHandler(testBotface, u)
+
+	// Test DeleteMessage returning an error.
+	testBotface = &MockBotface{}
+	testBotface.On("DeleteMessage", wantDeleteMsgConfig).Return(tgbotapi.APIResponse{}, errors.New("mock-error")).Once()
+	testBotMedia.On("sendMedia", testBotface, u, mock.Anything).Return(nil).Once()
 	b.hackerHandler(testBotface, u)
 }
