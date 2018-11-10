@@ -24,9 +24,6 @@ other = "Error initializing bot (make sure you have a configured token in the co
 
 # Register help messages.
 
-[register_indent]
-other = "Indent a program on repl.it (/indent url)"
-
 [register_hackerdetected]
 other = "Fire the anti-hacker countermeasures. :)"
 
@@ -55,37 +52,6 @@ other = "error fetching information about the current user: %s"
 
 [error_homedir_must_exist]
 other = "home directory must exist (and be a directory): %s"
-
-# Handler messages
-
-[indent_ok]
-other = "Access the indented version at %s. The last revision is always available at https://repl.it/%s/latest."
-
-# Indent messages
-
-[line]
-other = "line"
-
-[error_extracting_from_replit]
-other = "unable to extract data from repl.it"
-
-[code_already_indented]
-other = "code is already indented :)"
-
-[unknown_language]
-other = "I don't know how to indent this language yet (%s). If you can, please help by adding support and opening a pull-request to https://github.com/OsProgramadores/op-bot :)"
-
-[errors_replit_file]
-other = "errors detected on file %q:\n%s"
-
-[errors_found]
-other = "errors detected:\n%s"
-
-[invalid_replit_url]
-other = "this is not a valid repl.it URL"
-
-[error_accessing_replit_url]
-other = "unable to access the repl.it URL"
 
 # Setlocation messages
 

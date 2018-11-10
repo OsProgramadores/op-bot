@@ -65,7 +65,6 @@ func main() {
 
 	// Register commands.
 	// Parameters: command, description, admin only, private only, enabled, handler.
-	b.Register("indent", T("register_indent"), false, false, true, b.indentHandler)
 	b.Register("hackerdetected", T("register_hackerdetected"), false, false, true, b.hackerHandler)
 	b.Register("setlocation", T("register_setlocation"), false, true, true, b.locationHandler)
 	b.Register("cep", T("register_cep"), false, true, true, b.locationHandler)
