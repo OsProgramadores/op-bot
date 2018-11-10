@@ -142,8 +142,7 @@ func TestHackerHandler(t *testing.T) {
 
 	b := opBot{
 		modules: opBotModules{
-			media: mediaList{
-				Media: map[string]string{}},
+			media: newBotMedia(),
 		},
 	}
 
