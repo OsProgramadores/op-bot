@@ -16,14 +16,14 @@ const (
 // botMedia contains all media related operations on the bot.
 type botMedia struct {
 	sync.RWMutex
-	urlToMediaID map[string]string `json:"media"`
+	URLToMediaID map[string]string `json:"media"`
 	cfile        string
 }
 
 // newBotMedia creates a new bot media type.
 func newBotMedia() *botMedia {
 	return &botMedia{
-		urlToMediaID: map[string]string{},
+		URLToMediaID: map[string]string{},
 	}
 }
 
@@ -40,7 +40,7 @@ func (m *botMedia) cacheFile() string {
 func (m *botMedia) loadMedia() error {
 	m.Lock()
 	defer m.Unlock()
-	return readJSONFromDataDir(&m.urlToMediaID, m.cacheFile())
+	return readJSONFromDataDir(&m.URLToMediaID, m.cacheFile())
 }
 
 // sendMedia sends the media pointed out by `mediaURL' to the user/group
@@ -53,7 +53,7 @@ func (m *botMedia) sendMedia(bot botface, update tgbotapi.Update, mediaURL strin
 	var document tgbotapi.DocumentConfig
 
 	// Let's first see if we have this media available from a previous request.
-	mediaID, ok := m.urlToMediaID[mediaURL]
+	mediaID, ok := m.URLToMediaID[mediaURL]
 
 	if ok {
 		document = tgbotapi.NewDocumentShare(update.Message.Chat.ID, mediaID)
@@ -79,15 +79,15 @@ func (m *botMedia) sendMedia(bot botface, update tgbotapi.Update, mediaURL strin
 
 	// Sanity check: Don't allow nil document in return message from Send.
 	if message.Document == nil {
-		err := errors.New("internal error: bot.Send received a nil Document as a response")
+		err = errors.New("internal error: bot.Send received a nil Document as a response")
 		log.Print(err)
 		return err
 	}
 
 	// Store the Telegram ID, if we do not yet have the requested media.
 	if !ok {
-		m.urlToMediaID[mediaURL] = message.Document.FileID
-		return safeWriteJSON(m.urlToMediaID, m.cacheFile())
+		m.URLToMediaID[mediaURL] = message.Document.FileID
+		return safeWriteJSON(m.URLToMediaID, m.cacheFile())
 	}
 
 	return err
