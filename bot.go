@@ -185,20 +185,6 @@ func (x *opBot) helpHandler(bot botface, update tgbotapi.Update) error {
 	return nil
 }
 
-// indentHandler indents the code in a repl.it URL.
-func (x *opBot) indentHandler(bot botface, update tgbotapi.Update) error {
-	args := strings.Trim(update.Message.CommandArguments(), " ")
-
-	repl, err := handleReplItURL(&runner{}, args)
-	if err != nil {
-		return err
-	}
-
-	msg := fmt.Sprintf(T("indent_ok"), repl.newURL, repl.SessionID)
-	sendReply(bot, update, msg)
-	return nil
-}
-
 // updateMessageStats updates the message statistics for all messages from a
 // specific username.  Emits an error message to output in case of errors.
 func updateMessageStats(w io.Writer, update tgbotapi.Update, username string) {
