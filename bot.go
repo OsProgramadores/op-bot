@@ -19,35 +19,45 @@ const (
 	osProgramadoresGroup = "osprogramadores"
 )
 
-// botMediaSender defines a minimal interface to botMedia.
-type botMediaSender interface {
-	sendMedia(botface, tgbotapi.Update, string) error
+// mediaInterface defines the interface between opbot and the media module.
+type mediaInterface interface {
 	loadMedia() error
+	sendMedia(tgbotInterface, tgbotapi.Update, string) error
 }
 
-// opBotModules defines the data used by the modules the bot implements.
-type opBotModules struct {
-	// userNotifications stores the notification settings.
-	userNotifications notifications
+// notificationsInterface defines the interface between opbot and notifications.
+type notificationsInterface interface {
+	loadNotificationSettings() error
+	manageNotifications(*tgbotapi.BotAPI, tgbotapi.Update) error
+	notificationHandler(tgbotInterface, tgbotapi.Update) error
+}
 
-	// statsWriter is responsible for writing the stats info to disk.
-	statsWriter io.WriteCloser
+// bansInterface defines the interface between opbot and bans.
+type bansInterface interface {
+	banRequestHandler(tgbotInterface, tgbotapi.Update) error
+	deleteMessageFromBanRequest(tgbotInterface, *tgbotapi.User, string, bool) error
+	loadBanRequestsInfo() error
+}
 
-	// media has a list of media files used by the bot.
-	media botMediaSender
-
-	// reportedBans lists the bans requested via /ban.
-	reportedBans requestedBans
-
-	// locations lists the geolocation info from users.
-	locations geoLocationList
+// geoLocationsInterface defines the interface between opbot and geo locations.
+type geoLocationsInterface interface {
+	processLocation(string, int, float64, float64) error
+	locationHandler(tgbotInterface, tgbotapi.Update) error
+	readLocations() error
+	serveLocations(int)
 }
 
 // opBot defines an instance of op-bot.
 type opBot struct {
-	config   botConfig
-	commands map[string]botCommand
-	modules  opBotModules
+	config        botConfig
+	commands      map[string]botCommand
+	notifications notificationsInterface
+	media         mediaInterface
+	bans          bansInterface
+	geolocations  geoLocationsInterface
+
+	// statsWriter holds handler to write stats to disk.
+	statsWriter io.WriteCloser
 }
 
 // botCommands holds the commands accepted by the bot, their description and a handler function.
@@ -56,13 +66,13 @@ type botCommand struct {
 	adminOnly bool
 	pvtOnly   bool
 	enabled   bool
-	handler   func(botface, tgbotapi.Update) error
+	handler   func(tgbotInterface, tgbotapi.Update) error
 }
 
-// botface defines our main interface to the bot, via tgbotapi. All functions which need to
+// tgbotInterface defines our main interface to the bot, via tgbotapi. All functions which need to
 // perform operations using the bot api will use this interface. This allows us to easily
 // mock the calls for testing.
-type botface interface {
+type tgbotInterface interface {
 	AnswerCallbackQuery(tgbotapi.CallbackConfig) (tgbotapi.APIResponse, error)
 	DeleteMessage(tgbotapi.DeleteMessageConfig) (tgbotapi.APIResponse, error)
 	GetChatAdministrators(tgbotapi.ChatConfig) ([]tgbotapi.ChatMember, error)
@@ -88,10 +98,10 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 
 		case update.Message != nil:
 			// Update stats if the message comes from @osprogramadores.
-			updateMessageStats(x.modules.statsWriter, update, osProgramadoresGroup)
+			updateMessageStats(x.statsWriter, update, osProgramadoresGroup)
 
 			// Notifications.
-			x.manageNotifications(bot, update)
+			x.notifications.manageNotifications(bot, update)
 
 			switch {
 			// Forward message handling.
@@ -121,7 +131,7 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 }
 
 // hackerHandler provides anti-hacker protection to the bot.
-func (x *opBot) hackerHandler(bot botface, update tgbotapi.Update) error {
+func (x *opBot) hackerHandler(bot tgbotInterface, update tgbotapi.Update) error {
 	// Gifs for /hackerdetected.
 	media := []string{
 		// Balaclava guy "hacking".
@@ -148,14 +158,14 @@ func (x *opBot) hackerHandler(bot botface, update tgbotapi.Update) error {
 		return nil
 	}
 
-	x.modules.media.sendMedia(bot, update, media[randomIndex.Int64()])
+	x.media.sendMedia(bot, update, media[randomIndex.Int64()])
 
 	// No need to report on errors.
 	return nil
 }
 
 // Register registers a command a its handler on the bot.
-func (x *opBot) Register(cmd string, desc string, adminOnly bool, pvtOnly bool, enabled bool, handler func(botface, tgbotapi.Update) error) {
+func (x *opBot) Register(cmd string, desc string, adminOnly bool, pvtOnly bool, enabled bool, handler func(tgbotInterface, tgbotapi.Update) error) {
 	if x.commands == nil {
 		x.commands = map[string]botCommand{}
 	}
@@ -171,7 +181,7 @@ func (x *opBot) Register(cmd string, desc string, adminOnly bool, pvtOnly bool, 
 }
 
 // helpHandler sends a help message back to the user.
-func (x *opBot) helpHandler(bot botface, update tgbotapi.Update) error {
+func (x *opBot) helpHandler(bot tgbotInterface, update tgbotapi.Update) error {
 	var helpMsg []string
 	for c, bcmd := range x.commands {
 		if !bcmd.adminOnly && bcmd.enabled {
@@ -203,11 +213,7 @@ func (x *opBot) processLocationRequest(bot *tgbotapi.BotAPI, update tgbotapi.Upd
 	userid := update.Message.From.ID
 	location := update.Message.Location
 
-	err := handleLocation(&x.modules.locations,
-		x.config.LocationKey,
-		fmt.Sprintf("%d", userid),
-		location.Latitude,
-		location.Longitude)
+	err := x.geolocations.processLocation(x.config.LocationKey, userid, location.Latitude, location.Longitude)
 
 	// Give feedback to user, if message was sent privately.
 	if isPrivateChat(update.Message.Chat) {

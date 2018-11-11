@@ -9,8 +9,6 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
-	"net/url"
-	"strconv"
 	"strings"
 	"sync"
 )
@@ -26,30 +24,37 @@ type geoLocation struct {
 	Longitude string
 }
 
-// geoLocationList maps the key -- which is hash from a secret key with the user
+// geoLocations maps the key -- which is hash from a secret key with the user
 // ID -- with the geo location info from this user. It also contains a mutex for
 // controlling concurrent access.
-type geoLocationList struct {
+type geoLocations struct {
 	sync.RWMutex
 	coords map[string]geoLocation
+	// locationKey contains a key used to scrambled the userIDs when storing the location.
+	locationKey string
+	locationDB  string
+	postal      postalLocatorInterface
 }
 
-// cepResponse holds the return from www.cepaberto.com.
-type cepResponse struct {
-	CEP        string  `json:"cep"`
-	Logradouro string  `json:"logradouro"`
-	Bairro     string  `json:"bairro"`
-	Cidade     string  `json:"cidade"`
-	Estado     string  `json:"estado"`
-	Latitude   string  `json:"latitude"`
-	Longitude  string  `json:"longitude"`
-	Altitude   float64 `json:"altitude"`
-	DDD        int     `json:"ddd"`
-	IBGE       string  `json:"ibge"`
+// postalLocatorInterface provides an interface between locations and the postal code locator.
+type postalLocatorInterface interface {
+	findPostalLocation(*tgbotapi.User, string) (float64, float64, error)
+}
+
+// newGeolocations returns a new instance of geoLocations
+func newGeolocations(cepAbertoKey, locationKey string) *geoLocations {
+	return &geoLocations{
+		coords:      map[string]geoLocation{},
+		locationKey: locationKey,
+		locationDB:  locationDB,
+		postal: &cepLocator{
+			cepAbertoKey: cepAbertoKey,
+		},
+	}
 }
 
 // locationHandler receive postal code from user.
-func (x *opBot) locationHandler(bot botface, update tgbotapi.Update) error {
+func (g *geoLocations) locationHandler(bot tgbotInterface, update tgbotapi.Update) error {
 	args := strings.Split(trDelete(update.Message.CommandArguments(), "/-."), " ")
 	user := update.Message.From
 	cep := ""
@@ -74,7 +79,11 @@ func (x *opBot) locationHandler(bot botface, update tgbotapi.Update) error {
 		cep = args[0]
 	}
 
-	if err := findCEP(user, cep, x.config, &x.modules.locations); err != nil {
+	lat, long, err := g.postal.findPostalLocation(user, cep)
+	if err != nil {
+		return fmt.Errorf(T("unable_to_find_location"), cep)
+	}
+	if err := g.processLocation(g.locationKey, user.ID, lat, long); err != nil {
 		return fmt.Errorf(T("unable_to_find_location"), cep)
 	}
 
@@ -82,84 +91,38 @@ func (x *opBot) locationHandler(bot botface, update tgbotapi.Update) error {
 	return nil
 }
 
-// API Key from www.cepaberto.com (brazilian postal code to geo location
-// service.)
-func findCEP(user *tgbotapi.User, cep string, config botConfig, locations *geoLocationList) error {
-	url := fmt.Sprintf("http://www.cepaberto.com/api/v2/ceps.json?cep=%s", url.QueryEscape(cep))
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("authorization", `Token token="`+config.CepAbertoKey+`"`)
-	client := &http.Client{}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	var res cepResponse
-	if err = json.NewDecoder(resp.Body).Decode(&res); err != nil {
-		return err
-	}
-
-	lat, err := strconv.ParseFloat(res.Latitude, 64)
-	if err != nil {
-		return errors.New(T("invalid_latitude"))
-	}
-
-	long, err := strconv.ParseFloat(res.Longitude, 64)
-	if err != nil {
-		return errors.New(T("invalid_longitude"))
-	}
-
-	return handleLocation(locations, config.LocationKey, fmt.Sprintf("%d", user.ID), lat, long)
+// readLocations reads locations from the locationDB file.
+func (g *geoLocations) readLocations() error {
+	g.RLock()
+	defer g.RUnlock()
+	return readJSONFromDataDir(g.coords, g.locationDB)
 }
 
-// readLocations reads locations from the locationDb file.
-func readLocations(locations *geoLocationList) error {
-	locations.RLock()
-	defer locations.RUnlock()
-
-	return readJSONFromDataDir(&locations.coords, locationDB)
-}
-
-// randomizeCoordinate truncates the lat/long coordinate to one decimal and
-// adds noise after the second decimal. This should provide an error radius
-// of about 6.9 miles.
-func randomizeCoordinate(c float64) string {
-	return fmt.Sprintf("%.1f", c+rand.Float64()/1000.0)
-}
-
-// handleLocation handles the /location request to the bot.
-func handleLocation(locations *geoLocationList, key, id string, lat, lon float64) error {
+// processLocation handles the /location request to the bot.
+func (g *geoLocations) processLocation(key string, id int, lat, lon float64) error {
 	h := sha1.New()
-	io.WriteString(h, fmt.Sprintf("%s%s", key, id))
+	io.WriteString(h, fmt.Sprintf("%s%d", key, id))
 	userid := fmt.Sprintf("%x", h.Sum(nil))
 
-	locations.Lock()
-	defer locations.Unlock()
-	locations.coords[userid] = geoLocation{randomizeCoordinate(lat), randomizeCoordinate(lon)}
-	return safeWriteJSON(locations.coords, locationDB)
+	g.Lock()
+	defer g.Unlock()
+	g.coords[userid] = geoLocation{randomizeCoordinate(lat), randomizeCoordinate(lon)}
+	return safeWriteJSON(g.coords, g.locationDB)
 }
 
 // serveLocations serves the lat/long list in memory in JSON format over HTTP.
 // Only (previously obfuscated) lat/long coordinates are served, not user IDs.
-func serveLocations(config botConfig, locations *geoLocationList) {
-	readLocations(locations)
+func (g *geoLocations) serveLocations(port int) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		locations.RLock()
-		data := make([]geoLocation, len(locations.coords))
+		g.RLock()
+		data := make([]geoLocation, len(g.coords))
 
 		i := 0
-		for _, location := range locations.coords {
+		for _, location := range g.coords {
 			data[i] = location
 			i++
 		}
-		locations.RUnlock()
+		g.RUnlock()
 
 		js, err := json.Marshal(data)
 		if err != nil {
@@ -172,5 +135,12 @@ func serveLocations(config botConfig, locations *geoLocationList) {
 		w.Write(js)
 	})
 
-	http.ListenAndServe(fmt.Sprintf(":%d", config.ServerPort), nil)
+	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+}
+
+// randomizeCoordinate truncates the lat/long coordinate to one decimal and
+// adds noise after the second decimal. This should provide an error radius
+// of about 6.9 miles.
+func randomizeCoordinate(c float64) string {
+	return fmt.Sprintf("%.1f", c+rand.Float64()/1000.0)
 }
