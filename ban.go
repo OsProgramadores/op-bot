@@ -55,15 +55,27 @@ type banRequestList struct {
 	Bans map[string]banRequest `json:"bans"`
 }
 
-type requestedBans struct {
+type bans struct {
 	sync.RWMutex
 	// List of requested bans alongside the threshold for notifying the admins.
-	Requests banRequestList
+	Requests        banRequestList
+	requestedBansDB string
+}
+
+// newBans creates a new bans object.
+func newBans() *bans {
+	return &bans{
+		Requests: banRequestList{
+			NotificationThreshold: adminNotificationDefaultThreshold,
+			Bans:                  map[string]banRequest{},
+		},
+		requestedBansDB: requestedBansDB,
+	}
 }
 
 // nolint: gocyclo
 // banRequestHandler does it all.
-func (x *opBot) banRequestHandler(bot botface, update tgbotapi.Update) error {
+func (b *bans) banRequestHandler(bot tgbotInterface, update tgbotapi.Update) error {
 	// This command is not supposed to be issued in private.
 	if update.Message == nil || update.Message.Chat == nil || isPrivateChat(update.Message.Chat) {
 		log.Printf("banRequestHandler: either i) the message or chat was nil or ii) this command was issued in a private message")
@@ -79,12 +91,12 @@ func (x *opBot) banRequestHandler(bot botface, update tgbotapi.Update) error {
 
 	offendingMessageID := update.Message.ReplyToMessage.MessageID
 
-	x.modules.reportedBans.Lock()
-	defer x.modules.reportedBans.Unlock()
+	b.Lock()
+	defer b.Unlock()
 
 	key := fmt.Sprintf("%d:%d", offendingMessageID, update.Message.Chat.ID)
-	if _, ok := x.modules.reportedBans.Requests.Bans[key]; ok {
-		if x.modules.reportedBans.Requests.Bans[key].MessageRemoved {
+	if _, ok := b.Requests.Bans[key]; ok {
+		if b.Requests.Bans[key].MessageRemoved {
 			// Message was already removed. Not sure this should happen, but
 			// let's just return here anyway.
 			log.Printf("banRequestHandler: /ban called by %q on message %q, but it was already removed; ignoring.", update.Message.From, offendingMessageID)
@@ -100,8 +112,8 @@ func (x *opBot) banRequestHandler(bot botface, update tgbotapi.Update) error {
 			RemovedBy:      0,
 			Reporters:      map[int64]int64{},
 		}
-		x.modules.reportedBans.Requests.Bans[key] = report
-		if err := safeWriteJSON(x.modules.reportedBans.Requests, requestedBansDB); err != nil {
+		b.Requests.Bans[key] = report
+		if err := safeWriteJSON(b.Requests, b.requestedBansDB); err != nil {
 			log.Printf("banRequestHandler: problem updating file %q after adding new request %v: %v", requestedBansDB, report, err)
 			return nil
 		}
@@ -110,15 +122,16 @@ func (x *opBot) banRequestHandler(bot botface, update tgbotapi.Update) error {
 	// Message is still around, so let's decide what to do.
 	// Let's start by adding (or updating) the Reporters list, to add info
 	// on the person reporting it this time.
-	x.modules.reportedBans.Requests.Bans[key].Reporters[int64(update.Message.From.ID)] = int64(update.Message.MessageID)
-	if err := safeWriteJSON(x.modules.reportedBans.Requests, requestedBansDB); err != nil {
-		log.Printf("banRequestHandler: problem updating the file %q after updating list of ban reporters for message %q in %q: %v", requestedBansDB, x.modules.reportedBans.Requests.Bans[key].MessageID, x.modules.reportedBans.Requests.Bans[key].ChatID, err)
+	b.Requests.Bans[key].Reporters[int64(update.Message.From.ID)] = int64(update.Message.MessageID)
+	if err := safeWriteJSON(b.Requests, b.requestedBansDB); err != nil {
+		log.Printf("banRequestHandler: problem updating the file %q after updating list of ban reporters for message %q in %q: %v",
+			requestedBansDB, b.Requests.Bans[key].MessageID, b.Requests.Bans[key].ChatID, err)
 		return nil
 	}
 
 	// If we haven't notified the admins yet *and* the threshold has been
 	// met, notify them now!
-	if len(x.modules.reportedBans.Requests.Bans[key].Notifications) == 0 && len(x.modules.reportedBans.Requests.Bans[key].Reporters) >= x.modules.reportedBans.Requests.NotificationThreshold {
+	if len(b.Requests.Bans[key].Notifications) == 0 && len(b.Requests.Bans[key].Reporters) >= b.Requests.NotificationThreshold {
 		chatConfig := tgbotapi.ChatConfig{ChatID: update.Message.Chat.ID}
 		admins, err := bot.GetChatAdministrators(chatConfig)
 		if err != nil {
@@ -134,20 +147,21 @@ func (x *opBot) banRequestHandler(bot botface, update tgbotapi.Update) error {
 			}
 			// Store the admin who was notified alongside with the ID of the
 			// notification.
-			x.modules.reportedBans.Requests.Bans[key].Notifications[int64(admin.User.ID)] = msgid
+			b.Requests.Bans[key].Notifications[int64(admin.User.ID)] = msgid
 		}
 
 		// Update file if we have sent any notifcations.
-		if len(x.modules.reportedBans.Requests.Bans[key].Notifications) > 0 {
-			report := x.modules.reportedBans.Requests.Bans[key]
+		if len(b.Requests.Bans[key].Notifications) > 0 {
+			report := b.Requests.Bans[key]
 			// Since we are going to update the info on disk, we take the
 			// opportunity to also save the content of the offending message.
 			// We use this information when updating the notifications, once an
 			// admin has made a decision.
 			report.Text = update.Message.ReplyToMessage.Text
-			x.modules.reportedBans.Requests.Bans[key] = report
-			if err := safeWriteJSON(x.modules.reportedBans.Requests, requestedBansDB); err != nil {
-				log.Printf("banRequestHandler: problem updating file %q after sending notifications to admins regarding offending message %q in %q: %v", requestedBansDB, x.modules.reportedBans.Requests.Bans[key].MessageID, x.modules.reportedBans.Requests.Bans[key].ChatID, err)
+			b.Requests.Bans[key] = report
+			if err := safeWriteJSON(b.Requests, requestedBansDB); err != nil {
+				log.Printf("banRequestHandler: problem updating file %q after sending notifications to admins regarding offending message %q in %q: %v",
+					requestedBansDB, b.Requests.Bans[key].MessageID, b.Requests.Bans[key].ChatID, err)
 				return nil
 			}
 		}
@@ -157,11 +171,10 @@ func (x *opBot) banRequestHandler(bot botface, update tgbotapi.Update) error {
 }
 
 // loadBanRequestsInfo loads the requested bans from the disk.
-func loadBanRequestsInfo(b *requestedBans) error {
+func (b *bans) loadBanRequestsInfo() error {
 	b.Lock()
 	defer b.Unlock()
-
-	return readJSONFromDataDir(&b.Requests, requestedBansDB)
+	return readJSONFromDataDir(b.Requests, b.requestedBansDB)
 }
 
 // notifyAdmin notifies `admin' on the reported message, giving the following
@@ -170,7 +183,7 @@ func loadBanRequestsInfo(b *requestedBans) error {
 // - remove the offending message;
 // - remove the offending message and ban its author.
 // It returns the id of the notification message sent.
-func notifyAdmin(bot botface, admin *tgbotapi.User, update tgbotapi.Update) (int64, error) {
+func notifyAdmin(bot tgbotInterface, admin *tgbotapi.User, update tgbotapi.Update) (int64, error) {
 	offendingMessageID := update.Message.ReplyToMessage.MessageID
 	chatID := update.Message.Chat.ID
 
@@ -227,44 +240,34 @@ func notifyAdmin(bot botface, admin *tgbotapi.User, update tgbotapi.Update) (int
 
 // deleteMessageFromBanRequest deletes the offending message, and optionally
 // bans the user who sent it.
-func (x *opBot) deleteMessageFromBanRequest(bot botface, admin *tgbotapi.User, requestID string, ban bool) error {
-	err := x.deleteMessage(bot, admin, requestID)
+func (b *bans) deleteMessageFromBanRequest(bot tgbotInterface, admin *tgbotapi.User, requestID string, ban bool) error {
+	err := b.deleteMessage(bot, admin, requestID)
 	if err != nil {
 		return err
 	}
 
-	x.modules.reportedBans.RLock()
-	defer x.modules.reportedBans.RUnlock()
+	b.RLock()
+	defer b.RUnlock()
 
 	if !ban {
 		// We already did what we were intended to do, so just update the
 		// notifications sent and return.
-		return x.updateBanRequestNotification(bot, requestID, admin, T("notification_update_delete"))
+		return b.updateBanRequestNotification(bot, requestID, admin, T("notification_update_delete"))
 	}
 
-	if err := banUser(
-		bot,
-		x.modules.reportedBans.Requests.Bans[requestID].ChatID,
-		int(x.modules.reportedBans.Requests.Bans[requestID].Author)); err != nil {
+	if err := banUser(bot, b.Requests.Bans[requestID].ChatID, int(b.Requests.Bans[requestID].Author)); err != nil {
 		return err
 	}
-	return x.updateBanRequestNotification(bot, requestID, admin, T("notification_update_delete_and_ban"))
+	return b.updateBanRequestNotification(bot, requestID, admin, T("notification_update_delete_and_ban"))
 }
 
-// banUser bans a user using a ChatID and UserID.
-func banUser(bot botface, chatID int64, userID int) error {
-	memberConfig := tgbotapi.ChatMemberConfig{ChatID: chatID, UserID: userID}
-	_, err := bot.KickChatMember(tgbotapi.KickChatMemberConfig{ChatMemberConfig: memberConfig})
-	return err
-}
-
-// deleteMessage deletes the message indicated by `requestID' and updates the
+// deleteMessage deletes the message indicated by requestID and updates the
 // information on disk relative to it.
-func (x *opBot) deleteMessage(bot botface, admin *tgbotapi.User, requestID string) error {
-	x.modules.reportedBans.Lock()
-	defer x.modules.reportedBans.Unlock()
+func (b *bans) deleteMessage(bot tgbotInterface, admin *tgbotapi.User, requestID string) error {
+	b.Lock()
+	defer b.Unlock()
 
-	report, ok := x.modules.reportedBans.Requests.Bans[requestID]
+	report, ok := b.Requests.Bans[requestID]
 	if !ok {
 		return fmt.Errorf("request id %q not found", requestID)
 	}
@@ -281,15 +284,15 @@ func (x *opBot) deleteMessage(bot botface, admin *tgbotapi.User, requestID strin
 	// Now let's update the data in disk.
 	report.MessageRemoved = true
 	report.RemovedBy = int64(admin.ID)
-	x.modules.reportedBans.Requests.Bans[requestID] = report
-	return safeWriteJSON(x.modules.reportedBans.Requests, requestedBansDB)
+	b.Requests.Bans[requestID] = report
+	return safeWriteJSON(b.Requests, b.requestedBansDB)
 }
 
 // updateBanRequestNotification updates the notifications sent informing the
 // decision made and the admin who made it. Locks, if needed, should be taken
 // care of outside this function.
-func (x *opBot) updateBanRequestNotification(bot botface, requestID string, admin *tgbotapi.User, message string) error {
-	report := x.modules.reportedBans.Requests.Bans[requestID]
+func (b *bans) updateBanRequestNotification(bot tgbotInterface, requestID string, admin *tgbotapi.User, message string) error {
+	report := b.Requests.Bans[requestID]
 
 	notificationMessage := fmt.Sprintf(T("notification_handled"), formatName(*admin), admin.ID, message, report.Text)
 	for adminID, notificationID := range report.Notifications {
@@ -298,4 +301,11 @@ func (x *opBot) updateBanRequestNotification(bot botface, requestID string, admi
 		bot.Send(editmsg)
 	}
 	return nil
+}
+
+// banUser bans a user using a ChatID and UserID.
+func banUser(bot tgbotInterface, chatID int64, userID int) error {
+	memberConfig := tgbotapi.ChatMemberConfig{ChatID: chatID, UserID: userID}
+	_, err := bot.KickChatMember(tgbotapi.KickChatMemberConfig{ChatMemberConfig: memberConfig})
+	return err
 }

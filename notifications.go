@@ -16,26 +16,34 @@ const (
 // notifications maps user `ids' -> `usernames' and `usernames' -> `user ids'.
 type notifications struct {
 	sync.RWMutex
-	Users map[string]string `json:"users"`
+	Users           map[string]string `json:"users"`
+	notificationsDB string
+}
+
+// newNotifications creates a new notification type.
+func newNotifications() *notifications {
+	return &notifications{
+		notificationsDB: notificationsDB,
+	}
 }
 
 // notificationHandler enables/disables user notifications.
-func (x *opBot) notificationHandler(bot botface, update tgbotapi.Update) error {
+func (n *notifications) notificationHandler(bot tgbotInterface, update tgbotapi.Update) error {
 	uidstr := fmt.Sprintf("%d", update.Message.From.ID)
 
-	if err := toggleNotifications(&x.modules.userNotifications, uidstr, update.Message.From.UserName); err != nil {
-		return fmt.Errorf(T("notification_fail"), notificationStatus(&x.modules.userNotifications, uidstr))
+	if err := n.toggleNotifications(uidstr, update.Message.From.UserName); err != nil {
+		return fmt.Errorf(T("notification_fail"), n.notificationStatus(uidstr))
 	}
 
-	text := fmt.Sprintf(T("notification_success"), notificationStatus(&x.modules.userNotifications, uidstr))
+	text := fmt.Sprintf(T("notification_success"), n.notificationStatus(uidstr))
 	sendReply(bot, update, text)
 	return nil
 }
 
 // notificationStatus returns a string with the enabled/disabled status of
 // notifications for the given user.
-func notificationStatus(n *notifications, user string) string {
-	if notificationsEnabled(n, user) {
+func (n *notifications) notificationStatus(user string) string {
+	if n.notificationsEnabled(user) {
 		return T("notifications_enabled")
 	}
 	return T("notifications_disabled")
@@ -43,7 +51,7 @@ func notificationStatus(n *notifications, user string) string {
 
 // notificationsEnabled returns a boolean indicating whether the user passed as
 // argument has enabled notifications.
-func notificationsEnabled(n *notifications, user string) bool {
+func (n *notifications) notificationsEnabled(user string) bool {
 	n.RLock()
 	defer n.RUnlock()
 
@@ -51,9 +59,9 @@ func notificationsEnabled(n *notifications, user string) bool {
 	return ok
 }
 
-// toggleNotifications changes the current notification settings for the
+// toggleNotifications toggles the current notification settings for the
 // specific user, and save the resulting config to the notificationsDB file.
-func toggleNotifications(n *notifications, userid, username string) error {
+func (n *notifications) toggleNotifications(userid, username string) error {
 	n.Lock()
 	defer n.Unlock()
 
@@ -78,29 +86,28 @@ func toggleNotifications(n *notifications, userid, username string) error {
 		}
 	}
 
-	err := safeWriteJSON(notificationSettings, notificationsDB)
+	err := safeWriteJSON(notificationSettings, n.notificationsDB)
 
 	if err == nil {
-		// Save succeeded, let's update our map.
+		// Save succeeded, update map.
 		n.Users = notificationSettings
 	}
 
 	return err
 }
 
-// loadNotificationSettings loads notifications database from notificationsDB
-// file.
-func loadNotificationSettings(n *notifications) error {
+// loadNotificationSettings loads notifications database from the
+// notificationsDB file.
+func (n *notifications) loadNotificationSettings() error {
 	n.Lock()
 	defer n.Unlock()
-
-	return readJSONFromDataDir(&n.Users, notificationsDB)
+	return readJSONFromDataDir(&n.Users, n.notificationsDB)
 }
 
 // idByNotificationUserName queries the notifications settings and returns both
 // the user id from the passed username and a boolean indicating whether it
 // found the username in question in the database.
-func idByNotificationUserName(n *notifications, username string) (string, bool) {
+func (n *notifications) idByNotificationUserName(username string) (string, bool) {
 	n.RLock()
 	defer n.RUnlock()
 
@@ -115,7 +122,7 @@ func idByNotificationUserName(n *notifications, username string) (string, bool) 
 // nolint: gocyclo
 // manageNotifications notifies users based on the message being replied to and
 // user mentions, if the user has notifications enabled.
-func (x *opBot) manageNotifications(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
+func (n *notifications) manageNotifications(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
 	if isPrivateChat(update.Message.Chat) {
 		return nil
 	}
@@ -136,10 +143,10 @@ func (x *opBot) manageNotifications(bot *tgbotapi.BotAPI, update tgbotapi.Update
 		uidstr := fmt.Sprintf("%d", uid)
 
 		_, ok := notified[uidstr]
-		if !ok && notificationsEnabled(&x.modules.userNotifications, uidstr) {
+		if !ok && n.notificationsEnabled(uidstr) {
 			// Using `true' here because this notification is due to a message
 			// being replied to.
-			_, err := x.sendNotification(bot, uid, update, true)
+			_, err := sendNotification(bot, uid, update, true)
 			if err != nil {
 				log.Printf("Failed to send notification to %q (%d)", formatName(*update.Message.From), update.Message.From.ID)
 			} else {
@@ -164,13 +171,13 @@ func (x *opBot) manageNotifications(bot *tgbotapi.BotAPI, update tgbotapi.Update
 					runes := []rune(update.Message.Text)
 					username := trDelete(string(runes[entity.Offset:entity.Offset+entity.Length]), "@")
 
-					if notificationsEnabled(&x.modules.userNotifications, username) {
+					if n.notificationsEnabled(username) {
 						if _, ok := notified[username]; ok {
 							// User was notified already.
 							continue
 						}
 
-						uidstr, ok := idByNotificationUserName(&x.modules.userNotifications, username)
+						uidstr, ok := n.idByNotificationUserName(username)
 						if !ok {
 							continue
 						}
@@ -180,7 +187,7 @@ func (x *opBot) manageNotifications(bot *tgbotapi.BotAPI, update tgbotapi.Update
 						}
 						// Using `false' here because this notification is not
 						// due to a  message being replied to.
-						_, err = x.sendNotification(bot, uid, update, false)
+						_, err = sendNotification(bot, uid, update, false)
 						if err != nil {
 							log.Printf("Failed to send notification to %q (%d)", formatName(*update.Message.From), update.Message.From.ID)
 						} else {
@@ -192,7 +199,7 @@ func (x *opBot) manageNotifications(bot *tgbotapi.BotAPI, update tgbotapi.Update
 				} else {
 					// entity.Type == "text_mention".
 					uidstr := fmt.Sprintf("%d", entity.User.ID)
-					if notificationsEnabled(&x.modules.userNotifications, uidstr) {
+					if n.notificationsEnabled(uidstr) {
 						if _, ok := notified[uidstr]; ok {
 							// User was notified already.
 							continue
@@ -200,7 +207,7 @@ func (x *opBot) manageNotifications(bot *tgbotapi.BotAPI, update tgbotapi.Update
 
 						// Using `false' here because this notification is not
 						// due to a message being replied to.
-						_, err := x.sendNotification(bot, entity.User.ID, update, false)
+						_, err := sendNotification(bot, entity.User.ID, update, false)
 						if err != nil {
 							log.Printf("Failed to send notification to %q (%d)", formatName(*update.Message.From), update.Message.From.ID)
 						} else {
@@ -222,7 +229,7 @@ func (x *opBot) manageNotifications(bot *tgbotapi.BotAPI, update tgbotapi.Update
 // whether this notification is due to a message being replied to, in which case
 // it will be `true', or if it is due to a mention, in which case it will be
 // `false'.
-func (x *opBot) sendNotification(bot *tgbotapi.BotAPI, recipient int, update tgbotapi.Update, response bool) (tgbotapi.Message, error) {
+func sendNotification(bot *tgbotapi.BotAPI, recipient int, update tgbotapi.Update, response bool) (tgbotapi.Message, error) {
 	if recipient == update.Message.From.ID {
 		log.Printf("Not sending notification to %d, the same sender of the message", recipient)
 		return tgbotapi.Message{}, nil

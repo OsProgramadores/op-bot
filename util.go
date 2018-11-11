@@ -86,7 +86,7 @@ func buttonURL(msg, url string) tgbotapi.InlineKeyboardButton {
 }
 
 // sendReply sends a reply to a specific MessageID.
-func sendReply(bot botface, update tgbotapi.Update, text string) (tgbotapi.Message, error) {
+func sendReply(bot tgbotInterface, update tgbotapi.Update, text string) (tgbotapi.Message, error) {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
 	msg.ReplyToMessageID = update.Message.MessageID
 	return bot.Send(msg)

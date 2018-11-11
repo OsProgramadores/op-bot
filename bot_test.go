@@ -53,7 +53,7 @@ func (m *MockBotMedia) loadMedia() error {
 	return args.Error(0)
 }
 
-func (m *MockBotMedia) sendMedia(bot botface, update tgbotapi.Update, mediaURL string) error {
+func (m *MockBotMedia) sendMedia(bot tgbotInterface, update tgbotapi.Update, mediaURL string) error {
 	args := m.Called(bot, update, mediaURL)
 	return args.Error(0)
 }
@@ -152,9 +152,7 @@ func TestHackerHandler(t *testing.T) {
 	// Prep a mock BotMedia module and create a bot with it as media module.
 	testBotMedia := &MockBotMedia{}
 	b := opBot{
-		modules: opBotModules{
-			media: testBotMedia,
-		},
+		media: testBotMedia,
 	}
 
 	chatID := int64(1234)
