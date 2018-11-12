@@ -3,13 +3,10 @@ package main
 import (
 	"crypto/sha1"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"gopkg.in/telegram-bot-api.v4"
 	"io"
 	"math/rand"
 	"net/http"
-	"strings"
 	"sync"
 )
 
@@ -33,62 +30,15 @@ type geoLocations struct {
 	// locationKey contains a key used to scrambled the userIDs when storing the location.
 	locationKey string
 	locationDB  string
-	postal      postalLocatorInterface
-}
-
-// postalLocatorInterface provides an interface between locations and the postal code locator.
-type postalLocatorInterface interface {
-	findPostalLocation(*tgbotapi.User, string) (float64, float64, error)
 }
 
 // newGeolocations returns a new instance of geoLocations
-func newGeolocations(cepAbertoKey, locationKey string) *geoLocations {
+func newGeolocations(locationKey string) *geoLocations {
 	return &geoLocations{
 		coords:      map[string]geoLocation{},
 		locationKey: locationKey,
 		locationDB:  locationDB,
-		postal: &cepLocator{
-			cepAbertoKey: cepAbertoKey,
-		},
 	}
-}
-
-// locationHandler receive postal code from user.
-func (g *geoLocations) locationHandler(bot tgbotInterface, update tgbotapi.Update) error {
-	args := strings.Split(trDelete(update.Message.CommandArguments(), "/-."), " ")
-	user := update.Message.From
-	cep := ""
-
-	cmd := strings.ToLower(update.Message.Command())
-
-	switch cmd {
-	case "setlocation":
-		if len(args) != 2 {
-			return errors.New(T("setlocation_usage"))
-		}
-		country := args[0]
-
-		if country != "br" {
-			return fmt.Errorf(T("unsupported_country"), args[0])
-		}
-		cep = args[1]
-	case "cep":
-		if len(args) != 1 || len(args[0]) == 0 {
-			return errors.New(T("missing_postal_code"))
-		}
-		cep = args[0]
-	}
-
-	lat, long, err := g.postal.findPostalLocation(user, cep)
-	if err != nil {
-		return fmt.Errorf(T("unable_to_find_location"), cep)
-	}
-	if err := g.processLocation(g.locationKey, user.ID, lat, long); err != nil {
-		return fmt.Errorf(T("unable_to_find_location"), cep)
-	}
-
-	sendReply(bot, update, T("location_success"))
-	return nil
 }
 
 // readLocations reads locations from the locationDB file.

@@ -27,12 +27,6 @@ other = "Error initializing bot (make sure you have a configured token in the co
 [register_hackerdetected]
 other = "Fire the anti-hacker countermeasures. :)"
 
-[register_setlocation]
-other = "Update your geographic location using a postal code (/setlocation <country> <postal code>)"
-
-[register_cep]
-other = "Update your geographic location using the Brazilian postal code (CEP)"
-
 [register_help]
 other = "Command help"
 
@@ -52,26 +46,6 @@ other = "error fetching information about the current user: %s"
 
 [error_homedir_must_exist]
 other = "home directory must exist (and be a directory): %s"
-
-# Setlocation messages
-
-[setlocation_usage]
-other = "/setlocation <country> <postal code>"
-
-[unsupported_country]
-other = "I don't (yet) support postal code lookups for this country (%s)"
-
-[missing_postal_code]
-other = "missing postal code"
-
-[unable_to_find_location]
-other = "unable to find your location: %q"
-
-[invalid_latitude]
-other = "invalid latitude"
-
-[invalid_longitude]
-other = "invalid longitude"
 
 # Notifications messages.
 

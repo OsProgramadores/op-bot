@@ -36,7 +36,7 @@ func main() {
 		notifications: newNotifications(),
 		media:         newBotMedia(),
 		bans:          newBans(),
-		geolocations:  newGeolocations(config.CepAbertoKey, config.LocationKey),
+		geolocations:  newGeolocations(config.LocationKey),
 	}
 
 	opbot.statsWriter, err = initStats()
@@ -68,8 +68,6 @@ func main() {
 	// Register commands.
 	// Parameters: command, description, admin only, private only, enabled, handler.
 	opbot.Register("hackerdetected", T("register_hackerdetected"), false, false, true, opbot.hackerHandler)
-	opbot.Register("setlocation", T("register_setlocation"), false, true, true, opbot.geolocations.locationHandler)
-	opbot.Register("cep", T("register_cep"), false, true, true, opbot.geolocations.locationHandler)
 	opbot.Register("help", T("register_help"), false, true, true, opbot.helpHandler)
 	opbot.Register("notifications", T("notifications_help"), false, true, true, opbot.notifications.notificationHandler)
 	opbot.Register("ban", T("ban_help"), false, false, true, opbot.bans.banRequestHandler)

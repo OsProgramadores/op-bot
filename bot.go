@@ -42,7 +42,6 @@ type bansInterface interface {
 // geoLocationsInterface defines the interface between opbot and geo locations.
 type geoLocationsInterface interface {
 	processLocation(string, int, float64, float64) error
-	locationHandler(tgbotInterface, tgbotapi.Update) error
 	readLocations() error
 	serveLocations(int)
 }
