@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"math/rand"
 	"net/http"
 	"sync"
@@ -45,7 +46,7 @@ func newGeolocations(locationKey string) *geoLocations {
 func (g *geoLocations) readLocations() error {
 	g.RLock()
 	defer g.RUnlock()
-	return readJSONFromDataDir(g.coords, g.locationDB)
+	return readJSONFromDataDir(&g.coords, g.locationDB)
 }
 
 // processLocation handles the /location request to the bot.
@@ -64,13 +65,19 @@ func (g *geoLocations) processLocation(key string, id int, lat, lon float64) err
 // Only (previously obfuscated) lat/long coordinates are served, not user IDs.
 func (g *geoLocations) serveLocations(port int) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		g.RLock()
-		data := make([]geoLocation, len(g.coords))
+		// Setting the handler to "/" means "match anything under /", so we
+		// explicitly test here (this prevents serving twice to browsers due
+		// to the automatic request to /favicon.ico.
+		if r.URL.Path != "/" {
+			log.Printf("Ignoring invalid path request: %s", r.URL.Path)
+			http.Error(w, "Handler not found", http.StatusNotFound)
+			return
+		}
 
-		i := 0
+		g.RLock()
+		data := []geoLocation{}
 		for _, location := range g.coords {
-			data[i] = location
-			i++
+			data = append(data, location)
 		}
 		g.RUnlock()
 
@@ -83,6 +90,8 @@ func (g *geoLocations) serveLocations(port int) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Write(js)
+
+		log.Printf("Served %d lat/long pairs to %s", len(g.coords), r.RemoteAddr)
 	})
 
 	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
