@@ -24,11 +24,6 @@ kick_bots = true
 # Bots in this whitelist won't be automatically kicked.
 bot_whitelist = [ "friendlybot", "myottherbot" ]
 
-# Key for cepaberto.com (brazilian postal code to geo location service.)
-# Optional, but without a valid key, the /location command won't work for
-# locations in Brazil (cellular location still works, though).
-cep_aberto_key = "<cep_aberto_key>"
-
 # Language defines the language to be used for all messages in the bot.
 # (internal debug messages may still be in English). Format is:
 # <language>-<country>. Default = "en-us"

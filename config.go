@@ -44,9 +44,6 @@ type botConfig struct {
 
 	// Bots in this whitelist won't be automatically kicked.
 	BotWhitelist []string `toml:"bot_whitelist"`
-
-	// API Key from www.cepaberto.com (brazilian postal code to geo location service.)
-	CepAbertoKey string `toml:"cep_aberto_key"`
 }
 
 // loadConfig loads the configuration items for the bot from 'configFile' under
