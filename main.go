@@ -58,7 +58,7 @@ func main() {
 		log.Printf("Error loading info on the requested bans: %v", err)
 	}
 
-	if err = opbot.geolocations.readLocations(); err != nil {
+	if err := opbot.geolocations.readLocations(); err != nil {
 		log.Printf("Error reading locations: %v", err)
 	}
 
