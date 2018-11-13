@@ -50,9 +50,9 @@ func (g *geoLocations) readLocations() error {
 }
 
 // processLocation handles the /location request to the bot.
-func (g *geoLocations) processLocation(key string, id int, lat, lon float64) error {
+func (g *geoLocations) processLocation(id int, lat, lon float64) error {
 	h := sha1.New()
-	io.WriteString(h, fmt.Sprintf("%s%d", key, id))
+	io.WriteString(h, fmt.Sprintf("%s%d", g.locationKey, id))
 	userid := fmt.Sprintf("%x", h.Sum(nil))
 
 	g.Lock()

@@ -1,0 +1,179 @@
+# en-us translation file for op-bot
+# http://github.com/osprogramadores/op-bot
+
+[welcome]
+other = "Welcome %s. What your interest in coding? Have fun!\nDon't forget to introduce yourself to the group!"
+
+[rules]
+other = "Rules:\n\n1 - No warez, hacking, or anything illegal here.\n2-ZERO tolerance for spam (immediate ban).\n3-Respect your fellow group members.\n4-Think before you write something.\n5-Have fun."
+
+[location_success]
+other = "Location updated successfully."
+
+[location_fail]
+other = "Unable to update location. Please try again later."
+
+[read_the_rules]
+other = "Read the rules"
+
+[visit_our_group_website]
+other = "Visit the group website"
+
+[error_starting_bot]
+other = "Error initializing bot (make sure you have a configured token in the config file)"
+
+# Register help messages.
+
+[register_indent]
+other = "Indent a program on repl.it (/indent url)"
+
+[register_hackerdetected]
+other = "Fire the anti-hacker countermeasures. :)"
+
+[register_setlocation]
+other = "Update your geographic location using a postal code (/setlocation <country> <postal code>)"
+
+[register_cep]
+other = "Update your geographic location using the Brazilian postal code (CEP)"
+
+[register_help]
+other = "Command help"
+
+[notifications_help]
+other = "Enables/disables notifications"
+
+[ban_help]
+other = "Reports message to admins. Remember to send the command in response to a message"
+
+# Error messages
+
+[handler_error]
+other = "Error: %s"
+
+[error_reading_user_info]
+other = "error fetching information about the current user: %s"
+
+[error_homedir_must_exist]
+other = "home directory must exist (and be a directory): %s"
+
+# Handler messages
+
+[indent_ok]
+other = "Access the indented version at %s. The last revision is always available at https://repl.it/%s/latest."
+
+# Indent messages
+
+[line]
+other = "line"
+
+[error_extracting_from_replit]
+other = "unable to extract data from repl.it"
+
+[code_already_indented]
+other = "code is already indented :)"
+
+[unknown_language]
+other = "I don't know how to indent this language yet (%s). If you can, please help by adding support and opening a pull-request to https://github.com/OsProgramadores/op-bot :)"
+
+[errors_replit_file]
+other = "errors detected on file %q:\n%s"
+
+[errors_found]
+other = "errors detected:\n%s"
+
+[invalid_replit_url]
+other = "this is not a valid repl.it URL"
+
+[error_accessing_replit_url]
+other = "unable to access the repl.it URL"
+
+# Setlocation messages
+
+[setlocation_usage]
+other = "/setlocation <country> <postal code>"
+
+[unsupported_country]
+other = "I don't (yet) support postal code lookups for this country (%s)"
+
+[missing_postal_code]
+other = "missing postal code"
+
+[unable_to_find_location]
+other = "unable to find your location: %q"
+
+[invalid_latitude]
+other = "invalid latitude"
+
+[invalid_longitude]
+other = "invalid longitude"
+
+# Notifications messages.
+
+[notification_replied]
+other = "⚠️ *Notification*\n[%s](tg://user?id=%d) replied to your message in *%s*\n\n_%s_"
+
+[notification_mentioned]
+other = "⚠️ *Notification*\n[%s](tg://user?id=%d) mentioned you in *%s*\n\n_%s_"
+
+[go_to_notification]
+other = "Go to message"
+
+[notification_fail]
+other = "Unable to update notification settings. Try again later (%s)"
+
+[notification_success]
+other = "Notification settings update sucessfully (%s)"
+
+[notifications_enabled]
+other = "notifications enabled"
+
+[notifications_disabled]
+other = "notifications disabled"
+
+# Stats messages.
+
+[stats_error_saving]
+other = "Error while saving message stats: %s (unsaved data: %q)"
+
+[stats_error_empty_message]
+other= "empty message received"
+
+[stats_error_unknown_user]
+other = "message sent by unknown user"
+
+# Ban request messages.
+
+[remove_message]
+other = "Remove message"
+
+[remove_message_and_ban]
+other = "Remove message and ban"
+
+[notify_admin]
+other = "🚫 *Ban Requested*\n[%s](tg://user?id=%d) requested a ban in *%s*\n\n_%s_"
+
+[delete_message_fail]
+other = "Error deleting message. Maybe it was already deleted?"
+
+[delete_and_ban_fail]
+other = "Error deleting message and banning user. Maybe this was already done?"
+
+[delete_message_success]
+other =  "Message deleted"
+
+[delete_and_ban_success]
+other = "Message deleted and user banned"
+
+[notification_update_delete]
+other = "message deleted"
+
+[notification_update_delete_and_ban]
+other = "message deleted and user banned"
+
+[notification_handled]
+other = "🚫  Following *Ban Requested* was handled by [%s](tg://user?id=%d): _%s_\n\n%s_"
+
+# Callback query error.
+
+[callback_invalid_request]
+other = "Invalid request"
