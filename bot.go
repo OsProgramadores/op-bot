@@ -41,7 +41,7 @@ type bansInterface interface {
 
 // geoLocationsInterface defines the interface between opbot and geo locations.
 type geoLocationsInterface interface {
-	processLocation(string, int, float64, float64) error
+	processLocation(int, float64, float64) error
 	readLocations() error
 	serveLocations(int)
 }
@@ -208,11 +208,11 @@ func updateMessageStats(w io.Writer, update tgbotapi.Update, username string) {
 // request and adds the approximate location of the user to a point in the map
 // using handleLocation.  Returns a visible message to the user in case of
 // problems.
-func (x *opBot) processLocationRequest(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
+func (x *opBot) processLocationRequest(bot tgbotInterface, update tgbotapi.Update) {
 	userid := update.Message.From.ID
 	location := update.Message.Location
 
-	err := x.geolocations.processLocation(x.config.LocationKey, userid, location.Latitude, location.Longitude)
+	err := x.geolocations.processLocation(userid, location.Latitude, location.Longitude)
 
 	// Give feedback to user, if message was sent privately.
 	if isPrivateChat(update.Message.Chat) {
