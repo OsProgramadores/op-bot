@@ -174,7 +174,7 @@ func (b *bans) banRequestHandler(bot tgbotInterface, update tgbotapi.Update) err
 func (b *bans) loadBanRequestsInfo() error {
 	b.Lock()
 	defer b.Unlock()
-	return readJSONFromDataDir(b.Requests, b.requestedBansDB)
+	return readJSONFromDataDir(&b.Requests, b.requestedBansDB)
 }
 
 // notifyAdmin notifies `admin' on the reported message, giving the following
