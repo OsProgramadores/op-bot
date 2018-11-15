@@ -176,7 +176,9 @@ func TestHelpHandler(t *testing.T) {
 
 		mockTgBot := &MockTgBot{}
 		mockTgBot.On("Send", wantMsg).Return(tgbotapi.Message{}, nil).Once()
+
 		mockOpBot.helpHandler(mockTgBot, mockUpdate)
+		mockTgBot.AssertExpectations(t)
 	}
 }
 
@@ -206,16 +208,11 @@ func TestHackerHandler(t *testing.T) {
 
 	mockTgBot := &MockTgBot{}
 	mockTgBot.On("DeleteMessage", wantDeleteMsgConfig).Return(tgbotapi.APIResponse{}, nil).Once()
+	mockBotMedia.On("sendMedia", mockTgBot, mockUpdate, mock.Anything).Return(nil)
 
-	// Mock sendMedia.
-	mockBotMedia.On("sendMedia", mockTgBot, mockUpdate, mock.Anything).Return(nil).Once()
 	mockOpBot.hackerHandler(mockTgBot, mockUpdate)
 
-	// Test DeleteMessage returning an error.
-	mockTgBot = &MockTgBot{}
-	mockTgBot.On("DeleteMessage", wantDeleteMsgConfig).Return(tgbotapi.APIResponse{}, errors.New("mock-error")).Once()
-	mockBotMedia.On("sendMedia", mockTgBot, mockUpdate, mock.Anything).Return(nil).Once()
-	mockOpBot.hackerHandler(mockTgBot, mockUpdate)
+	mockTgBot.AssertExpectations(t)
 }
 
 func TestProcessLocationRequest(t *testing.T) {
@@ -283,6 +280,7 @@ func TestProcessLocationRequest(t *testing.T) {
 			mockTgBot.On("Send", wantMsg).Return(tgbotapi.Message{}, nil).Once()
 		}
 		mockOpBot.processLocationRequest(mockTgBot, mockUpdate)
+		mockTgBot.AssertExpectations(t)
 	}
 }
 
