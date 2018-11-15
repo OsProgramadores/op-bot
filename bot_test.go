@@ -340,7 +340,7 @@ func TestProcessBotJoin(t *testing.T) {
 					ID: chatID,
 				},
 				NewChatMembers: &[]tgbotapi.User{
-					tgbotapi.User{
+					{
 						ID:       userID,
 						UserName: tt.username,
 						IsBot:    tt.isBot,
