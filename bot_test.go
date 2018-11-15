@@ -286,6 +286,91 @@ func TestProcessLocationRequest(t *testing.T) {
 	}
 }
 
+func TestProcessBotJoin(t *testing.T) {
+	caseTests := []struct {
+		kickBots     bool     // Should we kick bots?
+		isBot        bool     // Is this user a bot?
+		username     string   // User name (or bot name)
+		botWhitelist []string // bot name whitelist.
+		wantBan      bool     // Ban expected?
+	}{
+		// Kickbot enabled, Regular user (not bot): Do not ban.
+		{
+			kickBots: true,
+		},
+		// Kickbot enabled, Bot, no whitelist: Ban.
+		{
+			kickBots: true,
+			isBot:    true,
+			wantBan:  true,
+		},
+		// Kickbot enabled, Bot, whitelisted: No Ban.
+		{
+			kickBots:     true,
+			isBot:        true,
+			username:     "friend-bot",
+			botWhitelist: []string{"friend-bot"},
+		},
+		// Kickbot enabled, Bot, not whitelisted: Ban.
+		{
+			kickBots:     true,
+			isBot:        true,
+			username:     "bad-bot",
+			botWhitelist: []string{"friend-bot"},
+			wantBan:      true,
+		},
+		// Kickbot disabled, Bot: Do not ban.
+		{
+			isBot: true,
+		},
+	}
+
+	for _, tt := range caseTests {
+		mockTgBot := &MockTgBot{}
+		mockOpBot := opBot{
+			config: botConfig{
+				KickBots:     tt.kickBots,
+				BotWhitelist: tt.botWhitelist,
+			},
+		}
+
+		// test Update instance.
+		mockUpdate := tgbotapi.Update{
+			UpdateID: int(chatID),
+			Message: &tgbotapi.Message{
+				Chat: &tgbotapi.Chat{
+					ID: chatID,
+				},
+				NewChatMembers: &[]tgbotapi.User{
+					tgbotapi.User{
+						ID:       userID,
+						UserName: tt.username,
+						IsBot:    tt.isBot,
+					},
+				},
+			},
+		}
+
+		wantKick := tgbotapi.KickChatMemberConfig{
+			ChatMemberConfig: tgbotapi.ChatMemberConfig{
+				ChatID: chatID,
+				UserID: userID,
+			},
+		}
+		mockTgBot.On("KickChatMember", wantKick).Return(tgbotapi.APIResponse{}, nil).Once()
+
+		mockOpBot.processBotJoin(mockTgBot, mockUpdate)
+
+		// Should a ban have happened?
+		if tt.wantBan {
+			log.Println("Asserting wantkick", wantKick)
+			mockTgBot.AssertExpectations(t)
+		} else {
+			mockTgBot.AssertNumberOfCalls(t, "KickChatMember", 0)
+		}
+	}
+}
+
 // loadTestTranslations loads translated messages for the English language
 // from the testdata directory.
 func loadTestTranslation() (i18n.TranslateFunc, error) {
