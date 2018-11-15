@@ -93,7 +93,7 @@ func sendReply(bot tgbotInterface, update tgbotapi.Update, text string) (tgbotap
 }
 
 // sendReplyWithMarkup sends a reply to a specific MessageID with markup.
-func (x *opBot) sendReplyWithMarkup(bot *tgbotapi.BotAPI, update tgbotapi.Update, text string, markup tgbotapi.InlineKeyboardMarkup) (tgbotapi.Message, error) {
+func (x *opBot) sendReplyWithMarkup(bot tgbotInterface, update tgbotapi.Update, text string, markup tgbotapi.InlineKeyboardMarkup) (tgbotapi.Message, error) {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
 	msg.ReplyToMessageID = update.Message.MessageID
 	msg.ReplyMarkup = &markup

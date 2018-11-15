@@ -227,7 +227,7 @@ func (x *opBot) processLocationRequest(bot tgbotInterface, update tgbotapi.Updat
 // processBotJoin reads new users from the update event and kicks bots not in
 // our bot whitelist from the group. Due to the way telegram works, this only
 // works for supergroups.
-func (x *opBot) processBotJoin(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
+func (x *opBot) processBotJoin(bot tgbotInterface, update tgbotapi.Update) {
 	// Only if configured.
 	if !x.config.KickBots {
 		return
@@ -251,7 +251,7 @@ func (x *opBot) processBotJoin(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 }
 
 // processJoinEvent sends a new message to newly joined users.
-func (x *opBot) processJoinEvents(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
+func (x *opBot) processJoinEvents(bot tgbotInterface, update tgbotapi.Update) {
 	names := []string{}
 	for _, user := range *update.Message.NewChatMembers {
 		// Do not send welcome messages to bots.
