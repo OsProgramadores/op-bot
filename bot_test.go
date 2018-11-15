@@ -11,37 +11,37 @@ import (
 	"testing"
 )
 
-// MockTgBot defines an interface to the telegram libraries.
-type MockTgBot struct {
+// MockTelebot defines an interface to the telegram libraries.
+type MockTelebot struct {
 	mock.Mock
 }
 
-func (m *MockTgBot) AnswerCallbackQuery(config tgbotapi.CallbackConfig) (tgbotapi.APIResponse, error) {
+func (m *MockTelebot) AnswerCallbackQuery(config tgbotapi.CallbackConfig) (tgbotapi.APIResponse, error) {
 	args := m.Called(config)
 	return args.Get(0).(tgbotapi.APIResponse), args.Error(1)
 }
 
-func (m *MockTgBot) DeleteMessage(config tgbotapi.DeleteMessageConfig) (tgbotapi.APIResponse, error) {
+func (m *MockTelebot) DeleteMessage(config tgbotapi.DeleteMessageConfig) (tgbotapi.APIResponse, error) {
 	args := m.Called(config)
 	return args.Get(0).(tgbotapi.APIResponse), args.Error(1)
 }
 
-func (m *MockTgBot) GetChatAdministrators(config tgbotapi.ChatConfig) ([]tgbotapi.ChatMember, error) {
+func (m *MockTelebot) GetChatAdministrators(config tgbotapi.ChatConfig) ([]tgbotapi.ChatMember, error) {
 	args := m.Called(config)
 	return args.Get(0).([]tgbotapi.ChatMember), args.Error(1)
 }
 
-func (m *MockTgBot) GetUpdatesChan(config tgbotapi.UpdateConfig) (tgbotapi.UpdatesChannel, error) {
+func (m *MockTelebot) GetUpdatesChan(config tgbotapi.UpdateConfig) (tgbotapi.UpdatesChannel, error) {
 	args := m.Called(config)
 	return args.Get(0).(tgbotapi.UpdatesChannel), args.Error(1)
 }
 
-func (m *MockTgBot) KickChatMember(config tgbotapi.KickChatMemberConfig) (tgbotapi.APIResponse, error) {
+func (m *MockTelebot) KickChatMember(config tgbotapi.KickChatMemberConfig) (tgbotapi.APIResponse, error) {
 	args := m.Called(config)
 	return args.Get(0).(tgbotapi.APIResponse), args.Error(1)
 }
 
-func (m *MockTgBot) Send(c tgbotapi.Chattable) (tgbotapi.Message, error) {
+func (m *MockTelebot) Send(c tgbotapi.Chattable) (tgbotapi.Message, error) {
 	args := m.Called(c)
 	return args.Get(0).(tgbotapi.Message), args.Error(1)
 }
@@ -174,11 +174,11 @@ func TestHelpHandler(t *testing.T) {
 		wantMsg := tgbotapi.NewMessage(int64(chatID), tt.wantStr)
 		wantMsg.ReplyToMessageID = msgID
 
-		mockTgBot := &MockTgBot{}
-		mockTgBot.On("Send", wantMsg).Return(tgbotapi.Message{}, nil).Once()
+		mockTelebot := &MockTelebot{}
+		mockTelebot.On("Send", wantMsg).Return(tgbotapi.Message{}, nil).Once()
 
-		mockOpBot.helpHandler(mockTgBot, mockUpdate)
-		mockTgBot.AssertExpectations(t)
+		mockOpBot.helpHandler(mockTelebot, mockUpdate)
+		mockTelebot.AssertExpectations(t)
 	}
 }
 
@@ -206,13 +206,13 @@ func TestHackerHandler(t *testing.T) {
 		MessageID: msgID,
 	}
 
-	mockTgBot := &MockTgBot{}
-	mockTgBot.On("DeleteMessage", wantDeleteMsgConfig).Return(tgbotapi.APIResponse{}, nil).Once()
-	mockBotMedia.On("sendMedia", mockTgBot, mockUpdate, mock.Anything).Return(nil)
+	mockTelebot := &MockTelebot{}
+	mockTelebot.On("DeleteMessage", wantDeleteMsgConfig).Return(tgbotapi.APIResponse{}, nil).Once()
+	mockBotMedia.On("sendMedia", mockTelebot, mockUpdate, mock.Anything).Return(nil)
 
-	mockOpBot.hackerHandler(mockTgBot, mockUpdate)
+	mockOpBot.hackerHandler(mockTelebot, mockUpdate)
 
-	mockTgBot.AssertExpectations(t)
+	mockTelebot.AssertExpectations(t)
 }
 
 func TestProcessLocationRequest(t *testing.T) {
@@ -245,7 +245,7 @@ func TestProcessLocationRequest(t *testing.T) {
 		}
 		mockGeoLocations.locationDB = "/tmp/test"
 
-		mockTgBot := &MockTgBot{}
+		mockTelebot := &MockTelebot{}
 		mockOpBot := opBot{
 			geolocations: mockGeoLocations,
 		}
@@ -277,10 +277,10 @@ func TestProcessLocationRequest(t *testing.T) {
 		if tt.chatType == "private" {
 			wantMsg := tgbotapi.NewMessage(int64(chatID), tt.sendMsg)
 			wantMsg.ReplyToMessageID = msgID
-			mockTgBot.On("Send", wantMsg).Return(tgbotapi.Message{}, nil).Once()
+			mockTelebot.On("Send", wantMsg).Return(tgbotapi.Message{}, nil).Once()
 		}
-		mockOpBot.processLocationRequest(mockTgBot, mockUpdate)
-		mockTgBot.AssertExpectations(t)
+		mockOpBot.processLocationRequest(mockTelebot, mockUpdate)
+		mockTelebot.AssertExpectations(t)
 	}
 }
 
@@ -324,7 +324,7 @@ func TestProcessBotJoin(t *testing.T) {
 	}
 
 	for _, tt := range caseTests {
-		mockTgBot := &MockTgBot{}
+		mockTelebot := &MockTelebot{}
 		mockOpBot := opBot{
 			config: botConfig{
 				KickBots:     tt.kickBots,
@@ -355,16 +355,16 @@ func TestProcessBotJoin(t *testing.T) {
 				UserID: userID,
 			},
 		}
-		mockTgBot.On("KickChatMember", wantKick).Return(tgbotapi.APIResponse{}, nil).Once()
+		mockTelebot.On("KickChatMember", wantKick).Return(tgbotapi.APIResponse{}, nil).Once()
 
-		mockOpBot.processBotJoin(mockTgBot, mockUpdate)
+		mockOpBot.processBotJoin(mockTelebot, mockUpdate)
 
 		// Should a ban have happened?
 		if tt.wantBan {
 			log.Println("Asserting wantkick", wantKick)
-			mockTgBot.AssertExpectations(t)
+			mockTelebot.AssertExpectations(t)
 		} else {
-			mockTgBot.AssertNumberOfCalls(t, "KickChatMember", 0)
+			mockTelebot.AssertNumberOfCalls(t, "KickChatMember", 0)
 		}
 	}
 }
