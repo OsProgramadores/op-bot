@@ -8,14 +8,10 @@ ARG OPBOT_HOME_DIR="/home/${OPBOT_USER}"
 ARG GITHUB_URL="https://github.com/OsProgramadores/${OPBOT_PROJECT}.git"
 ARG GOPATH="/tmp/go"
 ARG OPBOT_GIT_ROOT="${GOPATH}/src/${OPBOT_PROJECT}"
+ARG OPBOT_UID=1000
 
-# This invalidates the cache for all run commands
-# from this point on. Without this, Docker build
-# won't re-run the RUN commands on newer builds.
-ADD cachebuster /tmp
-
-RUN addgroup -g 1000 ${OPBOT_USER} && \
-    adduser -u 1000 -S -G ${OPBOT_USER} -s /bin/bash -h ${OPBOT_HOME_DIR} ${OPBOT_USER} && \
+RUN addgroup -g ${OPBOT_UID} ${OPBOT_USER} && \
+    adduser -u ${OPBOT_UID} -S -G ${OPBOT_USER} -s /bin/bash -h ${OPBOT_HOME_DIR} ${OPBOT_USER} && \
     apk update && \
     apk add --no-cache bash coreutils libc-dev wget git go && \
     mkdir -p "${OPBOT_GIT_ROOT}" && \
