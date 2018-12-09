@@ -1,11 +1,7 @@
 build:
-	date +'%N' >cachebuster
-	docker build -t op-docker/op-bot .
-	rm -f cachebuster
+	docker-compose build
 
 force:
-	date +'%N' >cachebuster
-	docker build --no-cache -t op-docker/op-bot .
-	rm -f cachebuster
+	docker-compose build --no-cache
 
-.PHONY: build
+.PHONY: build force

@@ -1,7 +1,7 @@
 version: '3'
 services:
   bot:
-    image: op-docker/op-bot
+    image: .
     volumes:
       - "./config:/home/opbot/.config/op-bot:rw"
       - "./data:/home/opbot/.local/share/op-bot:rw"
