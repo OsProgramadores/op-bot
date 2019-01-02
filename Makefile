@@ -1,4 +1,4 @@
-.PHONY: clean
+.PHONY: clean test
 
 bin := op-bot
 src := $(wildcard src/*.go)
@@ -6,6 +6,9 @@ src := $(wildcard src/*.go)
 # Default target
 ${bin}: Makefile ${src}
 	cd src && go build -v -o "../${bin}"
+
+test:
+	cd src && go test -v
 
 # Cleanup
 clean:
