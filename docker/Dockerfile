@@ -13,17 +13,17 @@ ARG OPBOT_UID=1000
 RUN addgroup -g ${OPBOT_UID} ${OPBOT_USER} && \
     adduser -u ${OPBOT_UID} -S -G ${OPBOT_USER} -s /bin/bash -h ${OPBOT_HOME_DIR} ${OPBOT_USER} && \
     apk update && \
-    apk add --no-cache bash coreutils libc-dev wget git go && \
+    apk add --no-cache bash coreutils libc-dev wget git go make && \
     mkdir -p "${OPBOT_GIT_ROOT}" && \
     git clone "${GITHUB_URL}" "${OPBOT_GIT_ROOT}" && \
     cd "${OPBOT_GIT_ROOT}" && \
-    go get -v && \
-    go build && \
+    go get -v ./... && \
+    make && \
     mv "${OPBOT_PROJECT}" /usr/bin && \
     cd /tmp && \
     rm -rf "${GOPATH}" && \
     apk add ca-certificates && \
-    apk del coreutils libc-dev wget git go && \
+    apk del coreutils libc-dev wget git go make && \
     rm -rf /var/cache/apk/*
 
 ENTRYPOINT ["/bin/su", "-", "opbot", "-c", "'/usr/bin/op-bot'"]
