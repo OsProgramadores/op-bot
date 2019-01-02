@@ -1,7 +1,10 @@
+PROJECT_NAME=op-bot
+DOCKER_COMPOSE=docker-compose --project-name ${PROJECT_NAME}
+
 build:
-	docker-compose build
+	${DOCKER_COMPOSE} build
 
 force:
-	docker-compose build --no-cache
+	${DOCKER_COMPOSE} build --no-cache
 
 .PHONY: build force
