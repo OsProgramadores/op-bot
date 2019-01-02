@@ -1,44 +1,48 @@
-# Running the bot as a docker container
+# Op-bot docker configuration
 
-Assuming you already have `docker` (and `docker-compose`) installed and
-running, a few other things are needed in order to run the bot as a docker
-container:
+## Pre-requisites
 
-1. Create the docker image to run the bot:
+* [docker](https://www.docker.com/products/docker-engine). If possible, install
+  it using your OS native packaging system (under Debian, use `apt-get
+  install docker-ce`).
+
+* [docker-compose](https://docs.docker.com/compose/install/).
+
+* GNU Make, which should be installed on most linux distributions by default.
+
+## Building a new image
+
+Create the docker image to run the bot:
+
 ```
 make
 ```
 
-This should create the image `op-docker/op-bot`. You should see something like
-the following, as the last lines of the process, indicating things went well:
+This should create a new image with the bot. You should see something like the
+following, as the last lines of the process, indicating things went well:
 
 ```
-Successfully built 3848aa863492
-Successfully tagged op-docker/op-bot:latest
+Successfully built a06d65011e27
+Successfully tagged op-bot_bot:latest
 ```
 
-2. Copy the example `../examples/config.toml` file into the `./config`
-   directory. Edit the file and set your token. There are additional settings,
-   but `token` is the bare minimum required in order to run the bot.
+Copy the example `../examples/config.toml` file into the `./config` directory.
+Edit the file and set your token. There are additional settings, but `token` is
+the bare minimum required in order to run the bot.
 
-3. Copy the translations from the `../examples/translations` directory into
-   the `./config/translations` directory.
+Copy the translations from the `../examples/translations` directory into the
+`./config/translations` directory.
 
-4. Create the container with:
-```
-docker-compose up
-```
+## Running
 
-If things go well, you should see something along these lines:
-```
-Creating network "docker_default" with the default driver
-Creating docker_bot_1 ...
-Creating docker_bot_1 ... done
-Attaching to docker_bot_1
-bot_1  | 2017/07/22 20:18:19 Authorized on account osprogramadores_bot
-```
+1. Create the container with:
+    ```
+    docker-compose -p op-bot down
+    docker-compose -p op-bot up
+    ```
+
+The `down` operation will clean up any old containers around. The `up` operation
+will actually bring the container up.
 
 In case of problems, read the error messages carefully, as they usually explain
 what went wrong. Also make sure you did the previous steps correctly.
-
-And that's it.
