@@ -1,11 +1,13 @@
-.PHONY: mod-update clean
+.PHONY: clean
 
-BIN := "op-bot"
+bin := op-bot
+src := $(wildcard src/*.go)
 
 # Default target
-${BIN}: Makefile *.go
-	go build
+${bin}: Makefile ${src}
+	cd src && go build -v -o "../${bin}"
 
 # Cleanup
 clean:
-	go clean
+	cd src && go clean
+	rm -f "${bin}"
