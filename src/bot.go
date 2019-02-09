@@ -104,7 +104,7 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 
 			switch {
 			// Forward message handling.
-			case update.Message.ForwardFrom != nil && x.config.DeleteFwd:
+			case x.config.DeleteFwd && isForwarded(update.Message):
 				// Remove forwarded message and log.
 				bot.DeleteMessage(tgbotapi.DeleteMessageConfig{
 					ChatID:    update.Message.Chat.ID,
