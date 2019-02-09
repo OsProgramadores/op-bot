@@ -105,6 +105,15 @@ func isPrivateChat(chat *tgbotapi.Chat) bool {
 	return chat.Type == "private"
 }
 
+// isForwarded returns true if the received message is forwarded; false
+// otherwise.
+func isForwarded(msg *tgbotapi.Message) bool {
+	if msg == nil {
+		return false
+	}
+	return msg.ForwardFrom != nil || msg.ForwardFromChat != nil
+}
+
 // trDelete returns a copy of the string with all runes in substring removed.
 func trDelete(s, substr string) string {
 	ret := bytes.Buffer{}
