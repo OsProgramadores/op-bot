@@ -4,9 +4,6 @@
 [welcome]
 other = "Welcome %s. What your interest in coding? Have fun!\nDon't forget to introduce yourself to the group!"
 
-[rules]
-other = "Rules:\n\n1 - No warez, hacking, or anything illegal here.\n2-ZERO tolerance for spam (immediate ban).\n3-Respect your fellow group members.\n4-Think before you write something.\n5-Have fun."
-
 [location_success]
 other = "Location updated successfully."
 

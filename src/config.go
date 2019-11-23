@@ -44,6 +44,9 @@ type botConfig struct {
 
 	// Bots in this whitelist won't be automatically kicked.
 	BotWhitelist []string `toml:"bot_whitelist"`
+
+	// Activate new user restrictions? (can't post pictures, audio, etc)
+	RestrictNewUsers bool `toml:"restrict_new_users"`
 }
 
 // loadConfig loads the configuration items for the bot from 'configFile' under
