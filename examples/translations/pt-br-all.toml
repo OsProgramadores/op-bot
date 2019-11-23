@@ -2,10 +2,7 @@
 # http://github.com/osprogramadores/op-bot
 
 [welcome]
-other = "Bem-vindo(a) %s. Qual o seu interesse em programação? Divirta-se!\nEnvie um pequeno resumo sobre você para quebrarmos o gelo com a turma por cá!"
-
-[rules]
-other = "Regras:\n\n1-Proibido Pirataria ou incentivo a Pirataria.\n2-Tolerância ZERO com SPAM (banimento imediato)\n3-Respeite os participantes do grupo.\n4-Pense antes de postar.\n5-Divirta-se."
+other = "Bem-vindo(a) %s! Qual o seu interesse em programação? Divirta-se e envie um pequeno resumo sobre você para quebrar o gelo com os outros membros do grupo!"
 
 [location_success]
 other = "Localização atualizada com sucesso."
@@ -34,7 +31,10 @@ other = "Help dos comandos"
 other = "Ativa/desativa notificações"
 
 [ban_help]
-other = "Reporta mensagem para os admins. Lembre de usar o comando em resposta a uma mensagem"
+other = "Reporta mensagem para os admins. Use este comando em resposta a uma mensagem"
+
+[restrict_new_users_help]
+other = "Liga/Desliga restrições para novos usuários."
 
 # Error messages
 
@@ -117,3 +117,7 @@ other = "🚫 *Ban Solicitado* a seguir foi resolvido por [%s](tg://user?id=%d):
 
 [callback_invalid_request]
 other = "Requisição inválida"
+
+# Probies (new users under probation) cannot send non-text messages.
+[only_text_messages]
+other = "Novos usuários só podem enviar mensagens contendo texto. Para enviar partes de código, use o repl.it. Para outros tipos de texto, use o pastebin.com. Se o envio de imagens for absolutamente necessário, faça um upload das imagens para o imgur.com e envie o link para o grupo.\n\nOs administradores fortemente recomendam a leitura das regras do grupo, disponíveis no link abaixo."

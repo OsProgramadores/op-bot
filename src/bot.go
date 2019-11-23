@@ -3,17 +3,22 @@ package main
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/patrickmn/go-cache"
 	"gopkg.in/telegram-bot-api.v4"
 	"io"
 	"log"
 	"math/big"
 	"sort"
 	"strings"
+	"time"
 )
 
 const (
 	// osProgramadoresURL contains the main group URL.
 	osProgramadoresURL = "https://osprogramadores.com"
+
+	// osProgramadoresURL contains the main group URL.
+	osProgramadoresRulesURL = "https://osprogramadores.com/regras/"
 
 	// osProgramadoresGroup is the group username.
 	osProgramadoresGroup = "osprogramadores"
@@ -48,8 +53,15 @@ type geoLocationsInterface interface {
 
 // opBot defines an instance of op-bot.
 type opBot struct {
-	config        botConfig
-	commands      map[string]botCommand
+	config   botConfig
+	commands map[string]botCommand
+
+	// New users must follow certain restrictions.
+	newUserCache *cache.Cache
+
+	// Don't send warning messages to new users on every infraction.
+	newUserWarningCache *cache.Cache
+
 	notifications notificationsInterface
 	media         mediaInterface
 	bans          bansInterface
@@ -80,6 +92,34 @@ type tgbotInterface interface {
 	Send(tgbotapi.Chattable) (tgbotapi.Message, error)
 }
 
+// newOpBot returns a new OpBot.
+func newOpBot(config botConfig) (opBot, error) {
+	sw, err := initStats()
+	if err != nil {
+		return opBot{}, fmt.Errorf("error initializing stats: %v", err)
+	}
+
+	return opBot{
+		config:        config,
+		notifications: newNotifications(),
+		media:         newBotMedia(),
+		bans:          newBans(),
+		geolocations:  newGeolocations(config.LocationKey),
+		statsWriter:   sw,
+
+		// TODO(marcopaganini): Change this to a config parameter.
+		newUserCache: cache.New(3*time.Minute, 48*time.Hour),
+
+		// How often will re-send warning messages to offending new users.
+		newUserWarningCache: cache.New(1*time.Minute, time.Hour),
+	}, nil
+}
+
+// Close performs cleanup functions on the bot.
+func (x *opBot) Close() {
+	x.statsWriter.Close()
+}
+
 // Run is the main message dispatcher for the bot.
 func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 	bot.Debug = true
@@ -101,6 +141,11 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 
 			// Notifications.
 			x.notifications.manageNotifications(bot, update)
+
+			// Process newUsers (block non-text media for new users.)
+			if x.config.RestrictNewUsers {
+				x.processNewUsers(bot, update)
+			}
 
 			switch {
 			// Forward message handling.
@@ -183,14 +228,25 @@ func (x *opBot) Register(cmd string, desc string, adminOnly bool, pvtOnly bool, 
 func (x *opBot) helpHandler(bot tgbotInterface, update tgbotapi.Update) error {
 	var helpMsg []string
 	for c, bcmd := range x.commands {
-		if !bcmd.adminOnly && bcmd.enabled {
-			helpMsg = append(helpMsg, fmt.Sprintf("/%s: %s", c, bcmd.desc))
+		admin := ""
+		if bcmd.adminOnly {
+			admin = " (Admin)"
+		}
+		if bcmd.enabled {
+			helpMsg = append(helpMsg, fmt.Sprintf("/%s: %s%s", c, bcmd.desc, admin))
 		}
 	}
 
 	// Predictable order.
 	sort.Strings(helpMsg)
 	sendReply(bot, update, strings.Join(helpMsg, "\n"))
+	return nil
+}
+
+// toggleNewUserRestrictionsHandler toggles the state of config.NewUserRestrictions.
+func (x *opBot) toggleNewUserRestrictionsHandler(bot tgbotInterface, update tgbotapi.Update) error {
+	x.config.RestrictNewUsers = !x.config.RestrictNewUsers
+	sendReply(bot, update, fmt.Sprintf("New User Restrictions = %v", x.config.RestrictNewUsers))
 	return nil
 }
 
@@ -257,6 +313,14 @@ func (x *opBot) processJoinEvents(bot tgbotInterface, update tgbotapi.Update) {
 		// Do not send welcome messages to bots.
 		if !user.IsBot {
 			names = append(names, formatName(user))
+
+			// New users get flagged as such. If new user restrictions are
+			// enabled, only text messages will be allowed.
+			strID := fmt.Sprintf("%d", user.ID)
+			if _, found := x.newUserCache.Get(strID); !found {
+				log.Printf("User %s marked as a new user.", user.UserName)
+				x.newUserCache.Set(strID, time.Now(), cache.DefaultExpiration)
+			}
 		}
 	}
 	// Any human users?
@@ -267,9 +331,46 @@ func (x *opBot) processJoinEvents(bot tgbotInterface, update tgbotapi.Update) {
 	name := strings.Join(names, ", ")
 	markup := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(buttonURL(T("visit_our_group_website"), osProgramadoresURL)),
-		tgbotapi.NewInlineKeyboardRow(button(T("read_the_rules"), "rules")),
+		tgbotapi.NewInlineKeyboardRow(buttonURL(T("read_the_rules"), osProgramadoresRulesURL)),
 	)
-	x.sendReplyWithMarkup(bot, update, fmt.Sprintf(T("welcome"), name), markup)
+	x.sendReplyWithMarkup(bot, update.Message.Chat.ID, update.Message.MessageID, fmt.Sprintf(T("welcome"), name), markup)
+}
+
+// processNewUsers verifies if the user has been on the list for less than a
+// pre-determined amount of time . If so, it will delete any non-text message
+// from the user and send a warning message.
+func (x *opBot) processNewUsers(bot tgbotInterface, update tgbotapi.Update) {
+	strID := fmt.Sprintf("%d", update.Message.From.ID)
+
+	// Return immediately if user not in probation list.
+	if _, found := x.newUserCache.Get(strID); !found {
+		return
+	}
+
+	// Blocks non-text messages. Checks messages and edited messages.
+	for _, msg := range []*tgbotapi.Message{update.Message, update.EditedMessage} {
+		if richMessage(msg) {
+			// Log and delete message.
+			log.Printf("New user (%s) attempted to send non-text message. Deleting and notifying.", msg.From.UserName)
+
+			// We only send a reply message if the user does not appear in the
+			// newUserWarningCache (which has a expiration of minutes). The
+			// idea is to prevent a repeat offender from causing the bot to
+			// flood the group.
+			if _, found := x.newUserWarningCache.Get(strID); !found {
+				markup := tgbotapi.NewInlineKeyboardMarkup(
+					tgbotapi.NewInlineKeyboardRow(buttonURL(T("read_the_rules"), osProgramadoresRulesURL)),
+				)
+				x.sendReplyWithMarkup(bot, msg.Chat.ID, msg.MessageID, T("only_text_messages"), markup)
+			}
+
+			bot.DeleteMessage(tgbotapi.DeleteMessageConfig{
+				ChatID:    msg.Chat.ID,
+				MessageID: msg.MessageID,
+			})
+			x.newUserWarningCache.Set(strID, time.Now(), cache.DefaultExpiration)
+		}
+	}
 }
 
 // processUserCommands processes all user to bot commands (usually starting with a slash) by
@@ -294,6 +395,13 @@ func (x *opBot) processUserCommands(bot *tgbotapi.BotAPI, update tgbotapi.Update
 		sendReply(bot, update, e)
 		log.Println(e)
 	}
+}
+
+// richMessage returns true if the message is a rich message containing video, photos,
+// audio, etc. False otherwise.
+func richMessage(m *tgbotapi.Message) bool {
+	return m != nil && (m.Animation != nil || m.Audio != nil || m.Document != nil ||
+		m.Game != nil || m.Photo != nil || m.Video != nil || m.Voice != nil)
 }
 
 // stringInSlice returns true if a given string is in a string slice, false otherwise.

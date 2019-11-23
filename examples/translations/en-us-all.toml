@@ -4,9 +4,6 @@
 [welcome]
 other = "Welcome %s. What your interest in coding? Have fun!\nDon't forget to introduce yourself to the group!"
 
-[rules]
-other = "Rules:\n\n1 - No warez, hacking, or anything illegal here.\n2-ZERO tolerance for spam (immediate ban).\n3-Respect your fellow group members.\n4-Think before you write something.\n5-Have fun."
-
 [location_success]
 other = "Location updated successfully."
 
@@ -35,6 +32,9 @@ other = "Enables/disables notifications"
 
 [ban_help]
 other = "Reports message to admins. Remember to send the command in response to a message"
+
+[restrict_new_users_help]
+other = "Enables/disables new user restrictions (new users can only send text messages)"
 
 # Error messages
 
@@ -117,3 +117,7 @@ other = "🚫  Following *Ban Requested* was handled by [%s](tg://user?id=%d): _
 
 [callback_invalid_request]
 other = "Invalid request"
+
+# Probies (new users under probation) cannot send non-text messages.
+[only_text_messages]
+other = "We're sorry but new users can only send text messages. To send programs, use repl.it. For other types of text, use pastebin.com. If you really need to send images, upload them to imgur.com and send the link to the group.\n\nWe also strongly recommend that new users read the group rules by clicking on the link below."

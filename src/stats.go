@@ -46,6 +46,6 @@ func saveStats(w io.Writer, u *tgbotapi.Update) (string, error) {
 	// Chat id, UNIX timestamp, user id, msg len.
 	line := fmt.Sprintf("%d,%d,%d,%d\n", u.Message.MessageID, u.Message.Date, u.Message.From.ID, len(u.Message.Text)+len(u.Message.Caption))
 
-	_, err := fmt.Fprintf(w, line)
+	_, err := fmt.Fprint(w, line)
 	return line, err
 }
