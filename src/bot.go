@@ -51,6 +51,11 @@ type geoLocationsInterface interface {
 	serveLocations(int)
 }
 
+// getChatMemberer interface.
+type getChatMemberer interface {
+	GetChatMember(tgbotapi.ChatConfigWithUser) (tgbotapi.ChatMember, error)
+}
+
 // opBot defines an instance of op-bot.
 type opBot struct {
 	config   botConfig
@@ -108,10 +113,10 @@ func newOpBot(config botConfig) (opBot, error) {
 		statsWriter:   sw,
 
 		// TODO(marcopaganini): Change this to a config parameter.
-		newUserCache: cache.New(3*time.Minute, 48*time.Hour),
+		newUserCache: cache.New(24*time.Hour, 48*time.Hour),
 
 		// How often will re-send warning messages to offending new users.
-		newUserWarningCache: cache.New(1*time.Minute, time.Hour),
+		newUserWarningCache: cache.New(30*time.Minute, time.Hour),
 	}, nil
 }
 
@@ -142,8 +147,12 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 			// Notifications.
 			x.notifications.manageNotifications(bot, update)
 
-			// Process newUsers (block non-text media for new users.)
-			if x.config.RestrictNewUsers {
+			// Block many types of rich media from new users (but always allows admins).
+			admin, err := isAdmin(bot, update.Message.Chat.ID, update.Message.From.ID)
+			if err != nil {
+				log.Printf("Unable to determine if user is an admin. Assuming not.")
+			}
+			if x.config.RestrictNewUsers && !admin {
 				x.processNewUsers(bot, update)
 			}
 
@@ -388,6 +397,19 @@ func (x *opBot) processUserCommands(bot *tgbotapi.BotAPI, update tgbotapi.Update
 		log.Printf("Ignoring non-private request on private only command %q", cmd)
 		return
 	}
+	// Fail silently if a regular user makes an admin-only request.
+	if bcmd.adminOnly {
+		admin, err := isAdmin(bot, update.Message.Chat.ID, update.Message.From.ID)
+		if err != nil {
+			log.Printf("Error retrieving user info for %v: %v", update, err)
+			return
+		}
+		if !admin {
+			log.Printf("Regular user %s attempted to use admin-only command: %s (ignored)", update.Message.From.UserName, cmd)
+			return
+		}
+	}
+
 	// Handle command. Emit (and log) error.
 	err := bcmd.handler(bot, update)
 	if err != nil {
@@ -400,8 +422,23 @@ func (x *opBot) processUserCommands(bot *tgbotapi.BotAPI, update tgbotapi.Update
 // richMessage returns true if the message is a rich message containing video, photos,
 // audio, etc. False otherwise.
 func richMessage(m *tgbotapi.Message) bool {
-	return m != nil && (m.Animation != nil || m.Audio != nil || m.Document != nil ||
-		m.Game != nil || m.Photo != nil || m.Video != nil || m.Voice != nil)
+	return m != nil && (m.Animation != nil || m.Audio != nil || m.Document != nil || m.Game != nil ||
+		m.Photo != nil || m.Video != nil || m.VideoNote != nil || m.Voice != nil)
+}
+
+// isAdmin returns true if the user is a member of a given chat ID and has
+// administrator privileges.
+func isAdmin(bot getChatMemberer, chatID int64, userID int) (bool, error) {
+	q := tgbotapi.ChatConfigWithUser{
+		ChatID: chatID,
+		UserID: userID,
+	}
+
+	chatmember, err := bot.GetChatMember(q)
+	if err != nil {
+		return false, err
+	}
+	return (chatmember.IsAdministrator() || chatmember.IsCreator()), nil
 }
 
 // stringInSlice returns true if a given string is in a string slice, false otherwise.
