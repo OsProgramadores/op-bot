@@ -34,8 +34,6 @@ func (x *opBot) handleCallbackQuery(bot *tgbotapi.BotAPI, update tgbotapi.Update
 	data := update.CallbackQuery.Data
 
 	switch {
-	case data == "rules":
-		answerCallbackWithNotification(bot, update.CallbackQuery.ID, T("rules"))
 	case strings.HasPrefix(data, "ban-user-"):
 		requestID, err := extractRequestID(data, "ban-user", "malformed ban request callback query")
 		if err != nil {
