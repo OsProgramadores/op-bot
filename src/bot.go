@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"math/big"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -66,6 +67,9 @@ type opBot struct {
 
 	// Don't send warning messages to new users on every infraction.
 	newUserWarningCache *cache.Cache
+
+	// Time to live for welcome messages
+	welcomeMessageTTL time.Duration
 
 	notifications notificationsInterface
 	media         mediaInterface
@@ -137,6 +141,9 @@ func newOpBot(config botConfig) (opBot, error) {
 
 		// How often will re-send warning messages to offending new users.
 		newUserWarningCache: cache.New(30*time.Minute, time.Hour),
+
+		// By default welcome messages will last for 30 minutes.
+		welcomeMessageTTL: 30 * time.Minute,
 	}, nil
 }
 
@@ -279,6 +286,35 @@ func (x *opBot) toggleNewUserRestrictionsHandler(bot tgbotInterface, update tgbo
 	return nil
 }
 
+// setWelcomeMessageTTLHandler sets the time (in minutes) welcome messages
+// should live before being automatically removed. A value of 0 disables the
+// feature.
+func (x *opBot) setWelcomeMessageTTLHandler(bot tgbotInterface, update tgbotapi.Update) error {
+	re := regexp.MustCompile(`/[a-zA-Z_-]+\s+(.+)`)
+	text := update.Message.Text
+
+	groups := re.FindStringSubmatch(text)
+	if len(groups) < 1 || groups[1] == "" {
+		return fmt.Errorf("invalid time specification: %s", text)
+	}
+
+	value := groups[1]
+
+	d, err := time.ParseDuration(value)
+	if err != nil || d.Seconds() < 0 {
+		return fmt.Errorf("invalid time specification: %s", value)
+	}
+	x.welcomeMessageTTL = d
+
+	var note string
+	if d.Seconds() <= 0 {
+		note = " (disabled)"
+	}
+	sendReply(bot, update, fmt.Sprintf("Welcome message TTL set to: %v%s", d, note))
+
+	return nil
+}
+
 // updateMessageStats updates the message statistics for all messages from a
 // specific username.  Emits an error message to output in case of errors.
 func updateMessageStats(w io.Writer, update tgbotapi.Update, username string) {
@@ -362,7 +398,21 @@ func (x *opBot) processJoinEvents(bot tgbotInterface, update tgbotapi.Update) {
 		tgbotapi.NewInlineKeyboardRow(buttonURL(T("visit_our_group_website"), osProgramadoresURL)),
 		tgbotapi.NewInlineKeyboardRow(buttonURL(T("read_the_rules"), osProgramadoresRulesURL)),
 	)
-	x.sendReplyWithMarkup(bot, update.Message.Chat.ID, update.Message.MessageID, fmt.Sprintf(T("welcome"), name), markup)
+	welcome, err := x.sendReplyWithMarkup(bot, update.Message.Chat.ID, update.Message.MessageID, fmt.Sprintf(T("welcome"), name), markup)
+	if err != nil {
+		log.Printf("Error sending welcomg message to user %s", name)
+		return
+	}
+
+	// Delete welcome message after the configured timeout (if timeout > 0).
+	if x.welcomeMessageTTL.Seconds() > 0 {
+		time.AfterFunc(x.welcomeMessageTTL, func() {
+			bot.DeleteMessage(tgbotapi.DeleteMessageConfig{
+				ChatID:    welcome.Chat.ID,
+				MessageID: welcome.MessageID,
+			})
+		})
+	}
 }
 
 // processNewUsers verifies if the user has been on the list for less than a

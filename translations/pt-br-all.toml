@@ -15,6 +15,7 @@ register_help = "Help dos comandos"
 notifications_help = "Ativa/desativa notificações"
 ban_help = "Reporta mensagem para os admins. Use este comando em resposta a uma mensagem"
 restrict_new_users_help = "Liga/Desliga restrições para novos usuários."
+welcome_message_ttl_help = "Configura o tempo de vida das mensagens de boas-vindas (Ex: /welcome_message_ttl 5m)"
 
 # Error messages
 
