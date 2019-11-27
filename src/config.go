@@ -18,8 +18,8 @@ const (
 	// Directory usually under $HOME/.config that holds all configurations.
 	opBotConfigDir = "op-bot"
 
-	// Directory under config where translations are stored.
-	opBotTranslationDir = "translations"
+	// Default directory for the translations.
+	opBotTranslationDir = "./translations"
 )
 
 type botConfig struct {
@@ -84,20 +84,22 @@ func loadConfig() (botConfig, error) {
 	return config, nil
 }
 
-// loadTranslation loads the translation file for the specified language
-// and returns a Tfunc function to handle the translation.
+// loadTranslation loads the translation file for the specified language and
+// returns a Tfunc function to handle the translation. The default directory is
+// usually "translations" (under cwd). The TRANSLATIONS_DIR environment
+// variable overrides this.
 func loadTranslation(lang string) (i18n.TranslateFunc, error) {
-	// Empty translate func
+	// Empty translate func.
 	tfunc := func(translationID string, args ...interface{}) string {
 		return ""
 	}
 
-	cfgdir, err := configDir()
-	if err != nil {
-		return tfunc, err
+	dir := os.Getenv("TRANSLATIONS_DIR")
+	if dir == "" {
+		dir = opBotTranslationDir
 	}
 
-	f := filepath.Join(cfgdir, opBotTranslationDir, lang+"-all.toml")
+	f := filepath.Join(dir, lang+"-all.toml")
 	if err := i18n.LoadTranslationFile(f); err != nil {
 		return tfunc, err
 	}
