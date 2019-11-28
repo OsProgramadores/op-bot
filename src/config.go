@@ -52,7 +52,12 @@ type botConfig struct {
 // loadConfig loads the configuration items for the bot from 'configFile' under
 // the home directory, and assigns sane defaults to certain configuration items.
 func loadConfig() (botConfig, error) {
-	config := botConfig{}
+	// Hardwire some defaults and let the config override them.
+	config := botConfig{
+		RestrictNewUsers: true,
+		KickBots:         true,
+		DeleteFwd:        true,
+	}
 
 	cfgdir, err := configDir()
 	if err != nil {
