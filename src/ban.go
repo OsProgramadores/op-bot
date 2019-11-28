@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gopkg.in/telegram-bot-api.v4"
 	"log"
+	"path"
 	"strings"
 	"sync"
 )
@@ -63,14 +64,18 @@ type bans struct {
 }
 
 // newBans creates a new bans object.
-func newBans() *bans {
+func newBans() (*bans, error) {
+	ddir, err := dataDir()
+	if err != nil {
+		return nil, err
+	}
 	return &bans{
 		Requests: banRequestList{
 			NotificationThreshold: adminNotificationDefaultThreshold,
 			Bans:                  map[string]banRequest{},
 		},
-		requestedBansDB: requestedBansDB,
-	}
+		requestedBansDB: path.Join(ddir, requestedBansDB),
+	}, nil
 }
 
 // nolint: gocyclo
