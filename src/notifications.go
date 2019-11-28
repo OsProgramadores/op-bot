@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gopkg.in/telegram-bot-api.v4"
 	"log"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
@@ -21,10 +22,14 @@ type notifications struct {
 }
 
 // newNotifications creates a new notification type.
-func newNotifications() *notifications {
-	return &notifications{
-		notificationsDB: notificationsDB,
+func newNotifications() (*notifications, error) {
+	ddir, err := dataDir()
+	if err != nil {
+		return nil, err
 	}
+	return &notifications{
+		notificationsDB: path.Join(ddir, notificationsDB),
+	}, nil
 }
 
 // notificationHandler enables/disables user notifications.

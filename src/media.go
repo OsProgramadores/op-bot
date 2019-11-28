@@ -6,6 +6,7 @@ import (
 	"errors"
 	"gopkg.in/telegram-bot-api.v4"
 	"log"
+	"path"
 	"sync"
 )
 
@@ -21,26 +22,22 @@ type botMedia struct {
 }
 
 // newBotMedia creates a new bot media type.
-func newBotMedia() *botMedia {
+func newBotMedia() (*botMedia, error) {
+	ddir, err := dataDir()
+	if err != nil {
+		return nil, err
+	}
 	return &botMedia{
 		URLToMediaID: map[string]string{},
-	}
-}
-
-// cacheFile returns the name specified in cfile or a default name
-// if cfile is nil.
-func (m *botMedia) cacheFile() string {
-	if m.cfile == "" {
-		return mediaDBCache
-	}
-	return m.cfile
+		cfile:        path.Join(ddir, mediaDBCache),
+	}, nil
 }
 
 // loadMedia loads media list database from mediaDB file.
 func (m *botMedia) loadMedia() error {
 	m.Lock()
 	defer m.Unlock()
-	return readJSONFromDataDir(&m.URLToMediaID, m.cacheFile())
+	return readJSONFromDataDir(&m.URLToMediaID, m.cfile)
 }
 
 // sendMedia sends the media pointed out by `mediaURL' to the user/group
@@ -87,7 +84,7 @@ func (m *botMedia) sendMedia(bot tgbotInterface, update tgbotapi.Update, mediaUR
 	// Store the Telegram ID, if we do not yet have the requested media.
 	if !ok {
 		m.URLToMediaID[mediaURL] = message.Document.FileID
-		return safeWriteJSON(m.URLToMediaID, m.cacheFile())
+		return safeWriteJSON(m.URLToMediaID, m.cfile)
 	}
 
 	return err
