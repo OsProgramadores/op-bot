@@ -1,0 +1,10 @@
+bin
+docker
+.dockerignore
+examples
+.gitignore
+LICENSE
+*.md
+op-bot
+travis-ci
+.travis.yml
