@@ -19,6 +19,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unable to load config: %s", err)
 	}
+	log.Printf("Loaded config: %+v", config)
 
 	T, err = loadTranslation(config.Language)
 	if err != nil {
@@ -38,19 +39,19 @@ func main() {
 	defer opbot.Close()
 
 	if err = opbot.notifications.loadNotificationSettings(); err != nil {
-		log.Printf("Error loading notifications: %v", err)
+		log.Printf("Error loading notifications: %v (assuming no notifications)", err)
 	}
 
 	if err = opbot.media.loadMedia(); err != nil {
-		log.Printf("Error loading media list: %v", err)
+		log.Printf("Error loading media list: %v (assuming empty media cache)", err)
 	}
 
 	if err = opbot.bans.loadBanRequestsInfo(); err != nil {
-		log.Printf("Error loading info on the requested bans: %v", err)
+		log.Printf("Error loading info on the requested bans: %v (assuming no bans)", err)
 	}
 
 	if err := opbot.geolocations.readLocations(); err != nil {
-		log.Printf("Error reading locations: %v", err)
+		log.Printf("Error reading locations: %v (assuming no locations recorded)", err)
 	}
 
 	// Start the HTTP server listing the location info.
