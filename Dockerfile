@@ -15,11 +15,7 @@ RUN apk add --no-cache ca-certificates git make && \
     export HOME="/tmp" && \
     export GOPATH="/tmp/build" && \
     cd src && \
-    go get -u -v "github.com/BurntSushi/toml" && \
-    go get -u -v "github.com/nicksnyder/go-i18n/i18n" && \
-    go get -u -v "github.com/patrickmn/go-cache" && \
-    go get -u -v "github.com/stretchr/testify/mock" && \
-    go get -u -v "gopkg.in/telegram-bot-api.v4" && \
+    go mod download && \
     cd .. && \
     make
 
