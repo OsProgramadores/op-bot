@@ -1,123 +1,60 @@
 # pt-br translation file for op-bot
 # http://github.com/osprogramadores/op-bot
 
-[welcome]
-other = "Bem-vindo(a) %s! Qual o seu interesse em programação? Divirta-se e envie um pequeno resumo sobre você para quebrar o gelo com os outros membros do grupo!"
-
-[location_success]
-other = "Localização atualizada com sucesso."
-
-[location_fail]
-other = "Houve um imprevisto tentando atualizar a localização. Por favor, tente novamente mais tarde."
-
-[read_the_rules]
-other = "Leia as Regras"
-
-[visit_our_group_website]
-other = "Visite o site do Grupo"
-
-[error_starting_bot]
-other = "Erro inicializando o bot (verifique se o token no arquivo de configuração está configurado)"
+welcome = "Bem-vindo(a) %s! Qual o seu interesse em programação? Divirta-se e envie um pequeno resumo sobre você para quebrar o gelo com os outros membros do grupo!"
+location_success = "Localização atualizada com sucesso."
+location_fail = "Houve um imprevisto tentando atualizar a localização. Por favor, tente novamente mais tarde."
+read_the_rules = "Leia as Regras"
+visit_our_group_website = "Visite o site do Grupo"
+error_starting_bot = "Erro inicializando o bot (verifique se o token no arquivo de configuração está configurado)"
 
 # Register help messages.
 
-[register_hackerdetected]
-other = "Dispara o alarme anti-hacker. :)"
-
-[register_help]
-other = "Help dos comandos"
-
-[notifications_help]
-other = "Ativa/desativa notificações"
-
-[ban_help]
-other = "Reporta mensagem para os admins. Use este comando em resposta a uma mensagem"
-
-[restrict_new_users_help]
-other = "Liga/Desliga restrições para novos usuários."
+register_hackerdetected = "Dispara o alarme anti-hacker. :)"
+register_help = "Help dos comandos"
+notifications_help = "Ativa/desativa notificações"
+ban_help = "Reporta mensagem para os admins. Use este comando em resposta a uma mensagem"
+restrict_new_users_help = "Liga/Desliga restrições para novos usuários."
 
 # Error messages
 
-[handler_error]
-other = "Erro: %s"
-
-[error_reading_user_info]
-other = "erro lendo informações sobre o usuário corrente: %s"
-
-[error_homedir_must_exist]
-other = "diretório home tem que existir e ser um diretório: %s"
+handler_error = "Erro: %s"
+error_reading_user_info = "erro lendo informações sobre o usuário corrente: %s"
+error_homedir_must_exist = "diretório home tem que existir e ser um diretório: %s"
 
 # Notifications messages.
 
-[notification_replied]
-other = "⚠️ *Notificação*\n[%s](tg://user?id=%d) respondeu a uma mensagem sua em *%s*\n\n_%s_"
-
-[notification_mentioned]
-other = "⚠️ *Notificação*\n[%s](tg://user?id=%d) mencionou você em *%s*\n\n_%s_"
-
-[go_to_notification]
-other = "Ir para a mensagem"
-
-[notification_fail]
-other = "Não foi possível atualizar as configurações de notificação. Tente novamente mais tarde (%s)"
-
-[notification_success]
-other = "Configurações de notificação atualizadas com sucesso (%s)"
-
-[notifications_enabled]
-other = "notificações ativadas"
-
-[notifications_disabled]
-other = "notificações desativadas"
+notification_replied = "⚠️ *Notificação*\n[%s](tg://user?id=%d) respondeu a uma mensagem sua em *%s*\n\n_%s_"
+notification_mentioned = "⚠️ *Notificação*\n[%s](tg://user?id=%d) mencionou você em *%s*\n\n_%s_"
+go_to_notification = "Ir para a mensagem"
+notification_fail = "Não foi possível atualizar as configurações de notificação. Tente novamente mais tarde (%s)"
+notification_success = "Configurações de notificação atualizadas com sucesso (%s)"
+notifications_enabled = "notificações ativadas"
+notifications_disabled = "notificações desativadas"
 
 # Stats messages.
 
-[stats_error_saving]
-other = "Erro ao tentar salvar estatísticas de mensagens: %s (dado não salvo: %q)"
-
-[stats_error_empty_message]
-other = "mensagem vazia recebida"
-
-[stats_error_unknown_user]
-other = "mensagem enviada por usuário desconhecido"
+stats_error_saving = "Erro ao tentar salvar estatísticas de mensagens: %s (dado não salvo: %q)"
+stats_error_empty_message = "mensagem vazia recebida"
+stats_error_unknown_user = "mensagem enviada por usuário desconhecido"
 
 # Ban request messages.
 
-[remove_message]
-other = "Apagar mensagem"
-
-[remove_message_and_ban]
-other = "Apagar mensagem e banir"
-
-[notify_admin]
-other = "🚫 *Ban Solicitado*\n[%s](tg://user?id=%d) solicitou um _ban_ em *%s*\n\n_%s_"
-
-[delete_message_fail]
-other = "Erro ao apagar mensagem. Talvez ela já tenha sido apagada?"
-
-[delete_and_ban_fail]
-other = "Erro ao apagar mensagem e banir usuário. Talvez isso já tenha sido feito?"
-
-[delete_message_success]
-other =  "Mensagem apagada com sucesso"
-
-[delete_and_ban_success]
-other = "Mensagem apagada e usuário banido com sucesso"
-
-[notification_update_delete]
-other = "mensagem apagada"
-
-[notification_update_delete_and_ban]
-other = "mensagem apagada e usuário banido"
-
-[notification_handled]
-other = "🚫 *Ban Solicitado* a seguir foi resolvido por [%s](tg://user?id=%d): _%s_\n\n_%s_"
+remove_message = "Apagar mensagem"
+remove_message_and_ban = "Apagar mensagem e banir"
+notify_admin = "🚫 *Ban Solicitado*\n[%s](tg://user?id=%d) solicitou um _ban_ em *%s*\n\n_%s_"
+delete_message_fail = "Erro ao apagar mensagem. Talvez ela já tenha sido apagada?"
+delete_and_ban_fail = "Erro ao apagar mensagem e banir usuário. Talvez isso já tenha sido feito?"
+delete_message_success =  "Mensagem apagada com sucesso"
+delete_and_ban_success = "Mensagem apagada e usuário banido com sucesso"
+notification_update_delete = "mensagem apagada"
+notification_update_delete_and_ban = "mensagem apagada e usuário banido"
+notification_handled = "🚫 *Ban Solicitado* a seguir foi resolvido por [%s](tg://user?id=%d): _%s_\n\n_%s_"
 
 # Callback query error.
 
-[callback_invalid_request]
-other = "Requisição inválida"
+callback_invalid_request = "Requisição inválida"
 
 # Probies (new users under probation) cannot send non-text messages.
-[only_text_messages]
-other = "Novos usuários só podem enviar mensagens contendo texto. Para enviar partes de código, use o repl.it. Para outros tipos de texto, use o pastebin.com. Se o envio de imagens for absolutamente necessário, faça um upload das imagens para o imgur.com e envie o link para o grupo.\n\nOs administradores fortemente recomendam a leitura das regras do grupo, disponíveis no link abaixo."
+
+only_text_messages = "Novos usuários só podem enviar mensagens contendo texto. Para enviar partes de código, use o repl.it. Para outros tipos de texto, use o pastebin.com. Se o envio de imagens for absolutamente necessário, faça um upload das imagens para o imgur.com e envie o link para o grupo.\n\nOs administradores fortemente recomendam a leitura das regras do grupo, disponíveis no link abaixo."
