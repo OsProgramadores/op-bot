@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/BurntSushi/toml"
-	"github.com/nicksnyder/go-i18n/i18n"
 	"io/ioutil"
 	"os"
 	"os/user"
@@ -89,27 +88,50 @@ func loadConfig() (botConfig, error) {
 	return config, nil
 }
 
-// loadTranslation loads the translation file for the specified language and
-// returns a Tfunc function to handle the translation. The default directory is
-// usually "translations" (under cwd). The TRANSLATIONS_DIR environment
-// variable overrides this.
-func loadTranslation(lang string) (i18n.TranslateFunc, error) {
-	// Empty translate func.
-	tfunc := func(translationID string, args ...interface{}) string {
-		return ""
-	}
-
+// translationFile returns the name of the translation file based on the
+// desired language. The default directory is "./translations" under the
+// current directory, but can be overriden by the environment variable
+// "TRANSLATIONS_DIR".
+func translationFile(lang string) string {
 	dir := os.Getenv("TRANSLATIONS_DIR")
 	if dir == "" {
 		dir = opBotTranslationDir
 	}
 
-	f := filepath.Join(dir, lang+"-all.toml")
-	if err := i18n.LoadTranslationFile(f); err != nil {
-		return tfunc, err
+	return filepath.Join(dir, lang+"-all.toml")
+}
+
+// loadTranslation loads the translation file from the specified file and
+// returns a function to handle the translation of messages.
+func loadTranslation(fname string) (func(string) string, error) {
+	var config interface{}
+	if _, err := toml.DecodeFile(fname, &config); err != nil {
+		return nil, fmt.Errorf("unable to load translation file %s: %v", fname, err)
 	}
 
-	return i18n.Tfunc(lang)
+	// Make sure every element can be asserted into a string.
+	// Failure here means a configuration file problem.
+	items, ok := config.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid configuration file")
+	}
+	for _, v := range items {
+		if _, ok := v.(string); !ok {
+			return nil, fmt.Errorf("invalid configuration file")
+		}
+	}
+
+	// This anonymous function returns the translation string
+	// from a key, or the key itself if it does not exist in
+	// the translation file.
+	return func(msg string) string {
+		keyval := config.(map[string]interface{})
+		val, ok := keyval[msg]
+		if !ok {
+			return msg
+		}
+		return val.(string)
+	}, nil
 }
 
 // homeDir returns the user's home directory or an error if the variable HOME

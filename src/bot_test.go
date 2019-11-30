@@ -3,7 +3,6 @@ package main
 
 import (
 	"errors"
-	"github.com/nicksnyder/go-i18n/i18n"
 	"github.com/stretchr/testify/mock"
 	"gopkg.in/telegram-bot-api.v4"
 	"log"
@@ -369,23 +368,9 @@ func TestProcessBotJoin(t *testing.T) {
 	}
 }
 
-// loadTestTranslations loads translated messages for the English language
-// from the testdata directory.
-func loadTestTranslation() (i18n.TranslateFunc, error) {
-	// Empty translate func
-	tfunc := func(translationID string, args ...interface{}) string {
-		return ""
-	}
-
-	if err := i18n.LoadTranslationFile("testdata/translations/en-us-all.toml"); err != nil {
-		return tfunc, err
-	}
-	return i18n.Tfunc("en-us")
-}
-
 func setup() error {
 	var err error
-	T, err = loadTestTranslation()
+	T, err = loadTranslation("../translations/en-us-all.toml")
 	return err
 }
 

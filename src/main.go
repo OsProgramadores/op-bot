@@ -8,8 +8,7 @@ import (
 var (
 	// T holds our global translation function. We return blank
 	// by default to make test initialization simpler.
-	// TODO: investigate why we can't use i18n.Translatefunc as the type here.
-	T = func(translationID string, args ...interface{}) string {
+	T = func(string) string {
 		return ""
 	}
 )
@@ -21,7 +20,7 @@ func main() {
 	}
 	log.Printf("Loaded config: %+v", config)
 
-	T, err = loadTranslation(config.Language)
+	T, err = loadTranslation(translationFile(config.Language))
 	if err != nil {
 		log.Fatalf("Unable to load translations: %s", err)
 	}
