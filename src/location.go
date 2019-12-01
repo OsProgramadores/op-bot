@@ -8,7 +8,6 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	"path"
 	"sync"
 )
 
@@ -35,17 +34,12 @@ type geoLocations struct {
 }
 
 // newGeolocations returns a new instance of geoLocations
-func newGeolocations(locationKey string) (*geoLocations, error) {
-	ddir, err := dataDir()
-	if err != nil {
-		return nil, err
-	}
-
+func newGeolocations(locationKey string) *geoLocations {
 	return &geoLocations{
 		coords:      map[string]geoLocation{},
 		locationKey: locationKey,
-		locationDB:  path.Join(ddir, locationDB),
-	}, nil
+		locationDB:  locationDB,
+	}
 }
 
 // readLocations reads locations from the locationDB file.
