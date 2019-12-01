@@ -108,32 +108,12 @@ func newOpBot(config botConfig) (opBot, error) {
 		return opBot{}, fmt.Errorf("error initializing stats: %v", err)
 	}
 
-	media, err := newBotMedia()
-	if err != nil {
-		return opBot{}, err
-	}
-
-	notifications, err := newNotifications()
-	if err != nil {
-		return opBot{}, err
-	}
-
-	bans, err := newBans()
-	if err != nil {
-		return opBot{}, err
-	}
-
-	geolocations, err := newGeolocations(config.LocationKey)
-	if err != nil {
-		return opBot{}, err
-	}
-
 	return opBot{
 		config:        config,
-		notifications: notifications,
-		media:         media,
-		bans:          bans,
-		geolocations:  geolocations,
+		notifications: newNotifications(),
+		media:         newBotMedia(),
+		bans:          newBans(),
+		geolocations:  newGeolocations(config.LocationKey),
 		statsWriter:   sw,
 
 		// TODO(marcopaganini): Change this to a config parameter.
