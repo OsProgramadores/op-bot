@@ -124,7 +124,9 @@ func TestHelpHandler(t *testing.T) {
 			},
 			wantStr: "/bar: mock_bar_command\n/foo: mock_foo_command",
 		},
-		// One regular command, one admin, one disable (should print one.)
+		// One regular command: /foo
+		// One admin command: /bar_admin, should produce "output + (Admin)"
+		// One disabled command: /bar_disabled, Should produce no output.
 		{
 			reg: []registry{
 				{
@@ -134,26 +136,25 @@ func TestHelpHandler(t *testing.T) {
 					enabled: true,
 				},
 				{
-					cmd:       "bar",
+					cmd:       "bar_admin",
 					desc:      "mock_bar_admin_command",
 					adminOnly: true,
 					pvtOnly:   true,
 					enabled:   true,
 				},
 				{
-					cmd:     "bar",
+					cmd:     "bar_disabled",
 					desc:    "mock_bar_disabled_command",
 					pvtOnly: true,
 				},
 			},
-			wantStr: "/foo: mock_foo_command",
+			wantStr: "/bar_admin: mock_bar_admin_command (Admin)\n/foo: mock_foo_command",
 		},
 	}
 
-	// Built a new opBot with all commands to be registered.
-	mockOpBot := opBot{}
-
 	for _, tt := range caseTests {
+		// Built a new opBot and register all commands for this test case.
+		mockOpBot := opBot{}
 		for _, reg := range tt.reg {
 			mockOpBot.Register(reg.cmd, reg.desc, reg.adminOnly, reg.pvtOnly, reg.enabled, mockOpBot.helpHandler)
 		}
@@ -174,7 +175,7 @@ func TestHelpHandler(t *testing.T) {
 		wantMsg.ReplyToMessageID = msgID
 
 		mockTelebot := &MockTelebot{}
-		mockTelebot.On("Send", wantMsg).Return(tgbotapi.Message{}, nil).Once()
+		mockTelebot.On("Send", wantMsg).Return(tgbotapi.Message{}, nil)
 
 		mockOpBot.helpHandler(mockTelebot, mockUpdate)
 		mockTelebot.AssertExpectations(t)
