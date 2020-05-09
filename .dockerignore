@@ -6,5 +6,5 @@ examples
 LICENSE
 *.md
 op-bot
-travis-ci
-.travis.yml
+ci
+.github
