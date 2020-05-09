@@ -14,7 +14,7 @@ register_hackerdetected = "Fire the anti-hacker countermeasures. :)"
 register_help = "Command help"
 notifications_help = "Enables/disables notifications"
 ban_help = "Reports message to admins. Remember to send the command in response to a message"
-restrict_new_users_help = "Enables/disables new user restrictions (new users can only send text messages)"
+new_users_probation_time = "Users must be in the group for this long to gain full privileges (E.g, 24h, 0 = disable feature)"
 welcome_message_ttl_help = "Set the time-to-live for the welcome messages (E.g: /welcome_message_ttl 5m)"
 
 # Error messages

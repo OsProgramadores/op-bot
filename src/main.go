@@ -62,7 +62,7 @@ func main() {
 	opbot.Register("help", T("register_help"), false, true, true, opbot.helpHandler)
 	opbot.Register("notifications", T("notifications_help"), false, true, true, opbot.notifications.notificationHandler)
 	opbot.Register("ban", T("ban_help"), false, false, true, opbot.bans.banRequestHandler)
-	opbot.Register("restrict_new_users", T("restrict_new_users_help"), true, false, true, opbot.toggleNewUserRestrictionsHandler)
+	opbot.Register("new_users_probation_time", T("new_users_probation_time_help"), true, false, true, opbot.setNewUserProbationTimeHandler)
 	opbot.Register("welcome_message_ttl", T("welcome_message_ttl_help"), true, false, true, opbot.setWelcomeMessageTTLHandler)
 
 	// Make it so!

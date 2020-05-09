@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"time"
 )
 
 const (
@@ -44,8 +45,9 @@ type botConfig struct {
 	// Bots in this whitelist won't be automatically kicked.
 	BotWhitelist []string `toml:"bot_whitelist"`
 
-	// Activate new user restrictions? (can't post pictures, audio, etc)
-	RestrictNewUsers bool `toml:"restrict_new_users"`
+	// Restriction time for new users (can't post pictures, audio, etc)
+	// Set to 0 to disable this feature.
+	NewUserProbationTime time.Duration `toml:"new_user_probation_time"`
 }
 
 // loadConfig loads the configuration items for the bot from 'configFile' under
@@ -53,9 +55,9 @@ type botConfig struct {
 func loadConfig() (botConfig, error) {
 	// Hardwire some defaults and let the config override them.
 	config := botConfig{
-		RestrictNewUsers: true,
-		KickBots:         true,
-		DeleteFwd:        true,
+		NewUserProbationTime: time.Duration(24 * time.Hour),
+		KickBots:             true,
+		DeleteFwd:            true,
 	}
 
 	cfgdir, err := configDir()
