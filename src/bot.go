@@ -57,6 +57,11 @@ type getChatMemberer interface {
 	GetChatMember(tgbotapi.ChatConfigWithUser) (tgbotapi.ChatMember, error)
 }
 
+// deleteMessager interface.
+type deleteMessager interface {
+	DeleteMessage(tgbotapi.DeleteMessageConfig) (tgbotapi.APIResponse, error)
+}
+
 // opBot defines an instance of op-bot.
 type opBot struct {
 	config   botConfig
@@ -117,7 +122,7 @@ func newOpBot(config botConfig) (opBot, error) {
 		statsWriter:   sw,
 
 		// TODO(marcopaganini): Change this to a config parameter.
-		newUserCache: cache.New(24*time.Hour, 48*time.Hour),
+		newUserCache: cache.New(config.NewUserProbationTime, config.NewUserProbationTime),
 
 		// How often will re-send warning messages to offending new users.
 		newUserWarningCache: cache.New(30*time.Minute, time.Hour),
@@ -159,7 +164,7 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 			if err != nil {
 				log.Printf("Unable to determine if user is an admin. Assuming not.")
 			}
-			if x.config.RestrictNewUsers && !admin {
+			if x.config.NewUserProbationTime.Hours() > 0 && !admin {
 				x.processNewUsers(bot, update)
 			}
 
@@ -259,40 +264,73 @@ func (x *opBot) helpHandler(bot tgbotInterface, update tgbotapi.Update) error {
 	return nil
 }
 
-// toggleNewUserRestrictionsHandler toggles the state of config.NewUserRestrictions.
-func (x *opBot) toggleNewUserRestrictionsHandler(bot tgbotInterface, update tgbotapi.Update) error {
-	x.config.RestrictNewUsers = !x.config.RestrictNewUsers
-	sendReply(bot, update, fmt.Sprintf("New User Restrictions = %v", x.config.RestrictNewUsers))
-	return nil
-}
-
 // setWelcomeMessageTTLHandler sets the time (in minutes) welcome messages
 // should live before being automatically removed. A value of 0 disables the
 // feature.
 func (x *opBot) setWelcomeMessageTTLHandler(bot tgbotInterface, update tgbotapi.Update) error {
-	re := regexp.MustCompile(`/[a-zA-Z_-]+\s+(.+)`)
-	text := update.Message.Text
-
-	groups := re.FindStringSubmatch(text)
-	if len(groups) < 1 || groups[1] == "" {
-		return fmt.Errorf("invalid time specification: %s", text)
+	d, err := parseCmdDuration(update.Message.Text)
+	if err != nil {
+		return err
 	}
 
-	value := groups[1]
-
-	d, err := time.ParseDuration(value)
-	if err != nil || d.Seconds() < 0 {
-		return fmt.Errorf("invalid time specification: %s", value)
-	}
 	x.welcomeMessageTTL = d
 
 	var note string
 	if d.Seconds() <= 0 {
 		note = " (disabled)"
 	}
-	sendReply(bot, update, fmt.Sprintf("Welcome message TTL set to: %v%s", d, note))
-
+	reply, err := sendReply(bot, update, fmt.Sprintf("Welcome message TTL set to: %v%s", d, note))
+	if err != nil {
+		return err
+	}
+	selfDestructMessage(bot, reply.Chat.ID, reply.MessageID, 0)
 	return nil
+}
+
+// setNewUserProbationTimeHandler sets the time we consider new users as "new".
+// This sets a number of posting restrictions. This function uses ParseDuration
+// to parse the time. Set a suffix of 'h' to indicate hours (E.g, 8h). A value
+// of zero disables the feature. The minimum value is 1h (to prevent mistakes
+// such as setting the value too low.)
+func (x *opBot) setNewUserProbationTimeHandler(bot tgbotInterface, update tgbotapi.Update) error {
+	d, err := parseCmdDuration(update.Message.Text)
+	if err != nil {
+		return err
+	}
+
+	if d.Hours() < 1.0 && d.Hours() != 0 {
+		d = time.Duration(1 * time.Hour)
+	}
+	x.config.NewUserProbationTime = d
+
+	note := "disabled"
+	if d.Seconds() > 0 {
+		note = fmt.Sprintf("set to %s", d)
+	}
+	reply, err := sendReply(bot, update, fmt.Sprintf("New User Probation time %s", note))
+	if err != nil {
+		return err
+	}
+	selfDestructMessage(bot, reply.Chat.ID, reply.MessageID, 0)
+	return nil
+}
+
+// parseCmdDuration returns the time passed to a text message command. E.g: the command
+// "/whatever 10h", will return a time.Duration of 10h. The function ignores
+// the command itself.
+func parseCmdDuration(text string) (time.Duration, error) {
+	re := regexp.MustCompile(`/[a-zA-Z_-]+\s+(.+)`)
+	groups := re.FindStringSubmatch(text)
+	if len(groups) < 1 || groups[1] == "" {
+		return 0, fmt.Errorf("unable to find the duration in %q", text)
+	}
+	value := groups[1]
+
+	d, err := time.ParseDuration(value)
+	if err != nil || d.Seconds() < 0 {
+		return 0, fmt.Errorf("invalid time specification: %s", value)
+	}
+	return d, nil
 }
 
 // updateMessageStats updates the message statistics for all messages from a
@@ -384,20 +422,13 @@ func (x *opBot) processJoinEvents(bot tgbotInterface, update tgbotapi.Update) {
 		return
 	}
 
-	// Delete welcome message after the configured timeout (if timeout > 0).
-	if x.welcomeMessageTTL.Seconds() > 0 {
-		time.AfterFunc(x.welcomeMessageTTL, func() {
-			bot.DeleteMessage(tgbotapi.DeleteMessageConfig{
-				ChatID:    welcome.Chat.ID,
-				MessageID: welcome.MessageID,
-			})
-		})
-	}
+	// Delete welcome message after the configured timeout.
+	selfDestructMessage(bot, welcome.Chat.ID, welcome.MessageID, x.welcomeMessageTTL)
 }
 
 // processNewUsers verifies if the user has been on the list for less than a
-// pre-determined amount of time . If so, it will delete any non-text message
-// from the user and send a warning message.
+// pre-determined amount of time. If so, delete any non-text messages from the
+// user and send a self-destructing warning message.
 func (x *opBot) processNewUsers(bot tgbotInterface, update tgbotapi.Update) {
 	strID := fmt.Sprintf("%d", update.Message.From.ID)
 
@@ -420,9 +451,16 @@ func (x *opBot) processNewUsers(bot tgbotInterface, update tgbotapi.Update) {
 				markup := tgbotapi.NewInlineKeyboardMarkup(
 					tgbotapi.NewInlineKeyboardRow(buttonURL(T("read_the_rules"), osProgramadoresRulesURL)),
 				)
-				x.sendReplyWithMarkup(bot, msg.Chat.ID, msg.MessageID, T("only_text_messages"), markup)
+				reply, err := x.sendReplyWithMarkup(bot, msg.Chat.ID, msg.MessageID, T("only_text_messages"), markup)
+				// We log errors but try to move ahead and still block the offending message.
+				if err != nil {
+					log.Printf("Error sending rules message: %v", err)
+				}
+				// Delete warning message.
+				selfDestructMessage(bot, reply.Chat.ID, reply.MessageID, 0)
 			}
 
+			// Delete original message.
 			bot.DeleteMessage(tgbotapi.DeleteMessageConfig{
 				ChatID:    msg.Chat.ID,
 				MessageID: msg.MessageID,
@@ -467,6 +505,24 @@ func (x *opBot) processUserCommands(bot *tgbotapi.BotAPI, update tgbotapi.Update
 		sendReply(bot, update, e)
 		log.Println(e)
 	}
+}
+
+// selfDestructMessage deletes a message in a chat after the specified amount of time.
+// If the ttl is set to zero, assume a default of 30m.
+func selfDestructMessage(bot deleteMessager, chatID int64, messageID int, ttl time.Duration) {
+	if ttl < 0 {
+		return
+	}
+	if ttl == 0 {
+		ttl = time.Duration(30 * time.Minute)
+	}
+
+	time.AfterFunc(ttl, func() {
+		bot.DeleteMessage(tgbotapi.DeleteMessageConfig{
+			ChatID:    chatID,
+			MessageID: messageID,
+		})
+	})
 }
 
 // richMessage returns true if the message is a rich message containing video, photos,
