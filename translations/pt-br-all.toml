@@ -14,7 +14,7 @@ register_hackerdetected = "Dispara o alarme anti-hacker. :)"
 register_help = "Help dos comandos"
 notifications_help = "Ativa/desativa notificações"
 ban_help = "Reporta mensagem para os admins. Use este comando em resposta a uma mensagem"
-new_users_probation_time = "Configura o tempo minimo de permanência no grupo para eliminar restrições de novos usuários (Ex: 24h, 0 = desabilita restrições)"
+new_users_probation_time_help = "Configura o tempo minimo de permanência no grupo para eliminar restrições de novos usuários (Ex: 24h, 0 = desabilita restrições)"
 welcome_message_ttl_help = "Configura o tempo de vida das mensagens de boas-vindas (Ex: /welcome_message_ttl 5m)"
 
 # Error messages
