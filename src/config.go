@@ -22,6 +22,20 @@ const (
 	opBotTranslationDir = "./translations"
 )
 
+// duration satisfies the encoding.TextUnmarshaler interface to
+// provide direct decoding of durations in the config file.
+type duration struct {
+	time.Duration
+}
+
+// UnmarshalText decodes the text representation of duration in the
+// configuration into a time.Duration object.
+func (d *duration) UnmarshalText(text []byte) error {
+	var err error
+	d.Duration, err = time.ParseDuration(string(text))
+	return err
+}
+
 type botConfig struct {
 	// BotToken contains the Telegram token for this bot.
 	BotToken string `toml:"token"`
@@ -47,7 +61,7 @@ type botConfig struct {
 
 	// Restriction time for new users (can't post pictures, audio, etc)
 	// Set to 0 to disable this feature.
-	NewUserProbationTime time.Duration `toml:"new_user_probation_time"`
+	NewUserProbationTime duration `toml:"new_user_probation_time"`
 }
 
 // loadConfig loads the configuration items for the bot from 'configFile' under
@@ -55,7 +69,7 @@ type botConfig struct {
 func loadConfig() (botConfig, error) {
 	// Hardwire some defaults and let the config override them.
 	config := botConfig{
-		NewUserProbationTime: time.Duration(24 * time.Hour),
+		NewUserProbationTime: duration{time.Duration(24 * time.Hour)},
 		KickBots:             true,
 		DeleteFwd:            true,
 	}

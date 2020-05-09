@@ -113,6 +113,9 @@ func newOpBot(config botConfig) (opBot, error) {
 		return opBot{}, fmt.Errorf("error initializing stats: %v", err)
 	}
 
+	// Convert from parsed duration to time.Duration.
+	duration := config.NewUserProbationTime.Duration
+
 	return opBot{
 		config:        config,
 		notifications: newNotifications(),
@@ -121,8 +124,7 @@ func newOpBot(config botConfig) (opBot, error) {
 		geolocations:  newGeolocations(config.LocationKey),
 		statsWriter:   sw,
 
-		// TODO(marcopaganini): Change this to a config parameter.
-		newUserCache: cache.New(config.NewUserProbationTime, config.NewUserProbationTime),
+		newUserCache: cache.New(duration, duration),
 
 		// How often will re-send warning messages to offending new users.
 		newUserWarningCache: cache.New(30*time.Minute, time.Hour),
@@ -301,7 +303,7 @@ func (x *opBot) setNewUserProbationTimeHandler(bot tgbotInterface, update tgbota
 	if d.Hours() < 1.0 && d.Hours() != 0 {
 		d = time.Duration(1 * time.Hour)
 	}
-	x.config.NewUserProbationTime = d
+	x.config.NewUserProbationTime = duration{d}
 
 	note := "disabled"
 	if d.Seconds() > 0 {
