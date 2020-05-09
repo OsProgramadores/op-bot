@@ -1,0 +1,27 @@
+name: Test code
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.14.x
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+
+      - name: Install & build dependencies
+        run: |
+          go get -t ./...
+          go get -u golang.org/x/lint/golint
+          pushd ci/transcheck && go build && popd
+
+      - name: Test Go code
+        run: |
+          ./ci/codecheck.sh
+          go test -v ./...
+          go test -cpu=2 -race -v ./...

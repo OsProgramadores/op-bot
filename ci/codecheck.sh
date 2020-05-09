@@ -33,4 +33,4 @@ go vet
 
 echo "Checking translation IDs."
 cd ..
-travis-ci/transcheck/transcheck --source-dir "src" --translations-dir "examples/translations"
+./ci/transcheck/transcheck --source-dir "src" --translations-dir "examples/translations"
