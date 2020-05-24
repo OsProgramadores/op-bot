@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"gopkg.in/telegram-bot-api.v4"
+	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"io/ioutil"
 	"log"
 	"os"
@@ -85,17 +85,48 @@ func buttonURL(msg, url string) tgbotapi.InlineKeyboardButton {
 	return tgbotapi.NewInlineKeyboardButtonURL(msg, url)
 }
 
+// sendPhoto sends a file/fileReader/fileBytes to a chat id.
+func sendPhoto(bot sender, chatid int64, file interface{}, caption string) (tgbotapi.Message, error) {
+	photoConfig := tgbotapi.NewPhotoUpload(chatid, file)
+	photoConfig.Caption = caption
+	return bot.Send(photoConfig)
+}
+
 // sendReply sends a reply to a specific MessageID.
-func sendReply(bot tgbotInterface, update tgbotapi.Update, text string) (tgbotapi.Message, error) {
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
-	msg.ReplyToMessageID = update.Message.MessageID
+func sendReply(bot sender, chatid int64, messageid int, text string) (tgbotapi.Message, error) {
+	msg := tgbotapi.NewMessage(chatid, text)
+	msg.ReplyToMessageID = messageid
 	return bot.Send(msg)
 }
 
+// sendMessage sends a message to a specific ChatID (channel, group, etc).
+func sendMessage(bot sender, chatid int64, text string) (tgbotapi.Message, error) {
+	msg := tgbotapi.NewMessage(chatid, text)
+	msg.ParseMode = parseModeMarkdown
+	return bot.Send(msg)
+}
+
+// deleteMessage deletes a given message id in a chat id. It returns nothing as there's
+// not much to do other than log if the message deletion fails.
+func deleteMessage(bot deleteMessager, chatid int64, msgid int) {
+	_, err := bot.DeleteMessage(tgbotapi.DeleteMessageConfig{ChatID: chatid, MessageID: msgid})
+	if err != nil {
+		log.Printf("Unable to delete message (chat_id=%d, message_id=%d). Something is wrong.", chatid, msgid)
+	}
+	log.Printf("Removed message_id %d from chat_id %d", chatid, msgid)
+}
+
 // sendReplyWithMarkup sends a reply to a specific MessageID with markup.
-func (x *opBot) sendReplyWithMarkup(bot tgbotInterface, chatID int64, msgID int, text string, markup tgbotapi.InlineKeyboardMarkup) (tgbotapi.Message, error) {
+func sendReplyWithMarkup(bot sender, chatID int64, msgID int, text string, markup tgbotapi.InlineKeyboardMarkup) (tgbotapi.Message, error) {
 	msg := tgbotapi.NewMessage(chatID, text)
 	msg.ReplyToMessageID = msgID
+	msg.ReplyMarkup = &markup
+	return bot.Send(msg)
+}
+
+// sendMessageWithMarkup sends a message with markup.
+func sendMessageWithMarkup(bot sender, chatID int64, msgID int, text string, markup tgbotapi.InlineKeyboardMarkup) (tgbotapi.Message, error) {
+	msg := tgbotapi.NewMessage(chatID, text)
 	msg.ReplyMarkup = &markup
 	return bot.Send(msg)
 }

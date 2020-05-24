@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
+	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"io"
 	"log"
 	"math/rand"
@@ -95,6 +96,26 @@ func (g *geoLocations) serveLocations(port int) {
 	})
 
 	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+}
+
+// processLocationRequest fetches user geo-location information from the
+// request and adds the approximate location of the user to a point in the map
+// using handleLocation.  Returns a visible message to the user in case of
+// problems.
+func (x *opBot) processLocationRequest(bot tgbotInterface, update tgbotapi.Update) {
+	userid := update.Message.From.ID
+	location := update.Message.Location
+
+	err := x.geolocations.processLocation(userid, location.Latitude, location.Longitude)
+
+	// Give feedback to user, if message was sent privately.
+	if isPrivateChat(update.Message.Chat) {
+		message := T("location_success")
+		if err != nil {
+			message = T("location_fail")
+		}
+		sendReply(bot, update.Message.Chat.ID, update.Message.MessageID, message)
+	}
 }
 
 // randomizeCoordinate truncates the lat/long coordinate to one decimal and

@@ -1,15 +1,12 @@
 package main
 
 import (
-	"crypto/rand"
 	"fmt"
+	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/patrickmn/go-cache"
-	"gopkg.in/telegram-bot-api.v4"
 	"io"
 	"log"
-	"math/big"
-	"regexp"
-	"sort"
+	"math/rand"
 	"strings"
 	"time"
 )
@@ -25,43 +22,6 @@ const (
 	osProgramadoresGroup = "osprogramadores"
 )
 
-// mediaInterface defines the interface between opbot and the media module.
-type mediaInterface interface {
-	loadMedia() error
-	sendMedia(tgbotInterface, tgbotapi.Update, string) error
-}
-
-// notificationsInterface defines the interface between opbot and notifications.
-type notificationsInterface interface {
-	loadNotificationSettings() error
-	manageNotifications(*tgbotapi.BotAPI, tgbotapi.Update) error
-	notificationHandler(tgbotInterface, tgbotapi.Update) error
-}
-
-// bansInterface defines the interface between opbot and bans.
-type bansInterface interface {
-	banRequestHandler(tgbotInterface, tgbotapi.Update) error
-	deleteMessageFromBanRequest(tgbotInterface, *tgbotapi.User, string, bool) error
-	loadBanRequestsInfo() error
-}
-
-// geoLocationsInterface defines the interface between opbot and geo locations.
-type geoLocationsInterface interface {
-	processLocation(int, float64, float64) error
-	readLocations() error
-	serveLocations(int)
-}
-
-// getChatMemberer interface.
-type getChatMemberer interface {
-	GetChatMember(tgbotapi.ChatConfigWithUser) (tgbotapi.ChatMember, error)
-}
-
-// deleteMessager interface.
-type deleteMessager interface {
-	DeleteMessage(tgbotapi.DeleteMessageConfig) (tgbotapi.APIResponse, error)
-}
-
 // opBot defines an instance of op-bot.
 type opBot struct {
 	config   botConfig
@@ -70,11 +30,17 @@ type opBot struct {
 	// New users must follow certain restrictions.
 	newUserCache *cache.Cache
 
+	// List of users not yet validated by captcha.
+	pendingCaptcha *pendingCaptchaType
+
 	// Don't send warning messages to new users on every infraction.
 	newUserWarningCache *cache.Cache
 
 	// Time to live for welcome messages
 	welcomeMessageTTL time.Duration
+
+	// How long to wait for the correct captcha (0 = disable feature).
+	captchaTime time.Duration
 
 	notifications notificationsInterface
 	media         mediaInterface
@@ -94,24 +60,15 @@ type botCommand struct {
 	handler   func(tgbotInterface, tgbotapi.Update) error
 }
 
-// tgbotInterface defines our main interface to the bot, via tgbotapi. All functions which need to
-// perform operations using the bot api will use this interface. This allows us to easily
-// mock the calls for testing.
-type tgbotInterface interface {
-	AnswerCallbackQuery(tgbotapi.CallbackConfig) (tgbotapi.APIResponse, error)
-	DeleteMessage(tgbotapi.DeleteMessageConfig) (tgbotapi.APIResponse, error)
-	GetChatAdministrators(tgbotapi.ChatConfig) ([]tgbotapi.ChatMember, error)
-	GetUpdatesChan(tgbotapi.UpdateConfig) (tgbotapi.UpdatesChannel, error)
-	KickChatMember(tgbotapi.KickChatMemberConfig) (tgbotapi.APIResponse, error)
-	Send(tgbotapi.Chattable) (tgbotapi.Message, error)
-}
-
 // newOpBot returns a new OpBot.
 func newOpBot(config botConfig) (opBot, error) {
 	sw, err := initStats()
 	if err != nil {
 		return opBot{}, fmt.Errorf("error initializing stats: %v", err)
 	}
+
+	// Initialize RNG.
+	rand.Seed(time.Now().UnixNano())
 
 	// Convert from parsed duration to time.Duration.
 	duration := config.NewUserProbationTime.Duration
@@ -124,13 +81,17 @@ func newOpBot(config botConfig) (opBot, error) {
 		geolocations:  newGeolocations(config.LocationKey),
 		statsWriter:   sw,
 
-		newUserCache: cache.New(duration, duration),
+		newUserCache:   cache.New(duration, duration),
+		pendingCaptcha: newPendingCaptchaType(),
 
 		// How often will re-send warning messages to offending new users.
 		newUserWarningCache: cache.New(30*time.Minute, time.Hour),
 
 		// By default welcome messages will last for 30 minutes.
 		welcomeMessageTTL: 30 * time.Minute,
+
+		// Enable captcha by default.
+		captchaTime: 1 * time.Minute,
 	}, nil
 }
 
@@ -161,6 +122,36 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 			// Notifications.
 			x.notifications.manageNotifications(bot, update)
 
+			// Handle messages coming from users that didn't validate the
+			// captcha yet. Explicitly ignore NewChatMember requests since
+			// users who leave the group and re-join will create one of such
+			// messages.
+			captcha := userCaptcha(x, bot, update.Message.Chat.ID, update.Message.From.ID)
+			if captcha != nil && update.Message.NewChatMembers == nil {
+				text := update.Message.Text
+				username := update.Message.From.UserName
+				userid := update.Message.From.ID
+				msgid := update.Message.MessageID
+
+				// Remove all messages, validate text later (see below).
+				log.Printf("Removing message %d from non-captcha validated user %s (id=%d), want captcha=%04.4d: %q", msgid, username, userid, captcha.code, text)
+				deleteMessage(bot, update.Message.Chat.ID, msgid)
+
+				// If the text of this message matches the captcha, remove user
+				// from pendingCaptcha list and send the welcome message.
+				// Matching or not, continue to the next message right after,
+				// since the captcha message purpose has already been
+				// fulfilled.
+				if matchCaptcha(*captcha, text) {
+					// Remove from the pendingCaptcha list. The goroutine
+					// started to kick this user at join time will find nothing
+					// and exit normally.
+					x.pendingCaptcha.del(userid)
+					x.sendWelcome(bot, update, *update.Message.From)
+				}
+				continue
+			}
+
 			// Block many types of rich media from new users (but always allows admins).
 			admin, err := isAdmin(bot, update.Message.Chat.ID, update.Message.From.ID)
 			if err != nil {
@@ -184,10 +175,30 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 			case update.Message.Location != nil:
 				x.processLocationRequest(bot, update)
 
-			// Join event.
+			// New User Join event.
+			//
+			// Telegram generates these events anytime a new user joins the group.
+			// The list of New Members is present on update.Message.NewChatMembers.
 			case update.Message.NewChatMembers != nil:
-				x.processBotJoin(bot, update)
-				x.processJoinEvents(bot, update)
+				for _, newUser := range *update.Message.NewChatMembers {
+					log.Printf("Processing new user request for user %q, uid=%d\n", newUser.UserName, newUser.ID)
+
+					// Ban bots. Move on to next user.
+					if newUser.IsBot {
+						x.banNewBots(bot, update, newUser)
+					}
+
+					// At this point we probably have a real user. Send the captcha
+					// and add user to the new users list. Welcome message is sent
+					// after the user validates.
+					log.Printf("Captcha time is %d, captcha enabled = %v", x.captchaTime, captchaEnabled(x))
+					if captchaEnabled(x) {
+						x.sendCaptcha(bot, update, newUser)
+						x.captchaReaper(bot, update, newUser)
+					} else {
+						x.sendWelcome(bot, update, newUser)
+					}
+				}
 
 			// User commands.
 			case update.Message.IsCommand():
@@ -195,144 +206,6 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 			}
 		}
 	}
-}
-
-// hackerHandler provides anti-hacker protection to the bot.
-func (x *opBot) hackerHandler(bot tgbotInterface, update tgbotapi.Update) error {
-	// Gifs for /hackerdetected.
-	media := []string{
-		// Balaclava guy "hacking".
-		"http://i.imgur.com/oubTSqS.gif",
-		// "Hacker" with gas mask.
-		"http://i.imgur.com/m4rP3jK.gif",
-		// "Anonymous hacker" kissed by mom.
-		"http://i.imgur.com/LPn1Ya9.gif",
-	}
-
-	// Remove message that triggered /hackerdetected command.
-	if _, err := bot.DeleteMessage(tgbotapi.DeleteMessageConfig{
-		ChatID:    update.Message.Chat.ID,
-		MessageID: update.Message.MessageID,
-	}); err != nil {
-		log.Printf("Error deleting message %v on chat id %v", update.Message.MessageID, update.Message.Chat.ID)
-	}
-
-	// Selects randomly one of the available media and send it.
-	// Here we are generating an integer in [0, len(media)).
-	randomIndex, err := rand.Int(rand.Reader, big.NewInt(int64(len(media))))
-	if err != nil {
-		log.Printf("Error generating random index for hackerHandler media: %v", err)
-		return nil
-	}
-
-	x.media.sendMedia(bot, update, media[randomIndex.Int64()])
-
-	// No need to report on errors.
-	return nil
-}
-
-// Register registers a command a its handler on the bot.
-func (x *opBot) Register(cmd string, desc string, adminOnly bool, pvtOnly bool, enabled bool, handler func(tgbotInterface, tgbotapi.Update) error) {
-	if x.commands == nil {
-		x.commands = map[string]botCommand{}
-	}
-
-	x.commands[cmd] = botCommand{
-		desc:      desc,
-		adminOnly: adminOnly,
-		pvtOnly:   pvtOnly,
-		enabled:   enabled,
-		handler:   handler,
-	}
-	log.Printf("Registered command %q, %q", cmd, desc)
-}
-
-// helpHandler sends a help message back to the user.
-func (x *opBot) helpHandler(bot tgbotInterface, update tgbotapi.Update) error {
-	var helpMsg []string
-	for c, bcmd := range x.commands {
-		admin := ""
-		if bcmd.adminOnly {
-			admin = " (Admin)"
-		}
-		if bcmd.enabled {
-			helpMsg = append(helpMsg, fmt.Sprintf("/%s: %s%s", c, bcmd.desc, admin))
-		}
-	}
-
-	// Predictable order.
-	sort.Strings(helpMsg)
-	sendReply(bot, update, strings.Join(helpMsg, "\n"))
-	return nil
-}
-
-// setWelcomeMessageTTLHandler sets the time (in minutes) welcome messages
-// should live before being automatically removed. A value of 0 disables the
-// feature.
-func (x *opBot) setWelcomeMessageTTLHandler(bot tgbotInterface, update tgbotapi.Update) error {
-	d, err := parseCmdDuration(update.Message.Text)
-	if err != nil {
-		return err
-	}
-
-	x.welcomeMessageTTL = d
-
-	var note string
-	if d.Seconds() <= 0 {
-		note = " (disabled)"
-	}
-	reply, err := sendReply(bot, update, fmt.Sprintf("Welcome message TTL set to: %v%s", d, note))
-	if err != nil {
-		return err
-	}
-	selfDestructMessage(bot, reply.Chat.ID, reply.MessageID, 0)
-	return nil
-}
-
-// setNewUserProbationTimeHandler sets the time we consider new users as "new".
-// This sets a number of posting restrictions. This function uses ParseDuration
-// to parse the time. Set a suffix of 'h' to indicate hours (E.g, 8h). A value
-// of zero disables the feature. The minimum value is 1h (to prevent mistakes
-// such as setting the value too low.)
-func (x *opBot) setNewUserProbationTimeHandler(bot tgbotInterface, update tgbotapi.Update) error {
-	d, err := parseCmdDuration(update.Message.Text)
-	if err != nil {
-		return err
-	}
-
-	if d.Hours() < 1.0 && d.Hours() != 0 {
-		d = time.Duration(1 * time.Hour)
-	}
-	x.config.NewUserProbationTime = duration{d}
-
-	note := "disabled"
-	if d.Seconds() > 0 {
-		note = fmt.Sprintf("set to %s", d)
-	}
-	reply, err := sendReply(bot, update, fmt.Sprintf("New User Probation time %s", note))
-	if err != nil {
-		return err
-	}
-	selfDestructMessage(bot, reply.Chat.ID, reply.MessageID, 0)
-	return nil
-}
-
-// parseCmdDuration returns the time passed to a text message command. E.g: the command
-// "/whatever 10h", will return a time.Duration of 10h. The function ignores
-// the command itself.
-func parseCmdDuration(text string) (time.Duration, error) {
-	re := regexp.MustCompile(`/[a-zA-Z_-]+\s+(.+)`)
-	groups := re.FindStringSubmatch(text)
-	if len(groups) < 1 || groups[1] == "" {
-		return 0, fmt.Errorf("unable to find the duration in %q", text)
-	}
-	value := groups[1]
-
-	d, err := time.ParseDuration(value)
-	if err != nil || d.Seconds() < 0 {
-		return 0, fmt.Errorf("invalid time specification: %s", value)
-	}
-	return d, nil
 }
 
 // updateMessageStats updates the message statistics for all messages from a
@@ -345,82 +218,51 @@ func updateMessageStats(w io.Writer, update tgbotapi.Update, username string) {
 	}
 }
 
-// processLocationRequest fetches user geo-location information from the
-// request and adds the approximate location of the user to a point in the map
-// using handleLocation.  Returns a visible message to the user in case of
-// problems.
-func (x *opBot) processLocationRequest(bot tgbotInterface, update tgbotapi.Update) {
-	userid := update.Message.From.ID
-	location := update.Message.Location
-
-	err := x.geolocations.processLocation(userid, location.Latitude, location.Longitude)
-
-	// Give feedback to user, if message was sent privately.
-	if isPrivateChat(update.Message.Chat) {
-		message := T("location_success")
-		if err != nil {
-			message = T("location_fail")
-		}
-		sendReply(bot, update, message)
-	}
-}
-
-// processBotJoin reads new users from the update event and kicks bots not in
-// our bot whitelist from the group. Due to the way telegram works, this only
-// works for supergroups.
-func (x *opBot) processBotJoin(bot tgbotInterface, update tgbotapi.Update) {
+// banNewBots bans the user if it is a bot and not in our bot whitelist.
+// Returns true if a bot was banned, false otherwise. Due to the way telegram
+// works, this only works for supergroups.
+func (x *opBot) banNewBots(bot kickChatMemberer, update tgbotapi.Update, user tgbotapi.User) {
 	// Only if configured.
 	if !x.config.KickBots {
 		return
 	}
-	for _, user := range *update.Message.NewChatMembers {
-		// Bots only.
-		if !user.IsBot {
-			continue
-		}
-		// Skip whitelisted bots.
-		if stringInSlice(user.UserName, x.config.BotWhitelist) {
-			log.Printf("Whitelisted bot %q has joined", user.UserName)
-			continue
-		}
-		// Ban!
-		if err := banUser(bot, update.Message.Chat.ID, user.ID); err != nil {
-			log.Printf("Error attempting to ban bot named %q: %v", user.UserName, err)
-		}
-		log.Printf("Banned bot %q. Hasta la vista, baby...", user.UserName)
-	}
-}
-
-// processJoinEvent sends a new message to newly joined users.
-func (x *opBot) processJoinEvents(bot tgbotInterface, update tgbotapi.Update) {
-	names := []string{}
-	for _, user := range *update.Message.NewChatMembers {
-		// Do not send welcome messages to bots.
-		if !user.IsBot {
-			names = append(names, formatName(user))
-
-			// New users get flagged as such. If new user restrictions are
-			// enabled, only text messages will be allowed.
-			strID := fmt.Sprintf("%d", user.ID)
-			if _, found := x.newUserCache.Get(strID); !found {
-				log.Printf("User %s marked as a new user.", user.UserName)
-				x.newUserCache.Set(strID, time.Now(), cache.DefaultExpiration)
-			}
-		}
-	}
-	// Any human users?
-	if len(names) == 0 {
+	// Bots only.
+	if !user.IsBot {
 		return
 	}
+	// Skip whitelisted bots.
+	if stringInSlice(user.UserName, x.config.BotWhitelist) {
+		log.Printf("Whitelisted bot %q has joined. Doing nothing.", user.UserName)
+		return
+	}
+	// Ban!
+	if err := banUser(bot, update.Message.Chat.ID, user.ID); err != nil {
+		log.Printf("Error attempting to ban bot named %q: %v", user.UserName, err)
+	}
+	log.Printf("Banned bot %q. Hasta la vista, baby...", user.UserName)
+}
 
-	name := strings.Join(names, ", ")
+// sendWelcome sends a new message to newly joined users.
+func (x *opBot) sendWelcome(bot sendDeleteMessager, update tgbotapi.Update, user tgbotapi.User) {
+	// No welcome to bots.
+	if user.IsBot {
+		return
+	}
+	// New users get flagged as such. If new user restrictions are
+	// enabled, only text messages will be allowed.
+	strID := fmt.Sprintf("%d", user.ID)
+	if _, found := x.newUserCache.Get(strID); !found {
+		log.Printf("User %s marked as a new user.", user.UserName)
+		x.newUserCache.Set(strID, time.Now(), cache.DefaultExpiration)
+	}
+
 	markup := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(buttonURL(T("visit_our_group_website"), osProgramadoresURL)),
 		tgbotapi.NewInlineKeyboardRow(buttonURL(T("read_the_rules"), osProgramadoresRulesURL)),
 	)
-	welcome, err := x.sendReplyWithMarkup(bot, update.Message.Chat.ID, update.Message.MessageID, fmt.Sprintf(T("welcome"), name), markup)
+	welcome, err := sendMessageWithMarkup(bot, update.Message.Chat.ID, update.Message.MessageID, fmt.Sprintf(T("welcome"), "@"+user.UserName), markup)
 	if err != nil {
-		log.Printf("Error sending welcomg message to user %s", name)
+		log.Printf("Error sending welcome message to user %s", user.UserName)
 		return
 	}
 
@@ -431,7 +273,7 @@ func (x *opBot) processJoinEvents(bot tgbotInterface, update tgbotapi.Update) {
 // processNewUsers verifies if the user has been on the list for less than a
 // pre-determined amount of time. If so, delete any non-text messages from the
 // user and send a self-destructing warning message.
-func (x *opBot) processNewUsers(bot tgbotInterface, update tgbotapi.Update) {
+func (x *opBot) processNewUsers(bot sendDeleteMessager, update tgbotapi.Update) {
 	strID := fmt.Sprintf("%d", update.Message.From.ID)
 
 	// Return immediately if user not in probation list.
@@ -453,7 +295,7 @@ func (x *opBot) processNewUsers(bot tgbotInterface, update tgbotapi.Update) {
 				markup := tgbotapi.NewInlineKeyboardMarkup(
 					tgbotapi.NewInlineKeyboardRow(buttonURL(T("read_the_rules"), osProgramadoresRulesURL)),
 				)
-				reply, err := x.sendReplyWithMarkup(bot, msg.Chat.ID, msg.MessageID, T("only_text_messages"), markup)
+				reply, err := sendReplyWithMarkup(bot, msg.Chat.ID, msg.MessageID, T("only_text_messages"), markup)
 				// We log errors but try to move ahead and still block the offending message.
 				if err != nil {
 					log.Printf("Error sending rules message: %v", err)
@@ -504,7 +346,7 @@ func (x *opBot) processUserCommands(bot *tgbotapi.BotAPI, update tgbotapi.Update
 	err := bcmd.handler(bot, update)
 	if err != nil {
 		e := fmt.Sprintf(T("handler_error"), err.Error())
-		sendReply(bot, update, e)
+		sendReply(bot, update.Message.Chat.ID, update.Message.MessageID, e)
 		log.Println(e)
 	}
 }
