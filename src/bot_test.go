@@ -3,8 +3,8 @@ package main
 
 import (
 	"errors"
+	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/stretchr/testify/mock"
-	"gopkg.in/telegram-bot-api.v4"
 	"log"
 	"os"
 	"testing"
@@ -30,6 +30,11 @@ func (m *MockTelebot) GetChatAdministrators(config tgbotapi.ChatConfig) ([]tgbot
 	return args.Get(0).([]tgbotapi.ChatMember), args.Error(1)
 }
 
+func (m *MockTelebot) GetChatMember(c tgbotapi.ChatConfigWithUser) (tgbotapi.ChatMember, error) {
+	args := m.Called(c)
+	return args.Get(0).(tgbotapi.ChatMember), args.Error(1)
+}
+
 func (m *MockTelebot) GetUpdatesChan(config tgbotapi.UpdateConfig) (tgbotapi.UpdatesChannel, error) {
 	args := m.Called(config)
 	return args.Get(0).(tgbotapi.UpdatesChannel), args.Error(1)
@@ -45,6 +50,11 @@ func (m *MockTelebot) Send(c tgbotapi.Chattable) (tgbotapi.Message, error) {
 	return args.Get(0).(tgbotapi.Message), args.Error(1)
 }
 
+func (m *MockTelebot) UnbanChatMember(config tgbotapi.ChatMemberConfig) (tgbotapi.APIResponse, error) {
+	args := m.Called(config)
+	return args.Get(0).(tgbotapi.APIResponse), args.Error(1)
+}
+
 // MockBotMedia defines an interface to the media module.
 type MockBotMedia struct {
 	mock.Mock
@@ -55,7 +65,7 @@ func (m *MockBotMedia) loadMedia() error {
 	return args.Error(0)
 }
 
-func (m *MockBotMedia) sendMedia(bot tgbotInterface, update tgbotapi.Update, mediaURL string) error {
+func (m *MockBotMedia) sendMedia(bot sender, update tgbotapi.Update, mediaURL string) error {
 	args := m.Called(bot, update, mediaURL)
 	return args.Error(0)
 }
@@ -284,7 +294,7 @@ func TestProcessLocationRequest(t *testing.T) {
 	}
 }
 
-func TestProcessBotJoin(t *testing.T) {
+func TestBanNewBots(t *testing.T) {
 	caseTests := []struct {
 		kickBots     bool     // Should we kick bots?
 		isBot        bool     // Is this user a bot?
@@ -339,16 +349,10 @@ func TestProcessBotJoin(t *testing.T) {
 				Chat: &tgbotapi.Chat{
 					ID: chatID,
 				},
-				NewChatMembers: &[]tgbotapi.User{
-					{
-						ID:       userID,
-						UserName: tt.username,
-						IsBot:    tt.isBot,
-					},
-				},
 			},
 		}
 
+		// When we pass wantKick to "KickChatMember", it will return an empty API response and nil.
 		wantKick := tgbotapi.KickChatMemberConfig{
 			ChatMemberConfig: tgbotapi.ChatMemberConfig{
 				ChatID: chatID,
@@ -357,7 +361,11 @@ func TestProcessBotJoin(t *testing.T) {
 		}
 		mockTelebot.On("KickChatMember", wantKick).Return(tgbotapi.APIResponse{}, nil).Once()
 
-		mockOpBot.processBotJoin(mockTelebot, mockUpdate)
+		mockOpBot.banNewBots(mockTelebot, mockUpdate, tgbotapi.User{
+			ID:       userID,
+			UserName: tt.username,
+			IsBot:    tt.isBot,
+		})
 
 		// Should a ban have happened?
 		if tt.wantBan {

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"gopkg.in/telegram-bot-api.v4"
+	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
 )
 
@@ -64,6 +64,7 @@ func main() {
 	opbot.Register("ban", T("ban_help"), false, false, true, opbot.bans.banRequestHandler)
 	opbot.Register("new_user_probation_time", T("new_user_probation_time_help"), true, false, true, opbot.setNewUserProbationTimeHandler)
 	opbot.Register("welcome_message_ttl", T("welcome_message_ttl_help"), true, false, true, opbot.setWelcomeMessageTTLHandler)
+	opbot.Register("captcha_time", T("captcha_time_help"), true, false, true, opbot.setCaptchaTimeHandler)
 
 	// Make it so!
 	opbot.Run(bot)

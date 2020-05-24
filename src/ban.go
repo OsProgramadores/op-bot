@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"gopkg.in/telegram-bot-api.v4"
+	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
 	"strings"
 	"sync"
@@ -304,8 +304,19 @@ func (b *bans) updateBanRequestNotification(bot tgbotInterface, requestID string
 }
 
 // banUser bans a user using a ChatID and UserID.
-func banUser(bot tgbotInterface, chatID int64, userID int) error {
+func banUser(bot kickChatMemberer, chatID int64, userID int) error {
 	memberConfig := tgbotapi.ChatMemberConfig{ChatID: chatID, UserID: userID}
 	_, err := bot.KickChatMember(tgbotapi.KickChatMemberConfig{ChatMemberConfig: memberConfig})
+	return err
+}
+
+// kickUser kicks (not ban) a user using a ChatID and UserID.
+func kickUser(bot kickUnbanChatMemberer, chatID int64, userID int) error {
+	memberConfig := tgbotapi.ChatMemberConfig{ChatID: chatID, UserID: userID}
+	_, err := bot.KickChatMember(tgbotapi.KickChatMemberConfig{ChatMemberConfig: memberConfig})
+	if err != nil {
+		return err
+	}
+	_, err = bot.UnbanChatMember(memberConfig)
 	return err
 }

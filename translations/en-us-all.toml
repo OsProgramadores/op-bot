@@ -1,12 +1,14 @@
 # en-us translation file for op-bot
 # http://github.com/osprogramadores/op-bot
 
-welcome = "Welcome %s. What your interest in coding? Have fun!\nDon't forget to introduce yourself to the group!"
+welcome = "Welcome @%s. What your interest in coding? Have fun!\nDon't forget to introduce yourself to the group!"
 location_success = "Location updated successfully."
 location_fail = "Unable to update location. Please try again later."
 read_the_rules = "Read the rules"
 visit_our_group_website = "Visit the group website"
 error_starting_bot = "Error initializing bot (make sure you have a configured token in the config file)"
+enter_captcha = "Hello @%s. Welcome to the group. Please type the captcha above (just the digits, no spaces) so we can validate you. Any other messages will be automatically deleted until you respond to the captcha challenge. In case of problems, please contact the group administrators directly."
+no_captcha_received = "User @%s did not respond to the captcha and was removed from the group."
 
 # Register help messages.
 
@@ -16,6 +18,7 @@ notifications_help = "Enables/disables notifications"
 ban_help = "Reports message to admins. Remember to send the command in response to a message"
 new_user_probation_time_help = "User must be in the group for this long to gain full privileges (E.g, 24h, 0 = disable feature)"
 welcome_message_ttl_help = "Set the time-to-live for the welcome messages (E.g: /welcome_message_ttl 5m)"
+captcha_time_help = "Set the time new users have to correctly answer the captcha (E.g: /captcha_time 1m, 0 = disable feature)"
 
 # Error messages
 

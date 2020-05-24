@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"gopkg.in/telegram-bot-api.v4"
+	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
 	"strconv"
 	"strings"
@@ -36,7 +36,7 @@ func (n *notifications) notificationHandler(bot tgbotInterface, update tgbotapi.
 	}
 
 	text := fmt.Sprintf(T("notification_success"), n.notificationStatus(uidstr))
-	sendReply(bot, update, text)
+	sendReply(bot, update.Message.Chat.ID, update.Message.MessageID, text)
 	return nil
 }
 
@@ -122,7 +122,7 @@ func (n *notifications) idByNotificationUserName(username string) (string, bool)
 // nolint: gocyclo
 // manageNotifications notifies users based on the message being replied to and
 // user mentions, if the user has notifications enabled.
-func (n *notifications) manageNotifications(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
+func (n *notifications) manageNotifications(bot sender, update tgbotapi.Update) error {
 	if isPrivateChat(update.Message.Chat) {
 		return nil
 	}
@@ -229,7 +229,7 @@ func (n *notifications) manageNotifications(bot *tgbotapi.BotAPI, update tgbotap
 // whether this notification is due to a message being replied to, in which case
 // it will be `true', or if it is due to a mention, in which case it will be
 // `false'.
-func sendNotification(bot *tgbotapi.BotAPI, recipient int, update tgbotapi.Update, response bool) (tgbotapi.Message, error) {
+func sendNotification(bot sender, recipient int, update tgbotapi.Update, response bool) (tgbotapi.Message, error) {
 	if recipient == update.Message.From.ID {
 		log.Printf("Not sending notification to %d, the same sender of the message", recipient)
 		return tgbotapi.Message{}, nil
