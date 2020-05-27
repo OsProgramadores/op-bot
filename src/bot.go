@@ -122,19 +122,19 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 			// Notifications.
 			x.notifications.manageNotifications(bot, update)
 
-			// Handle messages coming from users that didn't validate the
-			// captcha yet. Explicitly ignore NewChatMember requests since
-			// users who leave the group and re-join will create one of such
-			// messages.
+			// Handle messages from users who are yet to validate the captcha.
+			// Explicitly ignore NewChatMember requests since users who leave
+			// the group and re-join will create one of such messages.
+
 			captcha := userCaptcha(x, bot, update.Message.Chat.ID, update.Message.From.ID)
 			if captcha != nil && update.Message.NewChatMembers == nil {
 				text := update.Message.Text
-				username := update.Message.From.UserName
+				name := formatName(*update.Message.From)
 				userid := update.Message.From.ID
 				msgid := update.Message.MessageID
 
 				// Remove all messages, validate text later (see below).
-				log.Printf("Removing message %d from non-captcha validated user %s (id=%d), want captcha=%04.4d: %q", msgid, username, userid, captcha.code, text)
+				log.Printf("Removing message %d from non-captcha validated user %s (id=%d), want captcha=%04.4d: %q", msgid, name, userid, captcha.code, text)
 				deleteMessage(bot, update.Message.Chat.ID, msgid)
 
 				// If the text of this message matches the captcha, remove user
@@ -181,7 +181,7 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 			// The list of New Members is present on update.Message.NewChatMembers.
 			case update.Message.NewChatMembers != nil:
 				for _, newUser := range *update.Message.NewChatMembers {
-					log.Printf("Processing new user request for user %q, uid=%d\n", newUser.UserName, newUser.ID)
+					log.Printf("Processing new user request for user %q, uid=%d\n", formatName(newUser), newUser.ID)
 
 					// Ban bots. Move on to next user.
 					if newUser.IsBot {
@@ -230,6 +230,9 @@ func (x *opBot) banNewBots(bot kickChatMemberer, update tgbotapi.Update, user tg
 	if !user.IsBot {
 		return
 	}
+
+	// Note: It's safe to use user.UsernName here as bots should always have a name.
+
 	// Skip whitelisted bots.
 	if stringInSlice(user.UserName, x.config.BotWhitelist) {
 		log.Printf("Whitelisted bot %q has joined. Doing nothing.", user.UserName)
@@ -252,7 +255,7 @@ func (x *opBot) sendWelcome(bot sendDeleteMessager, update tgbotapi.Update, user
 	// enabled, only text messages will be allowed.
 	strID := fmt.Sprintf("%d", user.ID)
 	if _, found := x.newUserCache.Get(strID); !found {
-		log.Printf("User %s marked as a new user.", user.UserName)
+		log.Printf("User %s marked as a new user.", formatName(user))
 		x.newUserCache.Set(strID, time.Now(), cache.DefaultExpiration)
 	}
 
@@ -260,9 +263,9 @@ func (x *opBot) sendWelcome(bot sendDeleteMessager, update tgbotapi.Update, user
 		tgbotapi.NewInlineKeyboardRow(buttonURL(T("visit_our_group_website"), osProgramadoresURL)),
 		tgbotapi.NewInlineKeyboardRow(buttonURL(T("read_the_rules"), osProgramadoresRulesURL)),
 	)
-	welcome, err := sendMessageWithMarkup(bot, update.Message.Chat.ID, update.Message.MessageID, fmt.Sprintf(T("welcome"), "@"+user.UserName), markup)
+	welcome, err := sendMessageWithMarkup(bot, update.Message.Chat.ID, update.Message.MessageID, fmt.Sprintf(T("welcome"), nameRef(user)), markup)
 	if err != nil {
-		log.Printf("Error sending welcome message to user %s", user.UserName)
+		log.Printf("Error sending welcome message to user %s", formatName(user))
 		return
 	}
 
@@ -285,7 +288,7 @@ func (x *opBot) processNewUsers(bot sendDeleteMessager, update tgbotapi.Update) 
 	for _, msg := range []*tgbotapi.Message{update.Message, update.EditedMessage} {
 		if richMessage(msg) {
 			// Log and delete message.
-			log.Printf("New user (%s) attempted to send non-text message. Deleting and notifying.", msg.From.UserName)
+			log.Printf("New user (%s) attempted to send non-text message. Deleting and notifying.", formatName(*msg.From))
 
 			// We only send a reply message if the user does not appear in the
 			// newUserWarningCache (which has a expiration of minutes). The
@@ -337,7 +340,7 @@ func (x *opBot) processUserCommands(bot *tgbotapi.BotAPI, update tgbotapi.Update
 			return
 		}
 		if !admin {
-			log.Printf("Regular user %s attempted to use admin-only command: %s (ignored)", update.Message.From.UserName, cmd)
+			log.Printf("Regular user %s attempted to use admin-only command: %s (ignored)", formatName(*update.Message.From), cmd)
 			return
 		}
 	}

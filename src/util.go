@@ -75,6 +75,16 @@ func formatName(user tgbotapi.User) string {
 	return strings.Trim(fmt.Sprintf("%s %s", firstName, lastName), " ")
 }
 
+// nameRef returns a name that contains a @Username reference when username
+// is present, or just a printable "First Last" user names.
+func nameRef(user tgbotapi.User) string {
+	name := "@" + user.UserName
+	if user.UserName == "" {
+		name = formatName(user)
+	}
+	return name
+}
+
 // button returns a button with the specified message and label.
 func button(msg, label string) tgbotapi.InlineKeyboardButton {
 	return tgbotapi.NewInlineKeyboardButtonData(msg, label)

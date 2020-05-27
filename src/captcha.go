@@ -77,7 +77,7 @@ func (x *opBot) sendCaptcha(bot tgbotInterface, update tgbotapi.Update, user tgb
 	if user.IsBot {
 		return
 	}
-	name := formatName(user)
+	name := nameRef(user)
 
 	// Random captcha, expires in x.captchaTime duration.
 	code := rand.Int() % 10000
@@ -93,7 +93,7 @@ func (x *opBot) sendCaptcha(bot tgbotInterface, update tgbotapi.Update, user tgb
 		return
 	}
 	// Send.
-	msg, err := sendPhoto(bot, update.Message.Chat.ID, fb, fmt.Sprintf(T("enter_captcha"), user.UserName))
+	msg, err := sendPhoto(bot, update.Message.Chat.ID, fb, fmt.Sprintf(T("enter_captcha"), name))
 	if err != nil {
 		log.Printf("Warning: Unable to send captcha message: %v", err)
 	} else {
@@ -141,17 +141,19 @@ func (x *opBot) captchaReaper(bot tgbotInterface, update tgbotapi.Update, user t
 			return
 		}
 
+		name := nameRef(user)
+
 		// At this point, we reached our captcha timeout and the user is still
 		// in the pending captcha list, meaning they didn't confirm the
 		// captcha.
-		_, err := sendMessage(bot, update.Message.Chat.ID, fmt.Sprintf(T("no_captcha_received"), user.UserName))
+		_, err := sendMessage(bot, update.Message.Chat.ID, fmt.Sprintf(T("no_captcha_received"), name))
 		if err != nil {
 			log.Printf("Warning: Unable to send 'invalid captcha' message.")
 		}
 
 		// Kick user and remove from list.
 		if err = kickUser(bot, update.Message.Chat.ID, user.ID); err != nil {
-			log.Printf("Warning: Unable to kick user %s (uid=%d) out of the channel.", formatName(user), user.ID)
+			log.Printf("Warning: Unable to kick user %s (uid=%d) out of the channel.", name, user.ID)
 		}
 		x.pendingCaptcha.del(user.ID)
 	})
@@ -159,7 +161,7 @@ func (x *opBot) captchaReaper(bot tgbotInterface, update tgbotapi.Update, user t
 
 // markAsPendingCaptcha marks the user status as pending Captcha response.
 func (x *opBot) markAsPendingCaptcha(bot tgbotInterface, user tgbotapi.User, code int) {
-	log.Printf("Adding user to the pending-captcha list: %q, uid=%d\n", user.UserName, user.ID)
+	log.Printf("Adding user to the pending-captcha list: %q, uid=%d\n", formatName(user), user.ID)
 	x.pendingCaptcha.add(user.ID, botCaptcha{
 		code:       code,
 		expiration: time.Now().Add(x.captchaTime),
