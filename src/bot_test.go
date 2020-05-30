@@ -183,6 +183,7 @@ func TestHelpHandler(t *testing.T) {
 		// Construct the expected Message argument to Send.
 		wantMsg := tgbotapi.NewMessage(int64(chatID), tt.wantStr)
 		wantMsg.ReplyToMessageID = msgID
+		wantMsg.ParseMode = "Markdown"
 
 		mockTelebot := &MockTelebot{}
 		mockTelebot.On("Send", wantMsg).Return(tgbotapi.Message{}, nil)
@@ -286,6 +287,7 @@ func TestProcessLocationRequest(t *testing.T) {
 
 		if tt.chatType == "private" {
 			wantMsg := tgbotapi.NewMessage(int64(chatID), tt.sendMsg)
+			wantMsg.ParseMode = "Markdown"
 			wantMsg.ReplyToMessageID = msgID
 			mockTelebot.On("Send", wantMsg).Return(tgbotapi.Message{}, nil).Once()
 		}

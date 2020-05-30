@@ -1,14 +1,15 @@
 # pt-br translation file for op-bot
 # http://github.com/osprogramadores/op-bot
 
-welcome = "Bem-vindo(a) %s! Qual o seu interesse em programação? Divirta-se e envie um pequeno resumo sobre você para quebrar o gelo com os outros membros do grupo!"
+welcome = "Bem-vindo(a) %s! Qual o seu interesse em programação? Divirta-se e envie um pequeno resumo sobre você para quebrar o gelo com os outros participantes do grupo!"
 location_success = "Localização atualizada com sucesso."
 location_fail = "Houve um imprevisto tentando atualizar a localização. Por favor, tente novamente mais tarde."
 read_the_rules = "Leia as Regras"
 visit_our_group_website = "Visite o site do Grupo"
 error_starting_bot = "Erro inicializando o bot (verifique se o token no arquivo de configuração está configurado)"
 no_captcha_received = "Usuário %s não respondeu ao captcha e foi removido do grupo."
-enter_captcha = "Bem-vindo(a) %s. Para confirmar a sua entrada no grupo, por favor, digite o captcha acima (sem espaços, apenas os dígitos). Qualquer outra mensagem será automaticamente apagada, até que o captcha seja autenticado. Em caso de problemas, por favor entre em contato com os administradores do grupo."
+enter_captcha = "Bem-vindo(a) %s. Para confirmar a sua entrada no grupo, *por favor, digite o captcha acima* (sem espaços, apenas os dígitos) ou a palavra *outro* para obter um _captcha_ diferente. Qualquer outra mensagem será automaticamente apagada, até que o _captcha_ seja validado. Em caso de problemas, por favor entre em contato com os administradores do grupo."
+another_captcha = "outro"
 
 # Register help messages.
 

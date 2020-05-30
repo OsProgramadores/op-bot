@@ -3,22 +3,22 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/afocus/captcha"
+	"github.com/dchest/captcha"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
-	"image/color"
 	"image/png"
 	"log"
 	"math/rand"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
+	"unicode"
 )
 
 const (
-	// TODO: remove this hardcoding. For this, this requires the
-	// fonts-dejavu-core package in Debian & derived distros.
-	captchaFont = "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf"
+	captchaWidth  = 400
+	captchaHeight = 240
 )
 
 // Precompile the regular expression used to match captchas.
@@ -40,9 +40,9 @@ type pendingCaptchaType struct {
 	users map[int]botCaptcha
 }
 
-// Add adds a userID and expiration to the list of users for which we're still
+// set sets a userID and expiration to the list of users for which we're still
 // waiting for a captcha response.
-func (x *pendingCaptchaType) add(userID int, captcha botCaptcha) {
+func (x *pendingCaptchaType) set(userID int, captcha botCaptcha) {
 	x.Lock()
 	x.users[userID] = captcha
 	x.Unlock()
@@ -109,14 +109,8 @@ func genCaptchaImage(code int) (tgbotapi.FileBytes, error) {
 	if code < 0 || code > 9999 {
 		return ret, fmt.Errorf("captcha code must be between 0 and 9999, got %d", code)
 	}
-
-	cap := captcha.New()
-	cap.SetFont(captchaFont)
-	cap.SetSize(240, 150)
-	cap.SetFrontColor(color.RGBA{255, 255, 255, 255})
-	cap.SetBkgColor(color.RGBA{255, 0, 0, 255}, color.RGBA{0, 0, 255, 255}, color.RGBA{0, 153, 0, 255})
-
-	img := cap.CreateCustom(fmt.Sprintf("%04.4d", code))
+	codeStr := fmt.Sprintf("%04.4d", code)
+	img := captcha.NewImage(codeStr, bincode(codeStr), captchaWidth, captchaHeight)
 
 	var buf bytes.Buffer
 	if err := png.Encode(&buf, img); err != nil {
@@ -162,7 +156,7 @@ func (x *opBot) captchaReaper(bot tgbotInterface, update tgbotapi.Update, user t
 // markAsPendingCaptcha marks the user status as pending Captcha response.
 func (x *opBot) markAsPendingCaptcha(bot tgbotInterface, user tgbotapi.User, code int) {
 	log.Printf("Adding user to the pending-captcha list: %q, uid=%d\n", formatName(user), user.ID)
-	x.pendingCaptcha.add(user.ID, botCaptcha{
+	x.pendingCaptcha.set(user.ID, botCaptcha{
 		code:       code,
 		expiration: time.Now().Add(x.captchaTime),
 	})
@@ -213,4 +207,21 @@ func matchCaptcha(captcha botCaptcha, text string) bool {
 // captchaEnabled returns true if the captcha feature is enabled.
 func captchaEnabled(bot *opBot) bool {
 	return bot.captchaTime.Seconds() > 0
+}
+
+// bincode converts a string of digits into its binary representation.
+// Non-digits will be silently ignored.
+func bincode(s string) []byte {
+	ret := []byte{}
+	for _, d := range s {
+		if unicode.IsDigit(d) {
+			ret = append(ret, byte(d-'0'))
+		}
+	}
+	return ret
+}
+
+// captchaResendRequest returns true if the text contains a request for another captcha.
+func captchaResendRequest(s string) bool {
+	return strings.EqualFold(s, T("another_captcha"))
 }

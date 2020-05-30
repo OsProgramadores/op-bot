@@ -137,6 +137,13 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 				log.Printf("Removing message %d from non-captcha validated user %s (id=%d), want captcha=%04.4d: %q", msgid, name, userid, captcha.code, text)
 				deleteMessage(bot, update.Message.Chat.ID, msgid)
 
+				// If the user requested another captcha, reset the code and
+				// send another captcha.
+				if captchaResendRequest(text) {
+					x.sendCaptcha(bot, update, *update.Message.From)
+					continue
+				}
+
 				// If the text of this message matches the captcha, remove user
 				// from pendingCaptcha list and send the welcome message.
 				// Matching or not, continue to the next message right after,

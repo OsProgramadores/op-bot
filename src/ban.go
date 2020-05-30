@@ -14,7 +14,7 @@ const (
 	// Threshold to notify admins. If the offending message reaches this number
 	// of reports, the admins are notified.
 	adminNotificationDefaultThreshold = 1
-	// Parsing mode: Markdown.
+	// Parsing mode: Markdown (legacy)
 	parseModeMarkdown = "Markdown"
 )
 
