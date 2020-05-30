@@ -7,8 +7,9 @@ location_fail = "Unable to update location. Please try again later."
 read_the_rules = "Read the rules"
 visit_our_group_website = "Visit the group website"
 error_starting_bot = "Error initializing bot (make sure you have a configured token in the config file)"
-enter_captcha = "Hello %s. Welcome to the group. Please type the captcha above (just the digits, no spaces) so we can validate you. Any other messages will be automatically deleted until you respond to the captcha challenge. In case of problems, please contact the group administrators directly."
+enter_captcha = "Hello %s. Welcome to the group. *Please type the captcha above* (just the digits, no spaces) or just the word *another* to request a new captcha. Any other messages will be automatically deleted until you respond to the captcha challenge. In case of problems, please contact the group administrators directly."
 no_captcha_received = "User %s did not respond to the captcha and was removed from the group."
+another_captcha = "another"
 
 # Register help messages.
 

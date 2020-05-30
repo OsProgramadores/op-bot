@@ -99,6 +99,7 @@ func buttonURL(msg, url string) tgbotapi.InlineKeyboardButton {
 func sendPhoto(bot sender, chatid int64, file interface{}, caption string) (tgbotapi.Message, error) {
 	photoConfig := tgbotapi.NewPhotoUpload(chatid, file)
 	photoConfig.Caption = caption
+	photoConfig.ParseMode = parseModeMarkdown
 	return bot.Send(photoConfig)
 }
 
@@ -106,6 +107,7 @@ func sendPhoto(bot sender, chatid int64, file interface{}, caption string) (tgbo
 func sendReply(bot sender, chatid int64, messageid int, text string) (tgbotapi.Message, error) {
 	msg := tgbotapi.NewMessage(chatid, text)
 	msg.ReplyToMessageID = messageid
+	msg.ParseMode = parseModeMarkdown
 	return bot.Send(msg)
 }
 

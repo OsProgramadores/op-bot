@@ -31,11 +31,6 @@ WORKDIR /app
 COPY --from=builder /tmp/build/src/op-bot/op-bot .
 COPY --from=builder /tmp/build/src/op-bot/translations ${TRANSLATIONS_DIR}
 
-# Copy the Dejavu Serif font file in our repo to the standard font location
-# inside the container. This allows us to use the same location when running
-# inside a container or directly.
-COPY fonts/DejaVuSerif-Bold.ttf /usr/share/fonts/truetype/dejavu/
-
 # Geo requests API port.
 EXPOSE 54321
 
