@@ -67,22 +67,36 @@ func readJSONFromDataDir(data interface{}, file string) error {
 	return readFromJSON(data, f)
 }
 
-// formatName returns the user full name in the form "Firstname Lastname".
+// formatName returns the markdown safe version of the user full name in the
+// form "Firstname Lastname".
 func formatName(user tgbotapi.User) string {
-	firstName := user.FirstName
-	lastName := user.LastName
+	firstName := markdownEscape(user.FirstName)
+	lastName := markdownEscape(user.LastName)
 
 	return strings.Trim(fmt.Sprintf("%s %s", firstName, lastName), " ")
 }
 
-// nameRef returns a name that contains a @Username reference when username
-// is present, or just a printable "First Last" user names.
+// markdownEscape returns a version of the string with any markdown characters
+// ("*", "_", "[", "]", and "`") escaped.
+func markdownEscape(s string) string {
+	s = strings.ReplaceAll(s, "*", "\\*")
+	s = strings.ReplaceAll(s, "_", "\\_")
+	s = strings.ReplaceAll(s, "[", "\\[")
+	s = strings.ReplaceAll(s, "]", "\\]")
+	s = strings.ReplaceAll(s, "`", "\\`")
+	return s
+}
+
+// nameRef returns a name that contains a @Username reference when username is
+// present and contains no Markdown characters, or just a printable "First
+// Last" user names.
 func nameRef(user tgbotapi.User) string {
-	name := "@" + user.UserName
-	if user.UserName == "" {
-		name = formatName(user)
+	username := user.UserName
+	if username == "" || username != markdownEscape(username) {
+		return formatName(user)
 	}
-	return name
+
+	return "@" + username
 }
 
 // button returns a button with the specified message and label.
