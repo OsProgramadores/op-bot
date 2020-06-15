@@ -71,7 +71,7 @@ func newPendingCaptchaType() *pendingCaptchaType {
 }
 
 // sendCaptcha adds the user to the map of users that have not yet responded to
-// the captcha and emits a random captcha.
+// the captcha and sends a random captcha image as a reply to the message.
 func (x *opBot) sendCaptcha(bot tgbotInterface, update tgbotapi.Update, user tgbotapi.User) {
 	// Do not send captcha messages to bots (belt and suspenders...)
 	if user.IsBot {
@@ -93,12 +93,13 @@ func (x *opBot) sendCaptcha(bot tgbotInterface, update tgbotapi.Update, user tgb
 		return
 	}
 	// Send.
-	msg, err := sendPhoto(bot, update.Message.Chat.ID, fb, fmt.Sprintf(T("enter_captcha"), name))
+	msg, err := sendPhotoReply(bot, update.Message.Chat.ID, update.Message.MessageID, fb, fmt.Sprintf(T("enter_captcha"), name))
 	if err != nil {
 		log.Printf("Warning: Unable to send captcha message: %v", err)
-	} else {
-		selfDestructMessage(bot, msg.Chat.ID, msg.MessageID, x.captchaTime+time.Duration(10*time.Second))
+		return
 	}
+	// Clean message after captcha duration + 10 seconds.
+	selfDestructMessage(bot, msg.Chat.ID, msg.MessageID, x.captchaTime+time.Duration(10*time.Second))
 }
 
 // genCaptchaImage generates a captcha image based on the captcha code. It

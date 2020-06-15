@@ -109,11 +109,12 @@ func buttonURL(msg, url string) tgbotapi.InlineKeyboardButton {
 	return tgbotapi.NewInlineKeyboardButtonURL(msg, url)
 }
 
-// sendPhoto sends a file/fileReader/fileBytes to a chat id.
-func sendPhoto(bot sender, chatid int64, file interface{}, caption string) (tgbotapi.Message, error) {
+// sendPhotoReply sends a file/fileReader/fileBytes reply to a chatid/msgid.
+func sendPhotoReply(bot sender, chatid int64, messageid int, file interface{}, caption string) (tgbotapi.Message, error) {
 	photoConfig := tgbotapi.NewPhotoUpload(chatid, file)
 	photoConfig.Caption = caption
 	photoConfig.ParseMode = parseModeMarkdown
+	photoConfig.ReplyToMessageID = messageid
 	return bot.Send(photoConfig)
 }
 
