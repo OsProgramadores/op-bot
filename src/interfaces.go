@@ -28,7 +28,7 @@ type bansInterface interface {
 type geoLocationsInterface interface {
 	processLocation(int, float64, float64) error
 	readLocations() error
-	serveLocations(int)
+	serveLocations()
 }
 
 // tgbotInterface defines our main interface to the bot, via tgbotapi. All functions which need to

@@ -87,7 +87,7 @@ func (m *MockGeoLocations) processLocation(id int, lat, lon float64) error {
 	return args.Error(0)
 }
 
-func (m *MockGeoLocations) serveLocations(port int) {
+func (m *MockGeoLocations) serveLocations() {
 }
 
 // Constants for the tests.

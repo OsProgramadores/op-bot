@@ -116,6 +116,8 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 			x.handleCallbackQuery(bot, update)
 
 		case update.Message != nil:
+			promMessageCount.Inc()
+
 			// Update stats if the message comes from @osprogramadores.
 			updateMessageStats(x.statsWriter, update, osProgramadoresGroup)
 
@@ -153,6 +155,7 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 					// Remove from the pendingCaptcha list. The goroutine
 					// started to kick this user at join time will find nothing
 					// and exit normally.
+					promCaptchaValidatedCount.Inc()
 					x.pendingCaptcha.del(userid)
 					x.sendWelcome(bot, update, *update.Message.From)
 				}
@@ -188,6 +191,8 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 			// The list of New Members is present on update.Message.NewChatMembers.
 			case update.Message.NewChatMembers != nil:
 				for _, newUser := range *update.Message.NewChatMembers {
+					promJoinCount.Inc()
+
 					log.Printf("Processing new user request for user %q, uid=%d\n", formatName(newUser), newUser.ID)
 
 					// Ban bots. Move on to next user.
@@ -294,6 +299,8 @@ func (x *opBot) processNewUsers(bot sendDeleteMessager, update tgbotapi.Update) 
 	// Blocks non-text messages. Checks messages and edited messages.
 	for _, msg := range []*tgbotapi.Message{update.Message, update.EditedMessage} {
 		if richMessage(msg) {
+			promRichMessageDeletedCount.Inc()
+
 			// Log and delete message.
 			log.Printf("New user (%s) attempted to send non-text message. Deleting and notifying.", formatName(*msg.From))
 
