@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
+	"net/http"
 )
 
 var (
@@ -54,7 +56,7 @@ func main() {
 	}
 
 	// Start the HTTP server listing the location info.
-	go opbot.geolocations.serveLocations(opbot.config.ServerPort)
+	opbot.geolocations.serveLocations()
 
 	// Register commands.
 	// Parameters: command, description, admin only, private only, enabled, handler.
@@ -65,6 +67,9 @@ func main() {
 	opbot.Register("new_user_probation_time", T("new_user_probation_time_help"), true, false, true, opbot.setNewUserProbationTimeHandler)
 	opbot.Register("welcome_message_ttl", T("welcome_message_ttl_help"), true, false, true, opbot.setWelcomeMessageTTLHandler)
 	opbot.Register("captcha_time", T("captcha_time_help"), true, false, true, opbot.setCaptchaTimeHandler)
+
+	// Start listener
+	go http.ListenAndServe(fmt.Sprintf(":%d", opbot.config.ServerPort), nil)
 
 	// Make it so!
 	opbot.Run(bot)

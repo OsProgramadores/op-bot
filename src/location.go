@@ -62,9 +62,10 @@ func (g *geoLocations) processLocation(id int, lat, lon float64) error {
 	return safeWriteJSON(g.coords, g.locationDB)
 }
 
-// serveLocations serves the lat/long list in memory in JSON format over HTTP.
-// Only (previously obfuscated) lat/long coordinates are served, not user IDs.
-func (g *geoLocations) serveLocations(port int) {
+// serveLocations adds a handler to DefaultServMux to serve the memory lat/long
+// list in memory in JSON format over HTTP.  Only (previously obfuscated)
+// lat/long coordinates are served, not user IDs.
+func (g *geoLocations) serveLocations() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// Setting the handler to "/" means "match anything under /", so we
 		// explicitly test here (this prevents serving twice to browsers due
@@ -94,8 +95,6 @@ func (g *geoLocations) serveLocations(port int) {
 
 		log.Printf("Served %d lat/long pairs to %s", len(g.coords), r.RemoteAddr)
 	})
-
-	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
 
 // processLocationRequest fetches user geo-location information from the

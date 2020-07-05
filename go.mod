@@ -8,7 +8,11 @@ require (
 	github.com/dchest/captcha v0.0.0-20170622155422-6a29415a8364
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
+	github.com/kofalt/go-memoize v0.0.0-20190519021333-cf756f0462a4 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
+	github.com/piquette/finance-go v1.0.0 // indirect
+	github.com/prometheus/client_golang v1.7.1
+	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/stretchr/testify v1.4.0
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	golang.org/x/image v0.0.0-20200430140353-33d19683fad8 // indirect

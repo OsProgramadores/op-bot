@@ -73,6 +73,8 @@ func newPendingCaptchaType() *pendingCaptchaType {
 // sendCaptcha adds the user to the map of users that have not yet responded to
 // the captcha and sends a random captcha image as a reply to the message.
 func (x *opBot) sendCaptcha(bot tgbotInterface, update tgbotapi.Update, user tgbotapi.User) {
+	promCaptchaCount.Inc()
+
 	// Do not send captcha messages to bots (belt and suspenders...)
 	if user.IsBot {
 		return
@@ -135,6 +137,7 @@ func (x *opBot) captchaReaper(bot tgbotInterface, update tgbotapi.Update, user t
 		if !ok {
 			return
 		}
+		promCaptchaFailedCount.Inc()
 
 		name := nameRef(user)
 
