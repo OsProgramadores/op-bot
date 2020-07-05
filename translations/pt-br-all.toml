@@ -8,7 +8,7 @@ read_the_rules = "Leia as Regras"
 visit_our_group_website = "Visite o site do Grupo"
 error_starting_bot = "Erro inicializando o bot (verifique se o token no arquivo de configuração está configurado)"
 no_captcha_received = "Usuário %s não respondeu ao captcha e foi removido do grupo."
-enter_captcha = "Bem-vindo(a) %s. Para confirmar a sua entrada no grupo, *por favor, digite o captcha acima* (sem espaços, apenas os dígitos) ou a palavra *outro* para obter um _captcha_ diferente. Qualquer outra mensagem será automaticamente apagada, até que o _captcha_ seja validado. Em caso de problemas, por favor entre em contato com os administradores do grupo."
+enter_captcha = "Bem-vindo(a) %s. Para confirmar a sua entrada no grupo, *digite o número acima* (sem espaços, apenas os dígitos) ou a palavra *outro* para obter um número diferente. *O bot o expulsará do grupo se o número correto não for digitado em 60s!* Qualquer outra mensagem será automaticamente apagada, até que o número correto seja digitado. Em caso de problemas, por favor entre em contato com os administradores do grupo."
 another_captcha = "outro"
 
 # Register help messages.
