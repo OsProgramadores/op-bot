@@ -66,7 +66,6 @@ type kickChatMemberer interface {
 	KickChatMember(tgbotapi.KickChatMemberConfig) (tgbotapi.APIResponse, error)
 }
 
-type kickUnbanChatMemberer interface {
-	KickChatMember(tgbotapi.KickChatMemberConfig) (tgbotapi.APIResponse, error)
+type unbanChatMemberer interface {
 	UnbanChatMember(tgbotapi.ChatMemberConfig) (tgbotapi.APIResponse, error)
 }

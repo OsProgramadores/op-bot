@@ -408,6 +408,20 @@ func isAdmin(bot getChatMemberer, chatID int64, userID int) (bool, error) {
 	return (chatmember.IsAdministrator() || chatmember.IsCreator()), nil
 }
 
+// isBanned returns true if the user was previously banned (kick/banned).
+func isBanned(bot getChatMemberer, chatID int64, userID int) (bool, error) {
+	q := tgbotapi.ChatConfigWithUser{
+		ChatID: chatID,
+		UserID: userID,
+	}
+
+	chatmember, err := bot.GetChatMember(q)
+	if err != nil {
+		return false, err
+	}
+	return chatmember.WasKicked(), nil
+}
+
 // stringInSlice returns true if a given string is in a string slice, false otherwise.
 func stringInSlice(str string, list []string) bool {
 	for _, s := range list {

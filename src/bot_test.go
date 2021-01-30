@@ -158,7 +158,7 @@ func TestHelpHandler(t *testing.T) {
 					pvtOnly: true,
 				},
 			},
-			wantStr: "/bar_admin: mock_bar_admin_command (Admin)\n/foo: mock_foo_command",
+			wantStr: "/bar\\_admin: mock_bar_admin_command (Admin)\n/foo: mock_foo_command",
 		},
 	}
 

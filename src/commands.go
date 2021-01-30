@@ -64,7 +64,7 @@ func (x *opBot) helpHandler(bot tgbotInterface, update tgbotapi.Update) error {
 			admin = " (Admin)"
 		}
 		if bcmd.enabled {
-			helpMsg = append(helpMsg, fmt.Sprintf("/%s: %s%s", c, bcmd.desc, admin))
+			helpMsg = append(helpMsg, fmt.Sprintf("/%s: %s%s", markdownEscape(c), bcmd.desc, admin))
 		}
 	}
 

@@ -149,11 +149,28 @@ func (x *opBot) captchaReaper(bot tgbotInterface, update tgbotapi.Update, user t
 			log.Printf("Warning: Unable to send 'invalid captcha' message.")
 		}
 
+		// Do nothing if user is already kicked (probably by an admin).
+		// Proced to kick+unban if that's not the case. We need to get
+		// the status before kickUser (below) for obvious reasons.
+		banned, err := isBanned(bot, update.Message.Chat.ID, user.ID)
+		if err != nil {
+			log.Printf("Warning: Unable to get information for user %s (uid=%d): %v", name, user.ID, err)
+		}
+
 		// Kick user and remove from list.
 		if err = kickUser(bot, update.Message.Chat.ID, user.ID); err != nil {
 			log.Printf("Warning: Unable to kick user %s (uid=%d) out of the channel.", name, user.ID)
 		}
+
 		x.pendingCaptcha.del(user.ID)
+
+		if banned {
+			log.Printf("User %s (uid=%d) has already been banned (by admin?) Not unbanning.", name, user.ID)
+			return
+		}
+		if err = unBanUser(bot, update.Message.Chat.ID, user.ID); err != nil {
+			log.Printf("Warning: Unable to UNBAN user %s (uid=%d) (May be locked out.)", name, user.ID)
+		}
 	})
 }
 
