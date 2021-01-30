@@ -310,13 +310,16 @@ func banUser(bot kickChatMemberer, chatID int64, userID int) error {
 	return err
 }
 
+// unBanUser removed the bans on a user using a ChatID and UserID.
+func unBanUser(bot unbanChatMemberer, chatID int64, userID int) error {
+	memberConfig := tgbotapi.ChatMemberConfig{ChatID: chatID, UserID: userID}
+	_, err := bot.UnbanChatMember(memberConfig)
+	return err
+}
+
 // kickUser kicks (not ban) a user using a ChatID and UserID.
-func kickUser(bot kickUnbanChatMemberer, chatID int64, userID int) error {
+func kickUser(bot kickChatMemberer, chatID int64, userID int) error {
 	memberConfig := tgbotapi.ChatMemberConfig{ChatID: chatID, UserID: userID}
 	_, err := bot.KickChatMember(tgbotapi.KickChatMemberConfig{ChatMemberConfig: memberConfig})
-	if err != nil {
-		return err
-	}
-	_, err = bot.UnbanChatMember(memberConfig)
 	return err
 }
