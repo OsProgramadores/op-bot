@@ -2,12 +2,17 @@ package main
 
 import (
 	"fmt"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
 	"net/http"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 var (
+	// BuildVersion holds the git HEAD commit # at build time
+	// (or nil if the binary was not built using make).
+	BuildVersion string
+
 	// T holds our global translation function. We return blank
 	// by default to make test initialization simpler.
 	T = func(string) string {
@@ -54,6 +59,9 @@ func main() {
 	if err := opbot.geolocations.readLocations(); err != nil {
 		log.Printf("Error reading locations: %v (assuming no locations recorded)", err)
 	}
+
+	// Print version
+	log.Printf("Starting op-bo, Git Build: %s\n", BuildVersion)
 
 	// Start the HTTP server listing the location info.
 	opbot.geolocations.serveLocations()
