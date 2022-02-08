@@ -141,33 +141,37 @@ func (x *opBot) captchaReaper(bot tgbotInterface, update tgbotapi.Update, user t
 
 		name := nameRef(user)
 
-		// At this point, we reached our captcha timeout and the user is still
-		// in the pending captcha list, meaning they didn't confirm the
-		// captcha.
-		_, err := sendMessage(bot, update.Message.Chat.ID, fmt.Sprintf(T("no_captcha_received"), name))
-		if err != nil {
-			log.Printf("Warning: Unable to send 'invalid captcha' message.")
-		}
-
-		// Do nothing if user is already kicked (probably by an admin).
-		// Proced to kick+unban if that's not the case. We need to get
-		// the status before kickUser (below) for obvious reasons.
+		// Let's check if this user is already banned, in which case we can
+		// skip some of the following steps.
 		banned, err := isBanned(bot, update.Message.Chat.ID, user.ID)
 		if err != nil {
 			log.Printf("Warning: Unable to get information for user %s (uid=%d): %v", name, user.ID, err)
 		}
 
-		// Kick user and remove from list.
-		if err = kickUser(bot, update.Message.Chat.ID, user.ID); err != nil {
-			log.Printf("Warning: Unable to kick user %s (uid=%d) out of the channel.", name, user.ID)
-		}
+		// At this point, we reached our captcha timeout and the user is still
+		// in the pending captcha list, meaning they didn't confirm the
+		// captcha.
 
-		x.pendingCaptcha.del(user.ID)
+		// Let's remove the pending request.
+		defer x.pendingCaptcha.del(user.ID)
 
+		// Do nothing if user is already kicked (probably by an admin).
 		if banned {
 			log.Printf("User %s (uid=%d) has already been banned (by admin?) Not unbanning.", name, user.ID)
 			return
 		}
+
+		// As the user is not yet banned, proced to kick+unban.
+		// Kick user and remove from list.
+		_, err = sendMessage(bot, update.Message.Chat.ID, fmt.Sprintf(T("no_captcha_received"), name))
+		if err != nil {
+			log.Printf("Warning: Unable to send 'invalid captcha' message.")
+		}
+
+		if err = kickUser(bot, update.Message.Chat.ID, user.ID); err != nil {
+			log.Printf("Warning: Unable to kick user %s (uid=%d) out of the channel.", name, user.ID)
+		}
+
 		if err = unBanUser(bot, update.Message.Chat.ID, user.ID); err != nil {
 			log.Printf("Warning: Unable to UNBAN user %s (uid=%d) (May be locked out.)", name, user.ID)
 		}
