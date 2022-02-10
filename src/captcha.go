@@ -161,7 +161,7 @@ func (x *opBot) captchaReaper(bot tgbotInterface, update tgbotapi.Update, user t
 			return
 		}
 
-		// As the user is not yet banned, proced to kick+unban.
+		// As the user is not yet banned, proceed to kick+unban.
 		// Kick user and remove from list.
 		_, err = sendMessage(bot, update.Message.Chat.ID, fmt.Sprintf(T("no_captcha_received"), name))
 		if err != nil {
