@@ -118,6 +118,13 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 		case update.Message != nil:
 			promMessageCount.Inc()
 
+			// Remove messages from bots.
+			if update.Message.From != nil && update.Message.From.IsBot {
+				deleteMessage(bot, update.Message.Chat.ID, update.Message.MessageID)
+				log.Printf("Removed message sent by bot. ChatID: %v, MessageID: %v", update.Message.Chat.ID, update.Message.MessageID)
+				continue
+			}
+
 			// Update stats if the message comes from @osprogramadores.
 			updateMessageStats(x.statsWriter, update, osProgramadoresGroup)
 
