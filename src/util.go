@@ -169,7 +169,7 @@ func isForwarded(msg *tgbotapi.Message) bool {
 	if msg == nil {
 		return false
 	}
-	return msg.ForwardFrom != nil || msg.ForwardFromChat != nil
+	return msg.ForwardFrom != nil || msg.ForwardFromChat != nil || msg.ForwardDate > 0
 }
 
 // trDelete returns a copy of the string with all runes in substring removed.
