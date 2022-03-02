@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
-	"github.com/patrickmn/go-cache"
 	"io"
 	"log"
 	"math/rand"
 	"strings"
 	"time"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/patrickmn/go-cache"
 )
 
 const (
@@ -49,6 +50,9 @@ type opBot struct {
 
 	// statsWriter holds handler to write stats to disk.
 	statsWriter io.WriteCloser
+
+	// List of ban patterns.
+	patterns opPatterns
 }
 
 // botCommands holds the commands accepted by the bot, their description and a handler function.
@@ -92,6 +96,7 @@ func newOpBot(config botConfig) (opBot, error) {
 
 		// Enable captcha by default.
 		captchaTime: 1 * time.Minute,
+		patterns:    opPatterns{},
 	}, nil
 }
 
@@ -104,6 +109,9 @@ func (x *opBot) Close() {
 func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 	bot.Debug = true
 	log.Printf("Authorized on account %s", bot.Self.UserName)
+
+	// Initialize the join patterns list.
+	x.reloadMatchPatterns(bot, tgbotapi.Update{})
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
@@ -130,6 +138,11 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 
 			// Notifications.
 			x.notifications.manageNotifications(bot, update)
+
+			// Let's now handle some ban patterns before proceeding.
+			if x.handledPatternMatching(bot, update) {
+				continue
+			}
 
 			// Handle messages from users who are yet to validate the captcha.
 			// Explicitly ignore NewChatMember requests since users who leave
@@ -373,6 +386,34 @@ func (x *opBot) processUserCommands(bot *tgbotapi.BotAPI, update tgbotapi.Update
 		sendReply(bot, update.Message.Chat.ID, update.Message.MessageID, e)
 		log.Println(e)
 	}
+}
+
+func (x *opBot) handledPatternMatching(bot *tgbotapi.BotAPI, update tgbotapi.Update) bool {
+	ok, action := x.patterns.MatchFromUpdate(bot, update)
+
+	if !ok {
+		// No matches, so we can return.
+		return false
+	}
+
+	// Message that matched the patterns is always deleted, then a specific
+	// action follows.
+	deleteMessage(bot, update.Message.Chat.ID, update.Message.MessageID)
+	log.Printf("Removed message that matched the ban patterns. ChatID: %v, MessageID: %v", update.Message.Chat.ID, update.Message.MessageID)
+
+	// For now we only have two actions: ban and kick.
+	if action == opBan || action == opKick {
+		f := map[opMatchAction]func(kickChatMemberer, int64, int) error{
+			opBan:  banUser,
+			opKick: kickUser,
+		}
+		if err := f[action](bot, update.Message.Chat.ID, update.Message.From.ID); err != nil {
+			log.Printf("Error performing action %q with username %q (%s %s): %v", action.String(), update.Message.From.UserName, update.Message.From.FirstName, update.Message.From.LastName, err)
+		} else {
+			log.Printf("Action %q performed for user %q (%s %s). Hasta la vista, baby...", action.String(), update.Message.From.UserName, update.Message.From.FirstName, update.Message.From.LastName)
+		}
+	}
+	return true
 }
 
 // selfDestructMessage deletes a message in a chat after the specified amount of time.

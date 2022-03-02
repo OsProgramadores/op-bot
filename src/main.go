@@ -75,6 +75,7 @@ func main() {
 	opbot.Register("new_user_probation_time", T("new_user_probation_time_help"), true, false, true, opbot.setNewUserProbationTimeHandler)
 	opbot.Register("welcome_message_ttl", T("welcome_message_ttl_help"), true, false, true, opbot.setWelcomeMessageTTLHandler)
 	opbot.Register("captcha_time", T("captcha_time_help"), true, false, true, opbot.setCaptchaTimeHandler)
+	opbot.Register("reload_patterns", T("reload_patterns_help"), true, true, false, opbot.reloadMatchPatterns)
 
 	// Start listener
 	go http.ListenAndServe(fmt.Sprintf(":%d", opbot.config.ServerPort), nil)

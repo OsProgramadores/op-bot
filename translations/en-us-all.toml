@@ -20,6 +20,7 @@ ban_help = "Reports message to admins. Remember to send the command in response 
 new_user_probation_time_help = "User must be in the group for this long to gain full privileges (E.g, 24h, 0 = disable feature)"
 welcome_message_ttl_help = "Set the time-to-live for the welcome messages (E.g: /welcome\\_message\\_ttl 5m)"
 captcha_time_help = "Set the time new users have to correctly answer the captcha (E.g: /captcha\\_time 1m, 0 = disable feature)"
+reload_patterns_help = "Reloads the list of ban patterns"
 
 # Error messages
 
