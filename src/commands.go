@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
 	"math/rand"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 // Register registers a command a its handler on the bot.
@@ -163,4 +164,24 @@ func parseCmdDuration(text string) (time.Duration, error) {
 		return 0, fmt.Errorf("invalid time specification: %s", value)
 	}
 	return d, nil
+}
+
+// reloadMatchPatterns() will reload the list of patterns to match against
+// for users joining the room.
+func (x *opBot) reloadMatchPatterns(bot tgbotInterface, update tgbotapi.Update) error {
+	patterns, err := loadPatterns()
+	if err != nil {
+		fmt.Printf("Unable to load the matching patterns: %v (assuming no join patterns)\n", err)
+		// We are not returning the error here so that the bot will not send this to the user who
+		// requested this command. We log it anyway.
+		return nil
+	}
+	x.patterns = patterns
+
+	from := "bot startup"
+	if update.Message != nil && update.Message.From != nil {
+		from = fmt.Sprintf("username: %s (%s %s)", update.Message.From.UserName, update.Message.From.FirstName, update.Message.From.LastName)
+	}
+	fmt.Printf("reloadJoinPatterns (%s): %+v\n", from, patterns)
+	return nil
 }

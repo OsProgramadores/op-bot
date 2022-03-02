@@ -20,6 +20,7 @@ ban_help = "Reporta mensagem para os admins. Use este comando em resposta a uma 
 new_user_probation_time_help = "Configura o tempo minimo de permanência no grupo para eliminar restrições de novos usuários (Ex: 24h, 0 = desabilita restrições)"
 welcome_message_ttl_help = "Configura o tempo de vida das mensagens de boas-vindas (Ex: /welcome\\_message\\_ttl 5m)"
 captcha_time_help = "Configura o tempo máximo para responder ao captcha. (Ex: /captcha\\_time 1m, 0 = desabilita captcha)"
+reload_patterns_help = "Recarrega a lista de padrões de ban"
 
 # Error messages
 
