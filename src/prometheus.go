@@ -1,9 +1,10 @@
 package main
 
 import (
+	"net/http"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"net/http"
 )
 
 var (
@@ -42,6 +43,18 @@ var (
 		prometheus.CounterOpts{
 			Name: "opbot_rich_messages_deleted_total",
 			Help: "Number of rich messages deleted from new users",
+		},
+	)
+	promPatternMessageDeletedCount = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "opbot_pattern_messages_deleted_total",
+			Help: "Number of messages deleted automatically by pattern matching",
+		},
+	)
+	promPatternKickBannedCount = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "opbot_pattern_kick_bans_total",
+			Help: "Number of users kicked or banned by message pattern matching",
 		},
 	)
 )

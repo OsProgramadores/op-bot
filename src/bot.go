@@ -400,6 +400,7 @@ func (x *opBot) handledPatternMatching(bot *tgbotapi.BotAPI, update tgbotapi.Upd
 	// action follows.
 	deleteMessage(bot, update.Message.Chat.ID, update.Message.MessageID)
 	log.Printf("Removed message that matched the ban patterns. ChatID: %v, MessageID: %v", update.Message.Chat.ID, update.Message.MessageID)
+	promPatternMessageDeletedCount.Inc()
 
 	// For now we only have two actions: ban and kick.
 	if action == opBan || action == opKick {
@@ -413,6 +414,7 @@ func (x *opBot) handledPatternMatching(bot *tgbotapi.BotAPI, update tgbotapi.Upd
 			log.Printf("Action %q performed for user %q (%s %s). Hasta la vista, baby...", action.String(), update.Message.From.UserName, update.Message.From.FirstName, update.Message.From.LastName)
 		}
 	}
+	promPatternKickBannedCount.Inc()
 	return true
 }
 
