@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
 	"strings"
 	"sync"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 const (
