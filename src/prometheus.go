@@ -67,6 +67,8 @@ func init() {
 		promCaptchaValidatedCount,
 		promCaptchaFailedCount,
 		promRichMessageDeletedCount,
+		promPatternMessageDeletedCount,
+		promPatternKickBannedCount,
 	)
 
 	// Add handlers.
