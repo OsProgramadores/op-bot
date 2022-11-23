@@ -1,27 +1,31 @@
-name: Test code
+name: Go code tests
 on: [push, pull_request]
 jobs:
-  test:
+  build_lint_test:
     runs-on: ubuntu-latest
     steps:
-      - name: Install Go
-        uses: actions/setup-go@v2
+      - name: Setup Go compiler
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.14.x
-
-      - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          persist-credentials: false
-
-      - name: Install & build dependencies
+          go-version: 1.19.x
+          check-latest: true
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Build binary
         run: |
           go get -t ./...
-          go get -u golang.org/x/lint/golint
-          pushd ci/transcheck && go build && popd
-
-      - name: Test Go code
+          make
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          # Disable errcheck (too noisy) for now.
+          # TODO: improve this by disabling only problematic regexps.
+          args: -D errcheck -E gofmt,revive
+      - name: Go test
         run: |
-          ./ci/codecheck.sh
           go test -v ./...
           go test -cpu=2 -race -v ./...
+      - name: Check Translations
+        run: |
+          go build -o ci/transcheck/transcheck ci/transcheck/transcheck.go
+          ./ci/transcheck/transcheck --source-dir "src" --translations-dir "examples/translations"

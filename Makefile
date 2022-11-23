@@ -1,23 +1,20 @@
 .PHONY: arch clean docker docker-force install test
 
-bin := op-bot
-bindir := /usr/local/bin
-archdir := arch
-src := $(wildcard src/*.go)
-git_tag := $(shell git describe --always --tags)
+BIN := op-bot
+BINDIR := /usr/local/bin
+ARCHDIR := arch
+SRC := $(wildcard src/*.go)
+GIT_TAG := $(shell git describe --always --tags)
 
 # Default target
-${bin}: Makefile ${src}
-	cd src && go build -v -ldflags "-X main.BuildVersion=${git_tag}" -o "../${bin}"
+${BIN}: Makefile ${SRC}
+	cd src && go build -v -ldflags "-X main.BuildVersion=${GIT_TAG}" -o "../${BIN}"
 
-install: ${bin}
-	install -m 755 "${bin}" "${bindir}"
+install: ${BIN}
+	install -m 755 "${BIN}" "${BINDIR}"
 
 docker:
-	docker build -t ${USER}/op-bot .
-
-docker-force:
-	docker build --no-cache -t ${USER}/op-bot .
+	docker build -t ${BIN}:latest .
 
 test:
 	cd src && go test -v
@@ -25,17 +22,18 @@ test:
 # Cleanup
 clean:
 	cd src && go clean
-	rm -f "${bin}"
-	rm -rf "${archdir}"
+	rm -f "${BIN}"
+	rm -rf "${ARCHDIR}"
+	docker builder prune -f
 
 # Creates cross-compiled tarred versions (for releases).
-arch: Makefile ${src}
+arch: Makefile ${SRC}
 	for ga in "linux/amd64" "linux/386" "linux/arm" "linux/arm64" "linux/mips" "linux/mipsle"; do \
-	  export GOOS="$${ga%/*}"; \
-	  export GOARCH="$${ga#*/}"; \
-	  dst="./${archdir}/$${GOOS}-$${GOARCH}"; \
+	  export goos="$${ga%/*}"; \
+	  export goarch="$${ga#*/}"; \
+	  dst="./${ARCHDIR}/$${goos}-$${goarch}"; \
 	  mkdir -p "$${dst}"; \
-	  go build -v -ldflags "-X main.Build=${git_tag}" -o "$${dst}/${bin}"; \
+	  go build -v -ldflags "-X main.Build=${GIT_TAG}" -o "$${dst}/${BIN}"; \
 	  install -m 644 LICENSE README.md "$${dst}"; \
-	  tar -C "${archdir}" -zcvf "${archdir}/${bin}-$${GOOS}-$${GOARCH}.tar.gz" "$${dst##*/}"; \
+	  tar -C "${ARCHDIR}" -zcvf "${ARCHDIR}/${BIN}-$${goos}-$${goarch}.tar.gz" "$${dst##*/}"; \
 	done
