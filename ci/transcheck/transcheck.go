@@ -5,12 +5,13 @@ package main
 
 import (
 	"flag"
-	"github.com/BurntSushi/toml"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"regexp"
+
+	"github.com/BurntSushi/toml"
 )
 
 func main() {
@@ -71,10 +72,8 @@ func tmessages(fnames []string) (map[string]interface{}, error) {
 			return nil, err
 		}
 		matches := re.FindAllSubmatch(buf, -1)
-		if matches != nil {
-			for _, m := range matches {
-				ret[string(m[1])] = true
-			}
+		for _, m := range matches {
+			ret[string(m[1])] = true
 		}
 	}
 	return ret, nil
