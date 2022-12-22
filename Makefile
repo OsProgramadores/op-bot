@@ -21,7 +21,7 @@ test:
 
 # Cleanup
 clean:
-	cd src && go clean
+	cd src && go clean || true
 	rm -f "${BIN}"
 	rm -rf "${ARCHDIR}"
 	docker builder prune -f
