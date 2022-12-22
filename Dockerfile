@@ -2,8 +2,6 @@ FROM alpine:3.17 as builder
 
 MAINTAINER Marco Paganini <paganini@paganini.net> and Sergio Correia <sergio@correia.cc>
 
-ARG UID=501
-
 # Copy the repo contents into /tmp/build (inside the container)
 WORKDIR /tmp/build/src/op-bot
 COPY . .
@@ -20,13 +18,18 @@ RUN apk add --no-cache ca-certificates git git-crypt go make && \
     make
 
 # Build the second stage (small) image
-FROM alpine
+FROM alpine:3.17
+
+# User for this project.
+ARG UID=501
 
 # These get exported to the environment at run time.
 ENV XDG_CONFIG_HOME "/config"
 ENV XDG_DATA_HOME "/data"
 ENV TRANSLATIONS_DIR "/app/translations"
 ENV CONFIG_DIR "${XDG_CONFIG_HOME}/op-bot"
+
+RUN adduser --uid $UID --home /tmp --no-create-home --disabled-password op
 
 WORKDIR /app
 COPY --from=builder /tmp/build/src/op-bot/op-bot .
@@ -36,5 +39,5 @@ COPY --from=builder /tmp/build/src/op-bot/site-configs ${CONFIG_DIR}
 # Geo requests API port.
 EXPOSE 54321
 
-USER ${UID}
+USER $UID
 ENTRYPOINT [ "./op-bot" ]
