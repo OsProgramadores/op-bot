@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 // safeWriteJSON saves `data' (in json) to file.
@@ -23,7 +23,7 @@ func safeWriteJSON(data interface{}, file string) error {
 		return err
 	}
 
-	tmpfile, err := ioutil.TempFile(datadir, "safe-write")
+	tmpfile, err := os.CreateTemp(datadir, "safe-write")
 	if err != nil {
 		log.Printf("safeWriteJSON: error creating temp file to save data: %v", err)
 		return err
@@ -47,7 +47,7 @@ func safeWriteJSON(data interface{}, file string) error {
 // readFromJSON loads the JSON content from `file' into `data'. Note that locks
 // -- if needed -- are assumed to be taken care of outside this function.
 func readFromJSON(data interface{}, file string) error {
-	buf, err := ioutil.ReadFile(file)
+	buf, err := os.ReadFile(file)
 	if err != nil {
 		return err
 	}

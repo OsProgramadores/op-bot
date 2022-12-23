@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/url"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -156,7 +156,7 @@ func loadPatterns() (opPatterns, error) {
 
 	f := filepath.Join(cfgdir, patternsFile)
 
-	buf, err := ioutil.ReadFile(f)
+	buf, err := os.ReadFile(f)
 	if err != nil {
 		return opPatterns{}, err
 	}

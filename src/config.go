@@ -3,12 +3,12 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/BurntSushi/toml"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
 	"time"
+
+	"github.com/BurntSushi/toml"
 )
 
 const (
@@ -80,7 +80,7 @@ func loadConfig() (botConfig, error) {
 	}
 	f := filepath.Join(cfgdir, configFile)
 
-	buf, err := ioutil.ReadFile(f)
+	buf, err := os.ReadFile(f)
 	if err != nil {
 		return botConfig{}, err
 	}
