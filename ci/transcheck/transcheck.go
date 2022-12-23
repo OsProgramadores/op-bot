@@ -5,7 +5,6 @@ package main
 
 import (
 	"flag"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -67,7 +66,7 @@ func tmessages(fnames []string) (map[string]interface{}, error) {
 	}
 
 	for _, fname := range fnames {
-		buf, err := ioutil.ReadFile(fname)
+		buf, err := os.ReadFile(fname)
 		if err != nil {
 			return nil, err
 		}
@@ -84,7 +83,7 @@ func tmessages(fnames []string) (map[string]interface{}, error) {
 func translationID(tfile string) (map[string]interface{}, error) {
 	var translation map[string]interface{}
 
-	buf, err := ioutil.ReadFile(tfile)
+	buf, err := os.ReadFile(tfile)
 	if err != nil {
 		return nil, err
 	}
