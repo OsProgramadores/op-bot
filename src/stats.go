@@ -3,10 +3,11 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"io"
 	"os"
 	"path/filepath"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 const (

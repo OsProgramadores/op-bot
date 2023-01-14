@@ -4,9 +4,10 @@ package main
 
 import (
 	"errors"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
 	"sync"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 const (

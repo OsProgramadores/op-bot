@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
 	"regexp"
 	"strings"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 func answerCallbackWithNotification(bot *tgbotapi.BotAPI, callbackID, text string) error {
