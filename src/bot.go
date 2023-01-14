@@ -187,6 +187,12 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 			if err != nil {
 				log.Printf("Unable to determine if user is an admin. Assuming not.")
 			}
+
+			// Block undesirable rich media messages from regular users.
+			if !admin && removeBadRichMessages(bot, update) != 0 {
+				continue
+			}
+
 			if x.config.NewUserProbationTime.Hours() > 0 && !admin {
 				x.processNewUsers(bot, update)
 			}
@@ -322,7 +328,7 @@ func (x *opBot) processNewUsers(bot sendDeleteMessager, update tgbotapi.Update) 
 			promRichMessageDeletedCount.Inc()
 
 			// Log and delete message.
-			log.Printf("New user (%s) attempted to send non-text message. Deleting and notifying.", formatName(*msg.From))
+			log.Printf("Deleting rich message message from new user %s.", formatName(*msg.From))
 
 			// We only send a reply message if the user does not appear in the
 			// newUserWarningCache (which has a expiration of minutes). The
@@ -418,6 +424,28 @@ func (x *opBot) handledPatternMatching(bot *tgbotapi.BotAPI, update tgbotapi.Upd
 	return true
 }
 
+// removeBadRichMessages removes undesirable rich messages (Voice, VideoNotes, etc).
+// Returns the number of deleted messages.
+func removeBadRichMessages(bot sendDeleteMessager, update tgbotapi.Update) int {
+	var deleted int
+
+	// Blocks undesirable rich text messages. Checks messages and edited messages.
+	for _, msg := range []*tgbotapi.Message{update.Message, update.EditedMessage} {
+		if undesirableRichMessage(msg) {
+			deleted++
+			promRichMessageDeletedCount.Inc()
+
+			// Log and delete message.
+			log.Printf("Deleting undesirable rich message from user %s.", formatName(*msg.From))
+			bot.DeleteMessage(tgbotapi.DeleteMessageConfig{
+				ChatID:    msg.Chat.ID,
+				MessageID: msg.MessageID,
+			})
+		}
+	}
+	return deleted
+}
+
 // selfDestructMessage deletes a message in a chat after the specified amount of time.
 // If the ttl is set to zero, assume a default of 30m.
 func selfDestructMessage(bot deleteMessager, chatID int64, messageID int, ttl time.Duration) {
@@ -436,11 +464,23 @@ func selfDestructMessage(bot deleteMessager, chatID int64, messageID int, ttl ti
 	})
 }
 
-// richMessage returns true if the message is a rich message containing video, photos,
-// audio, etc. False otherwise.
+// richMessage returns true if the message is a rich message containing video,
+// photos, audio, etc. False otherwise.
 func richMessage(m *tgbotapi.Message) bool {
 	return m != nil && (m.Animation != nil || m.Audio != nil || m.Document != nil || m.Game != nil ||
 		m.Photo != nil || m.Video != nil || m.VideoNote != nil || m.Voice != nil)
+}
+
+// undesirableRichMessage returns true if the message is an undesirable rich
+// message for normal users.
+func undesirableRichMessage(m *tgbotapi.Message) bool {
+	// This should block the following messages types:
+	// - Audio/Voice: Basically an audio message. Voice has a different player.
+	// - VideoNote: The "round video" player.
+	// - Game: Couldn't find a direct reference to it.
+	// - Location/Venue: Protect users from accidentally sending their location or a Venue.
+	return m != nil && (m.Audio != nil || m.Voice != nil || m.VideoNote != nil ||
+		m.Game != nil || m.Location != nil || m.Venue != nil)
 }
 
 // isAdmin returns true if the user is a member of a given chat ID and has
