@@ -3,8 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/dchest/captcha"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"image/png"
 	"log"
 	"math/rand"
@@ -14,6 +12,9 @@ import (
 	"sync"
 	"time"
 	"unicode"
+
+	"github.com/dchest/captcha"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 const (

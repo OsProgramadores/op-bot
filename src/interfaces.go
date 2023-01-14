@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 // mediaInterface defines the interface between opbot and the media module.

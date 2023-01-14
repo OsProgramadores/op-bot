@@ -3,11 +3,12 @@ package main
 
 import (
 	"errors"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
-	"github.com/stretchr/testify/mock"
 	"log"
 	"os"
 	"testing"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/stretchr/testify/mock"
 )
 
 // MockTelebot defines an interface to the telegram libraries.

@@ -4,12 +4,13 @@ import (
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"io"
 	"log"
 	"math/rand"
 	"net/http"
 	"sync"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 const (
