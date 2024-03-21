@@ -91,10 +91,10 @@ func (ma opMatchAction) String() string {
 	return "NoAction"
 }
 
-// getMatchPattern() gets the relevant data from the udpate message.
-// For messages indicating new users have joined, it performs a web
-// request to get additional info on the user; for regular messages,
-// we get the actual message sent to use when matching.
+// getMatchPattern() gets the relevant data from the update message.
+// For messages indicating new users have joined, it performs a web request to
+// get additional info on the user; for regular messages, we get the actual
+// message sent to use when matching.
 func getMatchPattern(bot *tgbotapi.BotAPI, update tgbotapi.Update) (opMatchPattern, error) {
 	matchPattern := opMatchPattern{}
 	switch {
@@ -164,10 +164,10 @@ func loadPatterns() (opPatterns, error) {
 	return stringTomlToPatterns(string(buf))
 }
 
-// performMatch() will perform a simple regex match operation using
-// the given pattern and data.
+// performMatch() performs a simple regex match operation using the given
+// pattern and data.
 func performMatch(pattern, data string) bool {
-	// Note that we add the ?i flag to have a case-insensitive match.
+	// Note that we add the "(?i)" flag to have a case-insensitive match.
 	r, err := regexp.Compile("(?i)" + pattern)
 	if err != nil {
 		fmt.Printf("performMatch: unable to compile pattern %q: %v\n", pattern, err)
@@ -176,8 +176,8 @@ func performMatch(pattern, data string) bool {
 	return r.MatchString(data)
 }
 
-// performGroupMatch() will perform a series of regex match operations
-// with the provided patterns/action and data.
+// performGroupMatch() performs a series of regex match operations with the
+// provided patterns/action and data.
 func performGroupMatch(patterns []opPatternAction, data string) (bool, opMatchAction) {
 	if len(data) == 0 {
 		return false, opNoAction
@@ -227,10 +227,9 @@ func (p *opPatterns) matchPattern(m opMatchPattern) (bool, opMatchAction) {
 	return false, opNoAction
 }
 
-// MatchFromUpdate will basically construct a MatchPattern from the update
-// message and call matchPattern() to do the actual matching.
-// This is for gluing the bot with the actual matching, while making the
-// matching itself more independent/testable.
+// MatchFromUpdate constructs a MatchPattern from the update message and call
+// matchPattern() to do the actual matching.  This is for gluing the bot with
+// the actual matching, while making the matching itself more testable.
 func (p *opPatterns) MatchFromUpdate(b *tgbotapi.BotAPI, u tgbotapi.Update) (bool, opMatchAction) {
 	if u.Message == nil || u.Message.Chat == nil {
 		return false, opNoAction
