@@ -301,7 +301,7 @@ func (x *opBot) sendWelcome(bot sendDeleteMessager, update tgbotapi.Update, user
 		tgbotapi.NewInlineKeyboardRow(buttonURL(T("visit_our_group_website"), osProgramadoresURL)),
 		tgbotapi.NewInlineKeyboardRow(buttonURL(T("read_the_rules"), osProgramadoresRulesURL)),
 	)
-	welcome, err := sendMessageWithMarkup(bot, update.Message.Chat.ID, update.Message.MessageID, fmt.Sprintf(T("welcome"), nameRef(user)), markup)
+	welcome, err := sendMessageWithMarkup(bot, update.Message.Chat.ID, fmt.Sprintf(T("welcome"), nameRef(user)), markup)
 	if err != nil {
 		log.Printf("Error sending welcome message to user %s", formatName(user))
 		return

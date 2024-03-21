@@ -85,7 +85,7 @@ func (x *opBot) sendCaptcha(bot tgbotInterface, update tgbotapi.Update, user tgb
 	// Random captcha, expires in x.captchaTime duration.
 	code := rand.Int() % 10000
 
-	x.markAsPendingCaptcha(bot, user, code)
+	x.markAsPendingCaptcha(user, code)
 
 	// Send the captcha message. Set to autodestruct in captcha_time + 10s.
 	log.Printf("Sending captcha %04.4d to user %s (uid=%d)", code, name, user.ID)
@@ -180,7 +180,7 @@ func (x *opBot) captchaReaper(bot tgbotInterface, update tgbotapi.Update, user t
 }
 
 // markAsPendingCaptcha marks the user status as pending Captcha response.
-func (x *opBot) markAsPendingCaptcha(bot tgbotInterface, user tgbotapi.User, code int) {
+func (x *opBot) markAsPendingCaptcha(user tgbotapi.User, code int) {
 	log.Printf("Adding user to the pending-captcha list: %q, uid=%d\n", formatName(user), user.ID)
 	x.pendingCaptcha.set(user.ID, botCaptcha{
 		code:       code,
