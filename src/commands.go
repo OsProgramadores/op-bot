@@ -168,7 +168,7 @@ func parseCmdDuration(text string) (time.Duration, error) {
 
 // reloadMatchPatterns() will reload the list of patterns to match against
 // for users joining the room.
-func (x *opBot) reloadMatchPatterns(bot tgbotInterface, update tgbotapi.Update) error {
+func (x *opBot) reloadMatchPatterns(_ tgbotInterface, update tgbotapi.Update) error {
 	patterns, err := loadPatterns()
 	if err != nil {
 		fmt.Printf("Unable to load the matching patterns: %v (assuming no join patterns)\n", err)

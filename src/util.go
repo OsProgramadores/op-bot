@@ -152,7 +152,7 @@ func sendReplyWithMarkup(bot sender, chatID int64, msgID int, text string, marku
 }
 
 // sendMessageWithMarkup sends a message with markup.
-func sendMessageWithMarkup(bot sender, chatID int64, msgID int, text string, markup tgbotapi.InlineKeyboardMarkup) (tgbotapi.Message, error) {
+func sendMessageWithMarkup(bot sender, chatID int64, text string, markup tgbotapi.InlineKeyboardMarkup) (tgbotapi.Message, error) {
 	msg := tgbotapi.NewMessage(chatID, text)
 	msg.ReplyMarkup = &markup
 	return bot.Send(msg)
