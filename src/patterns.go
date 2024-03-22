@@ -130,6 +130,10 @@ func getMatchPattern(bot *tgbotapi.BotAPI, update tgbotapi.Update) (opMatchPatte
 		matchPattern.Nickname = strings.Trim(fmt.Sprintf("%s %s", userinfo.FirstName, userinfo.LastName), " ")
 		matchPattern.Username = userinfo.UserName
 		matchPattern.Bio = strings.Trim(userinfo.Bio, " ")
+	case len(update.Message.Caption) > 0:
+		// Media messages won't have a "Text" attribute, but may have a
+		// "Caption", so let's match against it.
+		matchPattern.Message = update.Message.Caption
 	default:
 		// By default, we only get the actual message to match against.
 		matchPattern.Message = update.Message.Text
