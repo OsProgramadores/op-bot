@@ -1,7 +1,7 @@
 # pt-br translation file for op-bot
 # http://github.com/osprogramadores/op-bot
 
-welcome = "Bem-vindo(a) %s! Qual o seu interesse em programação? Divirta-se e envie um pequeno resumo sobre você para quebrar o gelo com os outros participantes do grupo!"
+welcome = "%s Beleza? Se apresente por favor. A apresentação é condição para a permanência no grupo. Obrigado!"
 location_success = "Localização atualizada com sucesso."
 location_fail = "Houve um imprevisto tentando atualizar a localização. Por favor, tente novamente mais tarde."
 read_the_rules = "Leia as Regras"
