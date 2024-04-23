@@ -170,6 +170,12 @@ func (n *notifications) manageNotifications(bot sender, update tgbotapi.Update) 
 					// convert it to runes to be able to use the offset and
 					// length properly.
 					runes := []rune(update.Message.Text)
+					// Sanity check.
+					if entity.Offset+entity.Length > cap(runes) {
+						// This should not happen, so let's log it and leave.
+						log.Printf("Failed to parse username from runes: capacity: %d, offset: %d, length: %d; update message: %+v", cap(runes), entity.Offset, entity.Length, update.Message)
+						continue
+					}
 					username := trDelete(string(runes[entity.Offset:entity.Offset+entity.Length]), "@")
 
 					if n.notificationsEnabled(username) {
