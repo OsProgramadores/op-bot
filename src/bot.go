@@ -140,8 +140,13 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 			x.notifications.manageNotifications(bot, update)
 
 			// Let's now handle some ban patterns before proceeding.
-			if x.handledPatternMatching(bot, update) {
-				continue
+			if match, err := x.handledPatternMatching(bot, update); err == nil {
+				switch match {
+				case opBan, opKick:
+					// For these cases, there is no need to send a captcha.
+					log.Printf("Not sending captcha to user %d because pattern matched with action %q\n", update.Message.From.ID, match.String())
+					continue
+				}
 			}
 
 			// Handle messages from users who are yet to validate the captcha.
@@ -185,7 +190,7 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 			// Block many types of rich media from new users (but always allows admins).
 			admin, err := isAdmin(bot, update.Message.Chat.ID, update.Message.From.ID)
 			if err != nil {
-				log.Printf("Unable to determine if user is an admin. Assuming not.")
+				log.Printf("Unable to determine if user (id: %d) is an admin in chat (id: %d). Assuming not.", update.Message.From.ID, update.Message.Chat.ID)
 			}
 
 			// Block undesirable rich media messages from regular users.
@@ -394,34 +399,37 @@ func (x *opBot) processUserCommands(bot *tgbotapi.BotAPI, update tgbotapi.Update
 	}
 }
 
-func (x *opBot) handledPatternMatching(bot *tgbotapi.BotAPI, update tgbotapi.Update) bool {
+func (x *opBot) handledPatternMatching(bot *tgbotapi.BotAPI, update tgbotapi.Update) (opMatchAction, error) {
 	ok, action := x.patterns.MatchFromUpdate(bot, update)
 
 	if !ok {
 		// No matches, so we can return.
-		return false
+		return action, nil
 	}
 
 	// Message that matched the patterns is always deleted, then a specific
 	// action follows.
-	deleteMessage(bot, update.Message.Chat.ID, update.Message.MessageID)
-	log.Printf("Removed message that matched the ban patterns. ChatID: %v, MessageID: %v", update.Message.Chat.ID, update.Message.MessageID)
-	promPatternMessageDeletedCount.Inc()
+	if deleteMessage(bot, update.Message.Chat.ID, update.Message.MessageID) == nil {
+		log.Printf("Removed message that matched the ban patterns. ChatID: %v, MessageID: %v", update.Message.Chat.ID, update.Message.MessageID)
+		promPatternMessageDeletedCount.Inc()
+	}
 
 	// For now we only have two actions: ban and kick.
+	var err error
 	if action == opBan || action == opKick {
 		f := map[opMatchAction]func(kickChatMemberer, int64, int) error{
 			opBan:  banUser,
 			opKick: kickUser,
 		}
-		if err := f[action](bot, update.Message.Chat.ID, update.Message.From.ID); err != nil {
+		err = f[action](bot, update.Message.Chat.ID, update.Message.From.ID)
+		if err != nil {
 			log.Printf("Error performing action %q with username %q (%s %s): %v", action.String(), update.Message.From.UserName, update.Message.From.FirstName, update.Message.From.LastName, err)
 		} else {
 			log.Printf("Action %q performed for user %q (%s %s). Hasta la vista, baby...", action.String(), update.Message.From.UserName, update.Message.From.FirstName, update.Message.From.LastName)
+			promPatternKickBannedCount.Inc()
 		}
 	}
-	promPatternKickBannedCount.Inc()
-	return true
+	return action, err
 }
 
 // removeBadRichMessages removes undesirable rich messages (Voice, VideoNotes, etc).

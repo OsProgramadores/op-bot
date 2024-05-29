@@ -135,12 +135,13 @@ func sendMessage(bot sender, chatid int64, text string) (tgbotapi.Message, error
 
 // deleteMessage deletes a given message id in a chat id. It returns nothing as there's
 // not much to do other than log if the message deletion fails.
-func deleteMessage(bot deleteMessager, chatid int64, msgid int) {
+func deleteMessage(bot deleteMessager, chatid int64, msgid int) error {
 	_, err := bot.DeleteMessage(tgbotapi.DeleteMessageConfig{ChatID: chatid, MessageID: msgid})
 	if err != nil {
 		log.Printf("Unable to delete message (chat_id=%d, message_id=%d). Something is wrong.", chatid, msgid)
 	}
 	log.Printf("Removed message_id %d from chat_id %d", chatid, msgid)
+	return err
 }
 
 // sendReplyWithMarkup sends a reply to a specific MessageID with markup.
