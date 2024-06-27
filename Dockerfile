@@ -11,7 +11,7 @@ ARG gopath="${home}/go"
 ARG src_dir="${home}/${project_name}"
 
 # Primary build stage.
-FROM alpine:3.17 as builder
+FROM alpine:3.20 as builder
 
 # Pull from defaults.
 ARG project_name
@@ -39,7 +39,7 @@ RUN apk add --no-cache ca-certificates git git-crypt go make && \
     make
 
 # Build the second stage (small) image
-FROM alpine:3.17
+FROM alpine:3.20
 LABEL org.opencontainers.image.title="${project_title}"
 LABEL org.opencontainers.image.authors="${project_author}"
 LABEL org.opencontainers.image.source="${project_source}"
