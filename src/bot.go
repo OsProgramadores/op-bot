@@ -139,8 +139,19 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 			// Notifications.
 			x.notifications.manageNotifications(bot, update)
 
-			// Let's now handle some ban patterns before proceeding.
-			if match, err := x.handledPatternMatching(bot, update); err == nil {
+			// Determine if the user is an admin. This is used below to exclude
+			// admins from some actions.
+			admin, err := isAdmin(bot, update.Message.Chat.ID, update.Message.From.ID)
+			if err != nil {
+				log.Printf("Unable to determine if user (id: %d) is an admin in chat (id: %d). Assuming not.", update.Message.From.ID, update.Message.Chat.ID)
+			}
+
+			// Handle ban patterns before proceeding.
+			match, err := x.handledPatternMatching(bot, update)
+			if err != nil {
+				// Just log errors, but do nothing in this case.
+				log.Printf("Error handling pattern matching: %v\n", err)
+			} else if !admin {
 				switch match {
 				case opBan, opKick:
 					// For these cases, there is no need to send a captcha.
@@ -152,7 +163,6 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 			// Handle messages from users who are yet to validate the captcha.
 			// Explicitly ignore NewChatMember requests since users who leave
 			// the group and re-join will create one of such messages.
-
 			captcha := userCaptcha(x, bot, update.Message.Chat.ID, update.Message.From.ID)
 			if captcha != nil && update.Message.NewChatMembers == nil {
 				text := update.Message.Text
@@ -188,12 +198,6 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 			}
 
 			// Block many types of rich media from new users (but always allows admins).
-			admin, err := isAdmin(bot, update.Message.Chat.ID, update.Message.From.ID)
-			if err != nil {
-				log.Printf("Unable to determine if user (id: %d) is an admin in chat (id: %d). Assuming not.", update.Message.From.ID, update.Message.Chat.ID)
-			}
-
-			// Block undesirable rich media messages from regular users.
 			if !admin && removeBadRichMessages(bot, update) != 0 {
 				continue
 			}
