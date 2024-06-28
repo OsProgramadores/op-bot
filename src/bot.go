@@ -139,23 +139,19 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 			// Notifications.
 			x.notifications.manageNotifications(bot, update)
 
-			// Determine if the user is an admin. This is used below to exclude
-			// admins from some actions.
 			admin, err := isAdmin(bot, update.Message.Chat.ID, update.Message.From.ID)
 			if err != nil {
 				log.Printf("Unable to determine if user (id: %d) is an admin in chat (id: %d). Assuming not.", update.Message.From.ID, update.Message.Chat.ID)
 			}
 
-			// Handle ban patterns before proceeding.
-			match, err := x.handledPatternMatching(bot, update)
-			if err != nil {
-				// Just log errors, but do nothing in this case.
-				log.Printf("Error handling pattern matching: %v\n", err)
-			} else if !admin {
-				switch match {
-				case opBan, opKick:
+			// Handle ban patterns before proceeding. Non admin users only.
+			if !admin {
+				match, err := x.handledPatternMatching(bot, update)
+				if err != nil {
+					log.Printf("Error handling pattern matching: %v\n", err)
+				} else if match == opBan || match == opKick {
 					// For these cases, there is no need to send a captcha.
-					log.Printf("Not sending captcha to user %d because pattern matched with action %q\n", update.Message.From.ID, match.String())
+					log.Printf("Kick/Ban pattern match for userID %d, action %q\n", update.Message.From.ID, match.String())
 					continue
 				}
 			}
