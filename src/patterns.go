@@ -41,6 +41,7 @@ type opPatterns struct {
 	Username []opPatternAction `toml:"username"`
 	Bio      []opPatternAction `toml:"bio"`
 	Message  []opPatternAction `toml:"message"`
+	Sticker  []opPatternAction `toml:"sticker"`
 }
 
 // opMatchPattern contains the data we will use when matching.
@@ -51,8 +52,9 @@ type opMatchPattern struct {
 	Nickname string // This is the first + last name.
 	Username string
 	Bio      string
-	// This will be matched in regular messages.
+	// These will be matched in regular messages.
 	Message string
+	Sticker string
 }
 
 // This is a way to obtain specific information not available with the current
@@ -134,6 +136,9 @@ func getMatchPattern(bot *tgbotapi.BotAPI, update tgbotapi.Update) (opMatchPatte
 		// Media messages won't have a "Text" attribute, but may have a
 		// "Caption", so let's match against it.
 		matchPattern.Message = update.Message.Caption
+	case update.Message.Sticker != nil && len(update.Message.Sticker.SetName) > 0:
+		// Let's match against the name of the sticker set.
+		matchPattern.Sticker = update.Message.Sticker.SetName
 	default:
 		// By default, we only get the actual message to match against.
 		matchPattern.Message = update.Message.Text
@@ -142,7 +147,7 @@ func getMatchPattern(bot *tgbotapi.BotAPI, update tgbotapi.Update) (opMatchPatte
 }
 
 // stringTomlToPatterns() converts the toml patterns from string to the Patterns
-// type, that ca be used for the matching.
+// type, that can be used for the matching.
 func stringTomlToPatterns(sp string) (opPatterns, error) {
 	newPatterns := opPatterns{}
 	if _, err := toml.Decode(sp, &newPatterns); err != nil {
@@ -204,6 +209,10 @@ func (p *opPatterns) matchPattern(m opMatchPattern) (bool, opMatchAction) {
 	if len(m.Message) > 0 {
 		// Common case; match against actual message.
 		return performGroupMatch(p.Message, m.Message)
+	}
+	if len(m.Sticker) > 0 {
+		// Let's check whether this sticker set is allowed.
+		return performGroupMatch(p.Sticker, m.Sticker)
 	}
 
 	// We are matching against the data from a new user who just joined.

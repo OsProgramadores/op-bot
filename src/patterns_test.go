@@ -24,6 +24,10 @@ action = "ban"
 
 [[message]]
 pattern = "foobar.example.com"
+action = "ban"
+
+[[sticker]]
+pattern = "(foobar|nsfw)"
 action = "ban"`
 )
 
@@ -99,6 +103,27 @@ func TestPatternMatch(t *testing.T) {
 			},
 			expected:       true,
 			expectedAction: opKick,
+		},
+		{
+			mp: opMatchPattern{
+				Sticker: "bar",
+			},
+			expected:       false,
+			expectedAction: opNoAction,
+		},
+		{
+			mp: opMatchPattern{
+				Sticker: "foobar",
+			},
+			expected:       true,
+			expectedAction: opBan,
+		},
+		{
+			mp: opMatchPattern{
+				Sticker: "nsfw_sticker_set",
+			},
+			expected:       true,
+			expectedAction: opBan,
 		},
 	}
 
