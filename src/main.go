@@ -71,7 +71,12 @@ func main() {
 	opbot.Register("hackerdetected", T("register_hackerdetected"), false, false, true, opbot.hackerHandler)
 	opbot.Register("help", T("register_help"), false, true, true, opbot.helpHandler)
 	opbot.Register("notifications", T("notifications_help"), false, true, true, opbot.notifications.notificationHandler)
+
+	// Commands to report messages to admins.
 	opbot.Register("ban", T("ban_help"), false, false, true, opbot.bans.banRequestHandler)
+	opbot.Register("admin", T("ban_help"), false, false, true, opbot.bans.banRequestHandler)
+	opbot.Register("report", T("ban_help"), false, false, true, opbot.bans.banRequestHandler)
+
 	opbot.Register("new_user_probation_time", T("new_user_probation_time_help"), true, false, true, opbot.setNewUserProbationTimeHandler)
 	opbot.Register("welcome_message_ttl", T("welcome_message_ttl_help"), true, false, true, opbot.setWelcomeMessageTTLHandler)
 	opbot.Register("captcha_time", T("captcha_time_help"), true, false, true, opbot.setCaptchaTimeHandler)
