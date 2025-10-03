@@ -211,7 +211,7 @@ func notifyAdmin(bot tgbotInterface, admin *tgbotapi.User, update tgbotapi.Updat
 	notificationText := fmt.Sprintf(T("notify_admin"), formatName(*update.Message.From), update.Message.From.ID, update.Message.Chat.Title, update.Message.ReplyToMessage.Text)
 	// We also replace literal newline `\n` with "\n", so that the lines will
 	// actually break, instead of displaying \n's.
-	notificationText = strings.Replace(notificationText, `\n`, "\n", -1)
+	notificationText = strings.ReplaceAll(notificationText, `\n`, "\n")
 
 	msg := tgbotapi.NewMessage(int64(admin.ID), notificationText)
 	msg.ParseMode = parseModeMarkdown
