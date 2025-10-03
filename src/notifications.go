@@ -251,7 +251,7 @@ func sendNotification(bot sender, recipient int, update tgbotapi.Update, respons
 
 	// We also replace literal newline `\n` with "\n", so that the lines will
 	// actually break, instead of displaying \n's.
-	notificationText = strings.Replace(notificationText, `\n`, "\n", -1)
+	notificationText = strings.ReplaceAll(notificationText, `\n`, "\n")
 
 	// Now the markup, which will contain a link to the message, if applicable.
 	var markup *tgbotapi.InlineKeyboardMarkup

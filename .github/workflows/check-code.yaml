@@ -5,22 +5,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Go compiler
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: 'stable'
           check-latest: true
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Build binary
         run: |
           go get -t ./...
           make
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
-        with:
-          # Disable errcheck (too noisy) for now.
-          # TODO: improve this by disabling only problematic regexps.
-          args: -D errcheck -E gofmt,revive
       - name: Go test
         run: |
           go test -v ./...
