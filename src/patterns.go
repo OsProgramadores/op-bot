@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/osprogramadores/telegram-bot-api"
 )
 
 // opMatchAction defines the possible actions to take when a pattern matches.
@@ -102,8 +102,8 @@ func getMatchPattern(bot *tgbotapi.BotAPI, update tgbotapi.Update) (opMatchPatte
 	switch {
 	case update.Message == nil:
 		return opMatchPattern{}, fmt.Errorf("getMatchPattern:  Invalid message")
-	case update.Message.NewChatMembers != nil:
-		// When a new user joins, we get some info on him/her to match against.
+	case update.ChatMember != nil && update.ChatMember.NewChatMember != nil:
+		// Get some info on new users to match the request.
 		args := url.Values{}
 		args.Add("chat_id", strconv.FormatInt(int64(update.Message.From.ID), 10))
 

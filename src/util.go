@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/osprogramadores/telegram-bot-api"
 )
 
 // safeWriteJSON saves `data' (in json) to file.
@@ -110,11 +110,13 @@ func buttonURL(msg, url string) tgbotapi.InlineKeyboardButton {
 }
 
 // sendPhotoReply sends a file/fileReader/fileBytes reply to a chatid/msgid.
-func sendPhotoReply(bot sender, chatid int64, messageid int, file interface{}, caption string) (tgbotapi.Message, error) {
-	photoConfig := tgbotapi.NewPhotoUpload(chatid, file)
+func sendPhotoReply(bot sender, chatID int64, messageID int, file interface{}, caption string) (tgbotapi.Message, error) {
+	photoConfig := tgbotapi.NewPhotoUpload(chatID, file)
 	photoConfig.Caption = caption
 	photoConfig.ParseMode = parseModeMarkdown
-	photoConfig.ReplyToMessageID = messageid
+	if messageID != 0 {
+		photoConfig.ReplyToMessageID = messageID
+	}
 	return bot.Send(photoConfig)
 }
 
