@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/osprogramadores/telegram-bot-api"
 )
 
 // Register registers a command a its handler on the bot.

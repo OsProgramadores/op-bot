@@ -14,7 +14,7 @@ import (
 	"unicode"
 
 	"github.com/dchest/captcha"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/osprogramadores/telegram-bot-api"
 )
 
 const (
@@ -73,7 +73,7 @@ func newPendingCaptchaType() *pendingCaptchaType {
 
 // sendCaptcha adds the user to the map of users that have not yet responded to
 // the captcha and sends a random captcha image as a reply to the message.
-func (x *opBot) sendCaptcha(bot tgbotInterface, update tgbotapi.Update, user tgbotapi.User) {
+func (x *opBot) sendCaptcha(bot tgbotInterface, chatID int64, messageID int, user tgbotapi.User) {
 	promCaptchaCount.Inc()
 
 	// Do not send captcha messages to bots (belt and suspenders...)
@@ -96,7 +96,7 @@ func (x *opBot) sendCaptcha(bot tgbotInterface, update tgbotapi.Update, user tgb
 		return
 	}
 	// Send.
-	msg, err := sendPhotoReply(bot, update.Message.Chat.ID, update.Message.MessageID, fb, fmt.Sprintf(T("enter_captcha"), name))
+	msg, err := sendPhotoReply(bot, chatID, messageID, fb, fmt.Sprintf(T("enter_captcha"), name))
 	if err != nil {
 		log.Printf("Warning: Unable to send captcha message: %v", err)
 		return
@@ -131,7 +131,7 @@ func genCaptchaImage(code int) (tgbotapi.FileBytes, error) {
 
 // captchaReaper creates a function to reap this user after the timeout in
 // x.captchaTime if the user still has not confirmed the captcha.
-func (x *opBot) captchaReaper(bot tgbotInterface, update tgbotapi.Update, user tgbotapi.User) {
+func (x *opBot) captchaReaper(bot tgbotInterface, chatID int64, user tgbotapi.User) {
 	time.AfterFunc(x.captchaTime, func() {
 		// User not in the list means they already confirmed captcha.
 		_, ok := x.pendingCaptcha.get(user.ID)
@@ -142,9 +142,8 @@ func (x *opBot) captchaReaper(bot tgbotInterface, update tgbotapi.Update, user t
 
 		name := nameRef(user)
 
-		// Let's check if this user is already banned, in which case we can
-		// skip some of the following steps.
-		banned, err := isBanned(bot, update.Message.Chat.ID, user.ID)
+		// check if this user is already banned and possibly skip some of the following steps.
+		banned, err := isBanned(bot, chatID, user.ID)
 		if err != nil {
 			log.Printf("Warning: Unable to get information for user %s (uid=%d): %v", name, user.ID, err)
 		}
@@ -164,16 +163,16 @@ func (x *opBot) captchaReaper(bot tgbotInterface, update tgbotapi.Update, user t
 
 		// As the user is not yet banned, proceed to kick+unban.
 		// Kick user and remove from list.
-		_, err = sendMessage(bot, update.Message.Chat.ID, fmt.Sprintf(T("no_captcha_received"), name))
+		_, err = sendMessage(bot, chatID, fmt.Sprintf(T("no_captcha_received"), name))
 		if err != nil {
 			log.Printf("Warning: Unable to send 'invalid captcha' message.")
 		}
 
-		if err = kickUser(bot, update.Message.Chat.ID, user.ID); err != nil {
+		if err = kickUser(bot, chatID, user.ID); err != nil {
 			log.Printf("Warning: Unable to kick user %s (uid=%d) out of the channel.", name, user.ID)
 		}
 
-		if err = unBanUser(bot, update.Message.Chat.ID, user.ID); err != nil {
+		if err = unBanUser(bot, chatID, user.ID); err != nil {
 			log.Printf("Warning: Unable to UNBAN user %s (uid=%d) (May be locked out.)", name, user.ID)
 		}
 	})
@@ -189,15 +188,8 @@ func (x *opBot) markAsPendingCaptcha(user tgbotapi.User, code int) {
 }
 
 // userCaptcha returns the captcha code for the user iff the captcha feature is
-// enabled, the user is not an admin, and the user has not yet been validated.
+// enabled, and the user has not yet been validated.
 func userCaptcha(x *opBot, bot getChatMemberer, chatid int64, userid int) *botCaptcha {
-	admin, err := isAdmin(bot, chatid, userid)
-	if err != nil {
-		log.Printf("Unable to determine if userid %d is an admin. Assuming regular user.", userid)
-	}
-	if admin {
-		return nil
-	}
 	if !captchaEnabled(x) {
 		return nil
 	}

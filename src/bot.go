@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math/rand"
 	"strings"
 	"time"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/osprogramadores/telegram-bot-api"
 	"github.com/patrickmn/go-cache"
 )
 
@@ -71,9 +70,6 @@ func newOpBot(config botConfig) (opBot, error) {
 		return opBot{}, fmt.Errorf("error initializing stats: %v", err)
 	}
 
-	// Initialize RNG.
-	rand.Seed(time.Now().UnixNano())
-
 	// Convert from parsed duration to time.Duration.
 	duration := config.NewUserProbationTime.Duration
 
@@ -119,12 +115,56 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 	updates, _ := bot.GetUpdatesChan(u)
 
 	for update := range updates {
+		//s, _ := json.MarshalIndent(update, "", "  ")
+		//log.Printf("DEBUG: JSON received from Telegram API:\n%s\n", s)
+
+		isNewUser := (update.ChatMember != nil &&
+			update.ChatMember.NewChatMember != nil &&
+			update.ChatMember.NewChatMember.Status == "member")
+
+		log.Println("NOTICE: user is new: ", isNewUser, update.ChatMember)
+
 		switch {
+		case isNewUser:
+			// The API sets ChatMember.NewChatMember if we have a new user joining.
+			// Messages with NewChatMember do not have a Message attached to them.
+			newUser := *update.ChatMember.NewChatMember.User
+			newChatID := update.ChatMember.Chat.ID
+
+			promJoinCount.Inc()
+
+			log.Printf("Processing new user request for user %q, uid=%d\n", formatName(newUser), newUser.ID)
+
+			// Ban bots. Move on to next user.
+			if newUser.IsBot {
+				x.banNewBots(bot, update, newUser)
+			}
+
+			// At this point we probably have a real user. Send the captcha and
+			// add user to the new users list. Welcome message is sent after
+			// the user validates.
+			log.Printf("Captcha time is %d, captcha enabled = %v", x.captchaTime, captchaEnabled(x))
+			if captchaEnabled(x) {
+				// Send the captcha to the user (messageID == 0 means it's not a reply to another message).
+				x.sendCaptcha(bot, newChatID, 0, newUser)
+				x.captchaReaper(bot, newChatID, newUser)
+			} else {
+				x.sendWelcome(bot, update, newUser)
+			}
+
 		case update.CallbackQuery != nil:
 			x.handleCallbackQuery(bot, update)
 
 		case update.Message != nil:
 			promMessageCount.Inc()
+
+			// Is user an admin?
+			var admin bool
+			admin, err := isAdmin(bot, update.Message.Chat.ID, update.Message.From.ID)
+			if err != nil {
+				log.Printf("Unable to determine if user (id: %d) is an admin in chat (id: %d). Assuming not.", update.Message.From.ID, update.Message.Chat.ID)
+			}
+			log.Println("NOTICE: user is admin: ", admin)
 
 			// Remove messages from bots.
 			if update.Message.From != nil && update.Message.From.IsBot {
@@ -139,13 +179,8 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 			// Notifications.
 			x.notifications.manageNotifications(bot, update)
 
-			admin, err := isAdmin(bot, update.Message.Chat.ID, update.Message.From.ID)
-			if err != nil {
-				log.Printf("Unable to determine if user (id: %d) is an admin in chat (id: %d). Assuming not.", update.Message.From.ID, update.Message.Chat.ID)
-			}
-
-			// Handle ban patterns before proceeding. Non admin users only.
 			if !admin {
+				// Handle ban patterns before proceeding.
 				match, err := x.handledPatternMatching(bot, update)
 				if err != nil {
 					log.Printf("Error handling pattern matching: %v\n", err)
@@ -154,52 +189,51 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 					log.Printf("Kick/Ban pattern match for userID %d, action %q\n", update.Message.From.ID, match.String())
 					continue
 				}
-			}
 
-			// Handle messages from users who are yet to validate the captcha.
-			// Explicitly ignore NewChatMember requests since users who leave
-			// the group and re-join will create one of such messages.
-			captcha := userCaptcha(x, bot, update.Message.Chat.ID, update.Message.From.ID)
-			if captcha != nil && update.Message.NewChatMembers == nil {
-				text := update.Message.Text
-				name := formatName(*update.Message.From)
-				userid := update.Message.From.ID
-				msgid := update.Message.MessageID
+				// Handle messages from users who are yet to validate the captcha.
+				captcha := userCaptcha(x, bot, update.Message.Chat.ID, update.Message.From.ID)
+				if captcha != nil {
+					text := update.Message.Text
+					name := formatName(*update.Message.From)
+					userid := update.Message.From.ID
+					msgid := update.Message.MessageID
+					chatid := update.Message.Chat.ID
 
-				// Remove all messages, validate text later (see below).
-				log.Printf("Removing message %d from non-captcha validated user %s (id=%d), want captcha=%04.4d: %q", msgid, name, userid, captcha.code, text)
-				deleteMessage(bot, update.Message.Chat.ID, msgid)
+					// Remove all messages, validate text later (see below).
+					log.Printf("Removing message %d from non-captcha validated user %s (id=%d), want captcha=%04.4d: %q", msgid, name, userid, captcha.code, text)
+					deleteMessage(bot, update.Message.Chat.ID, msgid)
 
-				// If the user requested another captcha, reset the code and
-				// send another captcha.
-				if captchaResendRequest(text) {
-					x.sendCaptcha(bot, update, *update.Message.From)
+					// If the user requested another captcha, reset the code and
+					// send another captcha.
+					if captchaResendRequest(text) {
+						x.sendCaptcha(bot, chatid, msgid, *update.Message.From)
+						continue
+					}
+
+					// If the text of this message matches the captcha, remove user
+					// from pendingCaptcha list and send the welcome message.
+					// Matching or not, continue to the next message right after,
+					// since the captcha message purpose has already been
+					// fulfilled.
+					if matchCaptcha(*captcha, text) {
+						// Remove from the pendingCaptcha list. The goroutine
+						// started to kick this user at join time will find nothing
+						// and exit normally.
+						promCaptchaValidatedCount.Inc()
+						x.pendingCaptcha.del(userid)
+						x.sendWelcome(bot, update, *update.Message.From)
+					}
 					continue
 				}
 
-				// If the text of this message matches the captcha, remove user
-				// from pendingCaptcha list and send the welcome message.
-				// Matching or not, continue to the next message right after,
-				// since the captcha message purpose has already been
-				// fulfilled.
-				if matchCaptcha(*captcha, text) {
-					// Remove from the pendingCaptcha list. The goroutine
-					// started to kick this user at join time will find nothing
-					// and exit normally.
-					promCaptchaValidatedCount.Inc()
-					x.pendingCaptcha.del(userid)
-					x.sendWelcome(bot, update, *update.Message.From)
+				// Block many types of rich media from new users (but always allows admins).
+				if removeBadRichMessages(bot, update) != 0 {
+					continue
 				}
-				continue
-			}
 
-			// Block many types of rich media from new users (but always allows admins).
-			if !admin && removeBadRichMessages(bot, update) != 0 {
-				continue
-			}
-
-			if x.config.NewUserProbationTime.Hours() > 0 && !admin {
-				x.processNewUsers(bot, update)
+				if x.config.NewUserProbationTime.Hours() > 0 {
+					x.processNewUsers(bot, update)
+				}
 			}
 
 			switch {
@@ -215,33 +249,6 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 			// Location.
 			case update.Message.Location != nil:
 				x.processLocationRequest(bot, update)
-
-			// New User Join event.
-			//
-			// Telegram generates these events anytime a new user joins the group.
-			// The list of New Members is present on update.Message.NewChatMembers.
-			case update.Message.NewChatMembers != nil:
-				for _, newUser := range *update.Message.NewChatMembers {
-					promJoinCount.Inc()
-
-					log.Printf("Processing new user request for user %q, uid=%d\n", formatName(newUser), newUser.ID)
-
-					// Ban bots. Move on to next user.
-					if newUser.IsBot {
-						x.banNewBots(bot, update, newUser)
-					}
-
-					// At this point we probably have a real user. Send the captcha
-					// and add user to the new users list. Welcome message is sent
-					// after the user validates.
-					log.Printf("Captcha time is %d, captcha enabled = %v", x.captchaTime, captchaEnabled(x))
-					if captchaEnabled(x) {
-						x.sendCaptcha(bot, update, newUser)
-						x.captchaReaper(bot, update, newUser)
-					} else {
-						x.sendWelcome(bot, update, newUser)
-					}
-				}
 
 			// User commands.
 			case update.Message.IsCommand():

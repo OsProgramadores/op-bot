@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/osprogramadores/telegram-bot-api"
 )
 
 var (
