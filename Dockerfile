@@ -11,7 +11,7 @@ ARG gopath="${home}/go"
 ARG src_dir="${home}/${project_name}"
 
 # Primary build stage.
-FROM alpine:3.20 as builder
+FROM alpine:3.22.1 as builder
 
 # Pull from defaults.
 ARG project_name
