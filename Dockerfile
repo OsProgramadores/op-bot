@@ -39,7 +39,7 @@ RUN apk add --no-cache ca-certificates git git-crypt go make && \
     make
 
 # Build the second stage (small) image
-FROM alpine:3.20
+FROM alpine:3.22.1
 LABEL org.opencontainers.image.title="${project_title}"
 LABEL org.opencontainers.image.authors="${project_author}"
 LABEL org.opencontainers.image.source="${project_source}"
