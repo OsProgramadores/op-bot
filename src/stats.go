@@ -32,8 +32,7 @@ func initStats() (io.WriteCloser, error) {
 // saveStats saves information on the received message to statsDB file as CSV.
 func saveStats(w io.Writer, u *tgbotapi.Update) (string, error) {
 	if w == nil {
-		//FIXME: maybe indicate in the error that the stats file writer is nil?
-		return "", nil
+		return "", errors.New(T("stats_error_nil_writer"))
 	}
 
 	if u.Message == nil {

@@ -43,6 +43,7 @@ notifications_disabled = "notifications disabled"
 stats_error_saving = "Error while saving message stats: %s (unsaved data: %q)"
 stats_error_empty_message = "empty message received"
 stats_error_unknown_user = "message sent by unknown user"
+stats_error_nil_writer = "uninitialized stats writer"
 
 # Ban request messages.
 

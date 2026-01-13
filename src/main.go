@@ -61,7 +61,7 @@ func main() {
 	}
 
 	// Print version
-	log.Printf("Starting op-bo, Git Build: %s\n", BuildVersion)
+	log.Printf("Starting op-bot, Git Build: %s\n", BuildVersion)
 
 	// Start the HTTP server listing the location info.
 	opbot.geolocations.serveLocations()

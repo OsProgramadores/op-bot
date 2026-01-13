@@ -43,6 +43,7 @@ notifications_disabled = "notificações desativadas"
 stats_error_saving = "Erro ao tentar salvar estatísticas de mensagens: %s (dado não salvo: %q)"
 stats_error_empty_message = "mensagem vazia recebida"
 stats_error_unknown_user = "mensagem enviada por usuário desconhecido"
+stats_error_nil_writer = "escritor de estatísticas não inicializado"
 
 # Ban request messages.
 

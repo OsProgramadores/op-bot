@@ -15,7 +15,7 @@ const (
 	// osProgramadoresURL contains the main group URL.
 	osProgramadoresURL = "https://osprogramadores.com"
 
-	// osProgramadoresURL contains the main group URL.
+	// osProgramadoresRulesURL contains the group rules URL.
 	osProgramadoresRulesURL = "https://osprogramadores.com/regras/"
 
 	// osProgramadoresGroup is the group username.

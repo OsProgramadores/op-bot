@@ -142,7 +142,7 @@ func deleteMessage(bot deleteMessager, chatid int64, msgid int) error {
 	if err != nil {
 		log.Printf("Unable to delete message (chat_id=%d, message_id=%d). Something is wrong.", chatid, msgid)
 	}
-	log.Printf("Removed message_id %d from chat_id %d", chatid, msgid)
+	log.Printf("Removed message_id %d from chat_id %d", msgid, chatid)
 	return err
 }
 
