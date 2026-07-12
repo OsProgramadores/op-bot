@@ -244,18 +244,18 @@ func (x *opBot) handleCaptchaFailure(bot tgbotInterface, chatID int64, messageID
 
 	switch fails {
 	case 1:
-		sendMessage(bot, chatID, fmt.Sprintf("Usuário %s não respondeu ao captcha e foi removido do grupo.", name))
+		sendMessage(bot, chatID, fmt.Sprintf(T("captcha_fail_1"), name))
 		kickUser(bot, chatID, user.ID)
 		unBanUser(bot, chatID, user.ID)
 	case 2:
-		sendMessage(bot, chatID, fmt.Sprintf("Usuário %s não respondeu ao captcha e foi removido. Aviso: Se tentar de novo e errar será removido por 24h.", name))
+		sendMessage(bot, chatID, fmt.Sprintf(T("captcha_fail_2"), name))
 		kickUser(bot, chatID, user.ID)
 		unBanUser(bot, chatID, user.ID)
 	case 3:
-		sendMessage(bot, chatID, fmt.Sprintf("Usuário %s falhou o captcha 3 vezes e foi banido por 24 horas.", name))
+		sendMessage(bot, chatID, fmt.Sprintf(T("captcha_fail_3"), name))
 		kickUserUntil(bot, chatID, user.ID, time.Now().Add(24*time.Hour))
 	default:
-		sendMessage(bot, chatID, fmt.Sprintf("Usuário %s falhou o captcha após as 24h e foi banido permanentemente.", name))
+		sendMessage(bot, chatID, fmt.Sprintf(T("captcha_fail_max"), name))
 		banUser(bot, chatID, user.ID)
 	}
 }
