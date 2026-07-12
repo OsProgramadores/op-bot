@@ -10,9 +10,8 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: stable
+          go-version: '1.24'
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v8
         with:
           version: v2.1
-          working-directory: src

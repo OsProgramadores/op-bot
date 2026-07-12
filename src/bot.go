@@ -33,6 +33,9 @@ type opBot struct {
 	// List of users not yet validated by captcha.
 	pendingCaptcha *pendingCaptchaType
 
+	// Track captcha failures across sessions
+	captchaFails *captchaFailures
+
 	// Don't send warning messages to new users on every infraction.
 	newUserWarningCache *cache.Cache
 
@@ -83,6 +86,7 @@ func newOpBot(config botConfig) (opBot, error) {
 
 		newUserCache:   cache.New(duration, duration),
 		pendingCaptcha: newPendingCaptchaType(),
+		captchaFails:   newCaptchaFailures(),
 
 		// How often will re-send warning messages to offending new users.
 		newUserWarningCache: cache.New(30*time.Minute, time.Hour),
@@ -221,7 +225,11 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 						// and exit normally.
 						promCaptchaValidatedCount.Inc()
 						x.pendingCaptcha.del(userid)
+						x.captchaFails.reset(userid)
 						x.sendWelcome(bot, update, *update.Message.From)
+					} else {
+						promCaptchaFailedCount.Inc()
+						x.handleCaptchaFailure(bot, chatid, msgid, *update.Message.From)
 					}
 					continue
 				}

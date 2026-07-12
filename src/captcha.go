@@ -143,7 +143,7 @@ func (x *opBot) captchaReaper(bot tgbotInterface, chatID int64, user tgbotapi.Us
 		name := nameRef(user)
 
 		// check if this user is already banned and possibly skip some of the following steps.
-		banned, err := isBanned(bot, chatID, user.ID)
+		_, err := isBanned(bot, chatID, user.ID)
 		if err != nil {
 			log.Printf("Warning: Unable to get information for user %s (uid=%d): %v", name, user.ID, err)
 		}
@@ -152,29 +152,7 @@ func (x *opBot) captchaReaper(bot tgbotInterface, chatID int64, user tgbotapi.Us
 		// in the pending captcha list, meaning they didn't confirm the
 		// captcha.
 
-		// Let's remove the pending request.
-		defer x.pendingCaptcha.del(user.ID)
-
-		// Do nothing if user is already kicked (probably by an admin).
-		if banned {
-			log.Printf("User %s (uid=%d) has already been banned (by admin?) Not unbanning.", name, user.ID)
-			return
-		}
-
-		// As the user is not yet banned, proceed to kick+unban.
-		// Kick user and remove from list.
-		_, err = sendMessage(bot, chatID, fmt.Sprintf(T("no_captcha_received"), name))
-		if err != nil {
-			log.Printf("Warning: Unable to send 'invalid captcha' message.")
-		}
-
-		if err = kickUser(bot, chatID, user.ID); err != nil {
-			log.Printf("Warning: Unable to kick user %s (uid=%d) out of the channel.", name, user.ID)
-		}
-
-		if err = unBanUser(bot, chatID, user.ID); err != nil {
-			log.Printf("Warning: Unable to UNBAN user %s (uid=%d) (May be locked out.)", name, user.ID)
-		}
+		x.handleCaptchaFailure(bot, chatID, 0, user)
 	})
 }
 
@@ -242,4 +220,86 @@ func bincode(s string) []byte {
 // captchaResendRequest returns true if the text contains a request for another captcha.
 func captchaResendRequest(s string) bool {
 	return strings.EqualFold(s, T("another_captcha"))
+}
+
+// handleCaptchaFailure deals with users who failed the captcha (timeout or wrong answer).
+func (x *opBot) handleCaptchaFailure(bot tgbotInterface, chatID int64, messageID int, user tgbotapi.User) {
+	name := nameRef(user)
+	fails := x.captchaFails.increment(user.ID)
+
+	log.Printf("User %s (uid=%d) failed captcha. Total fails: %d", name, user.ID, fails)
+
+	// Remove from pending
+	x.pendingCaptcha.del(user.ID)
+
+	banned, err := isBanned(bot, chatID, user.ID)
+	if err != nil {
+		log.Printf("Warning: Unable to get information for user %s (uid=%d): %v", name, user.ID, err)
+	}
+
+	if banned {
+		log.Printf("User %s (uid=%d) has already been banned. Not doing anything.", name, user.ID)
+		return
+	}
+
+	switch fails {
+	case 1:
+		sendMessage(bot, chatID, fmt.Sprintf("Usuário %s não respondeu ao captcha e foi removido do grupo.", name))
+		kickUser(bot, chatID, user.ID)
+		unBanUser(bot, chatID, user.ID)
+	case 2:
+		sendMessage(bot, chatID, fmt.Sprintf("Usuário %s não respondeu ao captcha e foi removido. Aviso: Se tentar de novo e errar será removido por 24h.", name))
+		kickUser(bot, chatID, user.ID)
+		unBanUser(bot, chatID, user.ID)
+	case 3:
+		sendMessage(bot, chatID, fmt.Sprintf("Usuário %s falhou o captcha 3 vezes e foi banido por 24 horas.", name))
+		kickUserUntil(bot, chatID, user.ID, time.Now().Add(24*time.Hour))
+	default:
+		sendMessage(bot, chatID, fmt.Sprintf("Usuário %s falhou o captcha após as 24h e foi banido permanentemente.", name))
+		banUser(bot, chatID, user.ID)
+	}
+}
+
+const captchaFailuresDB = "captcha_failures.json"
+
+type captchaFailures struct {
+	sync.RWMutex
+	Failures map[int]int `json:"failures"`
+}
+
+func newCaptchaFailures() *captchaFailures {
+	cf := &captchaFailures{
+		Failures: map[int]int{},
+	}
+	cf.load()
+	return cf
+}
+
+func (c *captchaFailures) load() {
+	c.Lock()
+	defer c.Unlock()
+	readJSONFromDataDir(&c.Failures, captchaFailuresDB)
+	if c.Failures == nil {
+		c.Failures = map[int]int{}
+	}
+}
+
+func (c *captchaFailures) save() error {
+	return safeWriteJSON(c.Failures, captchaFailuresDB)
+}
+
+func (c *captchaFailures) increment(userID int) int {
+	c.Lock()
+	defer c.Unlock()
+	c.Failures[userID]++
+	fails := c.Failures[userID]
+	c.save()
+	return fails
+}
+
+func (c *captchaFailures) reset(userID int) {
+	c.Lock()
+	defer c.Unlock()
+	delete(c.Failures, userID)
+	c.save()
 }
