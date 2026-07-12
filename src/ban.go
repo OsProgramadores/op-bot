@@ -331,7 +331,7 @@ func kickUserUntil(bot kickChatMemberer, chatID int64, userID int, until time.Ti
 	memberConfig := tgbotapi.ChatMemberConfig{ChatID: chatID, UserID: userID}
 	_, err := bot.KickChatMember(tgbotapi.KickChatMemberConfig{
 		ChatMemberConfig: memberConfig,
-		UntilDate: until.Unix(),
+		UntilDate:        until.Unix(),
 	})
 	return err
 }
