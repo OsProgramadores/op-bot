@@ -11,6 +11,13 @@ no_captcha_received = "Usuário %s não respondeu ao captcha e foi removido do g
 enter_captcha = "Bem-vindo(a) %s. Para confirmar a sua entrada no grupo, *digite o número acima* (sem espaços, apenas os dígitos) ou a palavra *outro* para obter um número diferente. *O bot o expulsará do grupo se o número correto não for digitado em 60s!* Qualquer outra mensagem será automaticamente apagada, até que o número correto seja digitado. Em caso de problemas, por favor entre em contato com os administradores do grupo."
 another_captcha = "outro"
 
+# Captcha failure messages.
+
+captcha_fail_1 = "Usuário %s não respondeu ao captcha e foi removido do grupo."
+captcha_fail_2 = "Usuário %s não respondeu ao captcha e foi removido. Aviso: Se tentar de novo e errar será removido por 24h."
+captcha_fail_3 = "Usuário %s falhou o captcha 3 vezes e foi banido por 24 horas."
+captcha_fail_max = "Usuário %s falhou o captcha após as 24h e foi banido permanentemente."
+
 # Register help messages.
 
 register_hackerdetected = "Dispara o alarme anti-hacker. :)"

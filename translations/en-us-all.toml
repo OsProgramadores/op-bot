@@ -11,6 +11,13 @@ enter_captcha = "Hello %s. Welcome to the group. *Please type the number above* 
 no_captcha_received = "User %s did not respond to the captcha and was removed from the group."
 another_captcha = "another"
 
+# Captcha failure messages.
+
+captcha_fail_1 = "User %s did not respond to the captcha and was removed from the group."
+captcha_fail_2 = "User %s did not respond to the captcha and was removed. Warning: If you try again and fail, you will be removed for 24h."
+captcha_fail_3 = "User %s failed the captcha 3 times and was banned for 24 hours."
+captcha_fail_max = "User %s failed the captcha after 24h and was banned permanently."
+
 # Register help messages.
 
 register_hackerdetected = "Fire the anti-hacker countermeasures. :)"
