@@ -5,7 +5,6 @@ import (
 	"log"
 	"strings"
 	"sync"
-	"time"
 
 	tgbotapi "github.com/osprogramadores/telegram-bot-api"
 )
@@ -323,15 +322,5 @@ func unBanUser(bot unbanChatMemberer, chatID int64, userID int) error {
 func kickUser(bot kickChatMemberer, chatID int64, userID int) error {
 	memberConfig := tgbotapi.ChatMemberConfig{ChatID: chatID, UserID: userID}
 	_, err := bot.KickChatMember(tgbotapi.KickChatMemberConfig{ChatMemberConfig: memberConfig})
-	return err
-}
-
-// kickUserUntil bans a user until a specific time.
-func kickUserUntil(bot kickChatMemberer, chatID int64, userID int, until time.Time) error {
-	memberConfig := tgbotapi.ChatMemberConfig{ChatID: chatID, UserID: userID}
-	_, err := bot.KickChatMember(tgbotapi.KickChatMemberConfig{
-		ChatMemberConfig: memberConfig,
-		UntilDate:        until.Unix(),
-	})
 	return err
 }
