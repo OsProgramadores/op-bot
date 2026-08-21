@@ -227,9 +227,6 @@ func (x *opBot) Run(bot *tgbotapi.BotAPI) {
 						x.pendingCaptcha.del(userid)
 						x.captchaFails.reset(userid)
 						x.sendWelcome(bot, update, *update.Message.From)
-					} else {
-						promCaptchaFailedCount.Inc()
-						x.handleCaptchaFailure(bot, chatid, msgid, *update.Message.From)
 					}
 					continue
 				}
