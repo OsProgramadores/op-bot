@@ -57,6 +57,30 @@ var (
 			Help: "Number of users kicked or banned by message pattern matching",
 		},
 	)
+	promCaptchaFail1Count = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "opbot_captchas_fail_1_total",
+			Help: "Total count of 1st captcha failures",
+		},
+	)
+	promCaptchaFail2Count = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "opbot_captchas_fail_2_total",
+			Help: "Total count of 2nd captcha failures",
+		},
+	)
+	promCaptchaFail3Count = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "opbot_captchas_fail_3_total",
+			Help: "Total count of 3rd captcha failures",
+		},
+	)
+	promCaptchaFailMaxCount = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "opbot_captchas_fail_max_total",
+			Help: "Total count of max captcha failures",
+		},
+	)
 )
 
 func init() {
@@ -69,6 +93,10 @@ func init() {
 		promRichMessageDeletedCount,
 		promPatternMessageDeletedCount,
 		promPatternKickBannedCount,
+		promCaptchaFail1Count,
+		promCaptchaFail2Count,
+		promCaptchaFail3Count,
+		promCaptchaFailMaxCount,
 	)
 
 	// Add handlers.
