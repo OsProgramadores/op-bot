@@ -244,17 +244,21 @@ func (x *opBot) handleCaptchaFailure(bot tgbotInterface, chatID int64, messageID
 
 	switch fails {
 	case 1:
+		promCaptchaFail1Count.Inc()
 		sendMessage(bot, chatID, fmt.Sprintf(T("captcha_fail_1"), name))
 		kickUser(bot, chatID, user.ID)
 		unBanUser(bot, chatID, user.ID)
 	case 2:
+		promCaptchaFail2Count.Inc()
 		sendMessage(bot, chatID, fmt.Sprintf(T("captcha_fail_2"), name))
 		kickUser(bot, chatID, user.ID)
 		unBanUser(bot, chatID, user.ID)
 	case 3:
+		promCaptchaFail3Count.Inc()
 		sendMessage(bot, chatID, fmt.Sprintf(T("captcha_fail_3"), name))
 		kickUserUntil(bot, chatID, user.ID, time.Now().Add(24*time.Hour))
 	default:
+		promCaptchaFailMaxCount.Inc()
 		sendMessage(bot, chatID, fmt.Sprintf(T("captcha_fail_max"), name))
 		banUser(bot, chatID, user.ID)
 	}
